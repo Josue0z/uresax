@@ -63,26 +63,34 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   _generate606() async {
     try {
-      var filePath =
-          'c:\\URESAX\\${widget.book.companyRnc}\\${widget.book.year}\\606\\606_${_topTitle.toLowerCase()}.txt';
-      var file = File(filePath);
-      await file.create(recursive: true);
-      await httpClient.post('/generate-606?sheetId=${current?.id}',
-          data: {'FILE_PATH': filePath});
-      var content = await file.readAsString();
-      await file.writeAsString(
-          '606|${widget.book.companyRnc}|${current?.sheetDate}|${invoices.length}\n');
-      await file.writeAsString(content, mode: FileMode.append);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('FUE GENERADO EL 606!'),
-        action: SnackBarAction(
-          label: 'ABRIR ARCHIVO',
-          onPressed: () async {
-            var dirPath = path.dirname(filePath);
-            await launchFile(dirPath);
-          },
-        ),
-      ));
+      if (invoices.isNotEmpty) {
+        var filePath =
+            'c:\\URESAX\\${widget.book.companyRnc}\\${widget.book.year}\\606\\606_${_topTitle.toLowerCase()}.txt';
+        var file = File(filePath);
+        await file.create(recursive: true);
+        await httpClient.post('/generate-606?sheetId=${current?.id}',
+            data: {'FILE_PATH': filePath});
+        var content = await file.readAsString();
+
+        var l = invoices
+            .where((e) => !((e['NCF'] as String).contains('B02')))
+            .toList()
+            .length;
+
+        await file.writeAsString(
+            '606|${widget.book.companyRnc}|${current?.sheetDate}|$l\n');
+        await file.writeAsString(content, mode: FileMode.append);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('FUE GENERADO EL 606!'),
+          action: SnackBarAction(
+            label: 'ABRIR ARCHIVO',
+            onPressed: () async {
+              var dirPath = path.dirname(filePath);
+              await launchFile(dirPath);
+            },
+          ),
+        ));
+      }
     } catch (e) {
       print(e);
     }
@@ -95,8 +103,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         builder: (ctx) => AddPurchaseModal(book: widget.book, sheet: current!));
     RawKeyboard.instance.addListener(_handlerKeys);
     if (invoice != null) {
-      invoices.add(invoice);
       invoicesLogs = await calcData(sheetId: current!.id);
+      invoices = await Purchase.getPurchases(sheetId: current!.id!);
       setState(() {});
     }
   }
