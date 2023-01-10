@@ -186,14 +186,24 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   TextEditingController itbis16 = TextEditingController();
   TextEditingController itbis18 = TextEditingController();
   TextEditingController company = TextEditingController();
+
   String? ncf;
-  String? ncfModifed;
   String? ncfVal;
+  String? ncfModifed;
+  String? ncfModifedVal;
   bool isLoading = false;
   final _formKey = GlobalKey<FormState>();
 
   bool get isAllCorrect {
     return isCorrectRnc && _formKey.currentState!.validate();
+  }
+
+  String get _title {
+    return widget.isEditing! ? 'Compra Seleccionada...' : 'Añadiendo Compra...';
+  }
+
+  String get _titleBtn {
+    return widget.isEditing! ? 'EDITAR COMPRA' : 'AÑADIR COMPRA';
   }
 
   _verifyTaxPayer() async {
@@ -231,10 +241,23 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
       if (widget.invoice != null) {
         rnc.value = TextEditingValue(text: widget.invoice!['RNC']);
-        day.value = TextEditingValue(text: widget.invoice!['DIA']);
+        String c = '';
+
+        if (widget.invoice!['NUMERO DE CHEQUE'] == null) {
+          c = '';
+        } else {
+          c = widget.invoice!['NUMERO DE CHEQUE'].toString();
+        }
+
+        ck.value = TextEditingValue(text: c);
+        currentBanking = widget.invoice!['ID DE BANCO'];
+        var chars = (widget.invoice!['DIA'] as String).split('');
+        if (chars[0] == '0') chars[0] = '';
+        day.value = TextEditingValue(text: chars.join(''));
         ncf = widget.invoice!['NOMBRE DE NCF'];
         ncfVal = widget.invoice!['NCF'];
-        ncfModifed = widget.invoice!['NCF MODIFICADO'];
+        ncfModifed = widget.invoice!['NOMBRE DE NCF MODIFICADO'];
+        ncfModifedVal = widget.invoice!['NCF MODIFICADO'];
         currentType = invoiceTypes
             .firstWhere((element) => element.name == widget.invoice!['TIPO'])
             .id;
@@ -269,6 +292,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         itbis16.value = val4;
       }
     } catch (e) {
+      print(e);
     } finally {
       setState(() {
         isLoading = false;
@@ -284,7 +308,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             invoiceTypeId: currentType!,
             invoicePaymentMethodId: currentPaymentMethod!,
             invoiceNcf: ncfVal,
-            invoiceNcfModifed: ncfModifed,
+            invoiceNcfModifed: ncfModifedVal,
             invoiceNcfDate: year.text,
             invoiceNcfDay: day.text,
             invoiceSheetId: widget.sheet.id!,
@@ -299,8 +323,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             invoiceCk: ck.text.isEmpty ? null : ck.text);
 
         if (!widget.isEditing!) {
-          await purchase.create();
-          Navigator.pop(context, true);
+         await purchase.create();
+        Navigator.pop(context, true);
         }
         print(purchase.toMap());
       }
@@ -314,7 +338,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
     return Dialog(
         child: !isLoading
             ? SizedBox(
-                width: 500,
+                width: 600,
                 child: Padding(
                   padding: const EdgeInsets.all(10),
                   child: Form(
@@ -323,10 +347,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                  widget.isEditing!
-                                      ? 'Editando Compra...'
-                                      : 'Añadiendo Compra...',
+                              Text(_title,
                                   style: const TextStyle(fontSize: 22)),
                               const Spacer(),
                               IconButton(
@@ -334,6 +355,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                   icon: const Icon(Icons.close))
                             ],
                           ),
+                          const SizedBox(height: 10),
                           Expanded(
                               child: ListView(
                             shrinkWrap: true,
@@ -420,10 +442,10 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         val == null ? 'CAMPO REQUERIDO' : null,
                                   ),
                                   NcfEditorWidget(
-                                    val: '',
-                                    ncfVal: '',
+                                    val: ncfModifed,
+                                    ncfVal: ncfModifedVal,
                                     hintText: 'NCF MODIFICADO',
-                                    onChanged: (val) => ncfModifed = val,
+                                    onChanged: (val) => ncfModifedVal = val,
                                   ),
                                   Padding(
                                       padding: const EdgeInsets.symmetric(
@@ -607,18 +629,30 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
+                                  const SizedBox(height: 10),
                                   SizedBox(
                                       width: double.maxFinite,
                                       height: 50,
                                       child: ElevatedButton(
                                         onPressed:
                                             !isCorrectRnc ? null : _onSubmit,
-                                        child: Text(
-                                            widget.isEditing!
-                                                ? 'EDITAR COMPRA'
-                                                : 'AÑADIR COMPRA',
+                                        child: Text(_titleBtn,
                                             style:
                                                 const TextStyle(fontSize: 19)),
+                                      )),
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                      width: double.maxFinite,
+                                      height: 50,
+                                      child: ElevatedButton(
+                                        style: ButtonStyle(
+                                            backgroundColor:
+                                                MaterialStateProperty.all(
+                                                    Theme.of(context)
+                                                        .errorColor)),
+                                        onPressed: () {},
+                                        child: const Text('ELIMINAR COMPRA',
+                                            style: TextStyle(fontSize: 19)),
                                       ))
                                 ],
                               )

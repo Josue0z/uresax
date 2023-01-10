@@ -9,6 +9,7 @@ import 'package:uresaxapp/modals/add-purchase-modal.dart';
 import 'package:uresaxapp/modals/add-sheet-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/ncftype.dart';
+import 'package:intl/intl.dart' as l;
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
@@ -36,13 +37,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   late StreamController<String?> _stream;
 
-  ScrollController? _scrollController;
+  ScrollController _scrollController = ScrollController();
   ScrollController? _horizontalScrollController;
   ScrollController? _verticalScrollController;
 
   List<Sheet> _sheets = [];
 
   Map<String, dynamic> invoicesLogs = {};
+
+  Widget? page;
 
   Sheet? get _latestSheet {
     return _sheets.isNotEmpty ? _sheets.last : null;
@@ -139,20 +142,18 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   _moveRight() {
-    var maxOffset = _scrollController?.position.maxScrollExtent;
-    var currentOffset = _scrollController?.offset;
-    var dif = currentOffset! - (currentOffset - maxOffset!);
+    var maxOffset = _scrollController.position.maxScrollExtent;
+    var currentOffset = _scrollController.offset;
 
-    if (currentOffset > dif) {
-    } else {
-      _scrollController?.jumpTo(_scrollController!.offset + 50);
+    if (currentOffset <= maxOffset) {
+      _scrollController.jumpTo(_scrollController.offset + 50);
     }
   }
 
   _moveLeft() {
-    var currentOffset = _scrollController!.offset;
+    var currentOffset = _scrollController.offset;
     if (currentOffset >= 0) {
-      _scrollController?.jumpTo(_scrollController!.offset - 50);
+      _scrollController.jumpTo(_scrollController.offset - 50);
     }
   }
 
@@ -177,6 +178,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   Future<void> _requestsInvoices(String sheetId) async {
     try {
       invoicesLogs = await calcData(sheetId: sheetId);
+
       switch (widget.book.bookType!) {
         case BookType.purchases:
           await _fecthPurchases(sheetId);
@@ -201,7 +203,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         var sheet = _sheets.firstWhere((sheet) => sheet.id == sheetId);
         current = sheet;
         widget.book.latestSheetVisited = current!.id;
-        _requestsInvoices(sheetId);
+        await _requestsInvoices(sheetId);
       }
     } catch (e) {
       rethrow;
@@ -212,9 +214,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     try {
       await widget.book.updateLatestSheetVisited(sheet.id!);
       _stream.add(sheet.id);
-    } catch (e) {
-      print(e);
-    }
+      _scrollController.jumpTo(0);
+    } catch (e) {}
   }
 
   Future<void> _fetchSheets() async {
@@ -242,20 +243,19 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     } catch (e) {}
   }
 
+  _setupScrollViews() {
+    _horizontalScrollController?.jumpTo(_scrollController.offset);
+  }
+
   @override
   void initState() {
+    _fetchSheets();
+    RawKeyboard.instance.addListener(_handlerKeys);
     _stream = StreamController();
-    _scrollController = ScrollController();
     _verticalScrollController = ScrollController();
     _horizontalScrollController = ScrollController();
-    _fetchSheets();
     _stream.stream.listen(_onSheetChanged);
-    _scrollController?.addListener(() {
-      _horizontalScrollController?.jumpTo(_scrollController!.offset);
-    });
-
-    RawKeyboard.instance.addListener(_handlerKeys);
-
+    _scrollController.addListener(_setupScrollViews);
     super.initState();
   }
 
@@ -264,10 +264,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     invoices = [];
     invoicesLogs = {};
     _stream.close();
-    _scrollController?.dispose();
+    _scrollController.dispose();
     _horizontalScrollController?.dispose();
     _verticalScrollController?.dispose();
-
     super.dispose();
   }
 
@@ -283,8 +282,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor)),
-            Text(invoicesLogs['TOTAL FACTURADO'] ?? '0.00',
-                style: const TextStyle(fontSize: 16, color: Colors.grey))
+            Text(
+                l.NumberFormat().format(
+                        double.tryParse(invoicesLogs['TOTAL FACTURADO'])) ??
+                    '0.00',
+                style: const TextStyle(fontSize: 18, color: Colors.black54))
           ],
         ),
         const SizedBox(width: 30),
@@ -296,8 +298,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor)),
-            Text(invoicesLogs['TOTAL NETO FACTURADO'] ?? '0.00',
-                style: const TextStyle(fontSize: 16, color: Colors.grey))
+            Text(
+                l.NumberFormat().format(double.tryParse(
+                        invoicesLogs['TOTAL NETO FACTURADO'])) ??
+                    '0.00',
+                style: const TextStyle(fontSize: 18, color: Colors.black54))
           ],
         ),
         const SizedBox(width: 30),
@@ -309,8 +314,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor)),
-            Text(invoicesLogs['TOTAL ITBIS FACTURADO'] ?? '0.00',
-                style: const TextStyle(fontSize: 16, color: Colors.grey))
+            Text(
+                l.NumberFormat().format(double.tryParse(
+                        invoicesLogs['TOTAL ITBIS FACTURADO'])) ??
+                    '0.00',
+                style: const TextStyle(fontSize: 18, color: Colors.black54))
           ],
         )
       ],
@@ -318,8 +326,18 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   Widget get _invoicesView {
-    var columns = invoices[0].keys.toList();
-    columns = [invoices.length.toString(), ...columns];
+    var invs = [...invoices];
+    var columns = invs[0].keys.toList();
+    columns.remove('id');
+    columns = [invs.length.toString(), ...columns];
+    var widgets = List.generate(columns.length, (index) {
+      return Container(
+        width: index == 0 ? 80 : 260,
+        padding: const EdgeInsets.all(15),
+        child: Text(columns[index],
+            style: const TextStyle(color: Colors.blue, fontSize: 19)),
+      );
+    });
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -342,17 +360,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               scrollDirection: Axis.horizontal,
               children: [
-                Row(
-                  children: List.generate(columns.length, (index) {
-                    return Container(
-                      width: index == 0 ? 80 : 260,
-                      padding: const EdgeInsets.all(15),
-                      child: Text(columns[index],
-                          style: const TextStyle(
-                              color: Colors.blue, fontSize: 19)),
-                    );
-                  }),
-                )
+                Row(children: [...widgets])
               ]),
         ),
         Expanded(
@@ -364,40 +372,41 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                       controller: _horizontalScrollController,
                       child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
-                          children: List.generate(invoices.length, (i) {
-                            var invoice = invoices[i];
+                          children: List.generate(invs.length, (i) {
+                            var invoice = invs[i];
                             var values = invoice.entries.toList();
                             values = [MapEntry('', (i + 1)), ...values];
+                            values.removeAt(1);
+                            var widgets = List.generate(values.length, (j) {
+                              var cell = values[j];
+                              return GestureDetector(
+                                onTap: () async {
+                                  await showDialog(
+                                      context: context,
+                                      builder: (ctx) => AddPurchaseModal(
+                                          isEditing: true,
+                                          book: widget.book,
+                                          sheet: current!,
+                                          invoice: invoice));
+                                },
+                                child: Container(
+                                  width: j == 0 ? 80 : 260,
+                                  color: Colors.grey.withOpacity(0.09),
+                                  padding: const EdgeInsets.all(15),
+                                  child: Text(
+                                    cell.value == null || cell.value == ''
+                                        ? 'NINGUNO'
+                                        : cell.value.toString(),
+                                    style: const TextStyle(
+                                        fontSize: 19,
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                ),
+                              );
+                            });
                             return Column(
                               children: [
-                                Row(
-                                    children: List.generate(values.length, (j) {
-                                  var cell = values[j];
-                                  return GestureDetector(
-                                    onTap: () async {
-                                      await showDialog(
-                                          context: context,
-                                          builder: (ctx) => AddPurchaseModal(
-                                              isEditing: true,
-                                              book: widget.book,
-                                              sheet: current!,
-                                              invoice: invoice));
-                                    },
-                                    child: Container(
-                                      width: j == 0 ? 80 : 260,
-                                      color: Colors.grey.withOpacity(0.09),
-                                      padding: const EdgeInsets.all(15),
-                                      child: Text(
-                                        cell.value == null || cell.value == ''
-                                            ? 'NINGUNO'
-                                            : cell.value.toString(),
-                                        style: const TextStyle(
-                                            fontSize: 19,
-                                            overflow: TextOverflow.ellipsis),
-                                      ),
-                                    ),
-                                  );
-                                })),
+                                Row(children: widgets),
                                 Container(height: 5, color: Colors.grey)
                               ],
                             );
