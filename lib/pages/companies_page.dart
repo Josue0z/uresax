@@ -4,7 +4,7 @@ import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:moment_dart/moment_dart.dart';
 import 'package:uresaxapp/pages/books_page.dart';
-import 'package:page_route_transition/page_route_transition.dart';
+
 
 class CompaniesPage extends StatefulWidget {
   const CompaniesPage({super.key});
@@ -57,17 +57,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
                 ),
                 trailing: Wrap(
                   children: [
-                    IconButton(
-                         onPressed: (){
-                           PageRouteTransition.effect = TransitionEffect.rightToLeft;
-                           PageRouteTransition.push(context,BooksPage(
-                                    company: company,
-                                    bookType: BookType.sales));
-                       
-                         },
-                        icon: const Icon(Icons.receipt),
-                        tooltip: 'VENTAS'),
-                    const SizedBox(width: 10),
+                   
                     IconButton(
                         onPressed: () => Navigator.push(
                             context,

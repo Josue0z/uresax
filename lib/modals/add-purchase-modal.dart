@@ -332,7 +332,15 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       print(e);
     }
   }
-
+ 
+ Future<void> _deletePurchase()async{
+    try{
+      await Purchase(id: widget.invoice?['id']).delete();
+      Navigator.pop(context,'DELETE');
+    }catch(e){
+      print(e);
+    }
+ }
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -641,7 +649,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                                 const TextStyle(fontSize: 19)),
                                       )),
                                   const SizedBox(height: 10),
-                                  SizedBox(
+                                 widget.isEditing! ?  SizedBox(
                                       width: double.maxFinite,
                                       height: 50,
                                       child: ElevatedButton(
@@ -650,10 +658,10 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                                 MaterialStateProperty.all(
                                                     Theme.of(context)
                                                         .errorColor)),
-                                        onPressed: () {},
+                                        onPressed:_deletePurchase,
                                         child: const Text('ELIMINAR COMPRA',
                                             style: TextStyle(fontSize: 19)),
-                                      ))
+                                      )):Container()
                                 ],
                               )
                             ],

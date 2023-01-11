@@ -1,10 +1,11 @@
 import 'package:uresaxapp/apis/http-client.dart';
 
 class Purchase {
-  String invoiceRnc;
-  int invoiceTypeId;
+  String? id;
+  String? invoiceRnc;
+  int? invoiceTypeId;
   int? invoiceBankingId;
-  int invoicePaymentMethodId;
+  int? invoicePaymentMethodId;
   String? invoiceNcf;
   String? invoiceNcfModifed;
   double? invoiceItbis18;
@@ -12,29 +13,31 @@ class Purchase {
   double? invoiceTotalServ;
   double? invoiceTotalBin;
   String? invoiceCk;
-  String invoiceNcfDate;
-  String invoiceNcfDay;
-  String invoiceSheetId;
-  String invoiceBookId;
-  String invoiceCompanyId;
+  String? invoiceNcfDate;
+  String? invoiceNcfDay;
+  String? invoiceSheetId;
+  String? invoiceBookId;
+  String? invoiceCompanyId;
 
   Purchase(
-      {required this.invoiceRnc,
-      required this.invoiceTypeId,
-      required this.invoicePaymentMethodId,
-      required this.invoiceNcf,
-      required this.invoiceNcfDate,
-      required this.invoiceNcfDay,
-      required this.invoiceSheetId,
-      required this.invoiceBookId,
-      required this.invoiceCompanyId,
-      required this.invoiceItbis18,
-      required this.invoiceItbis16,
-      required this.invoiceTotalServ,
-      required this.invoiceTotalBin,
-      required this.invoiceNcfModifed,
-      required this.invoiceBankingId,
-      required this.invoiceCk});
+      {
+      this.id,
+      this.invoiceRnc,
+      this.invoiceTypeId,
+      this.invoicePaymentMethodId,
+      this.invoiceNcf,
+      this.invoiceNcfDate,
+      this.invoiceNcfDay,
+      this.invoiceSheetId,
+      this.invoiceBookId,
+      this.invoiceCompanyId,
+      this.invoiceItbis18,
+      this.invoiceItbis16,
+      this.invoiceTotalServ,
+      this.invoiceTotalBin,
+      this.invoiceNcfModifed,
+      this.invoiceBankingId,
+      this.invoiceCk});
 
   Map<String, dynamic> toMap() {
     return {
@@ -64,6 +67,14 @@ class Purchase {
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<void> delete()async{
+     try{
+       await httpClient.delete('/purchases/$id');
+     }catch(e){
+      rethrow;
+     }
   }
 
   static Future<List<Map<String, dynamic>>> getPurchases(

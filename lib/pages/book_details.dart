@@ -37,7 +37,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   late StreamController<String?> _stream;
 
-  ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
   ScrollController? _horizontalScrollController;
   ScrollController? _verticalScrollController;
 
@@ -64,11 +64,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     return '${widget.book.bookTypeName!.toUpperCase()} ${_formatNumber(current!.sheetDate!, 'XXXX-XX')}';
   }
 
+  String get _date {
+    return _formatNumber(current!.sheetDate!, 'XXXXXX');
+  }
+
   _generate606() async {
     try {
       if (invoices.isNotEmpty) {
         var filePath =
-            'c:\\URESAX\\${widget.book.companyRnc}\\${widget.book.year}\\606\\606_${_topTitle.toLowerCase()}.txt';
+            'c:\\URESAX\\${widget.book.companyRnc}\\${widget.book.year}\\606\\DGII_F_606_${widget.book.companyRnc}_$_date.TXT';
         var file = File(filePath);
         await file.create(recursive: true);
         await httpClient.post('/generate-606?sheetId=${current?.id}',
@@ -101,11 +105,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   _showModalPurchase() async {
     RawKeyboard.instance.removeListener(_handlerKeys);
-    var invoice = await showDialog(
+    var result = await showDialog(
         context: context,
         builder: (ctx) => AddPurchaseModal(book: widget.book, sheet: current!));
     RawKeyboard.instance.addListener(_handlerKeys);
-    if (invoice != null) {
+
+    if (result != null) {
       invoicesLogs = await calcData(sheetId: current!.id);
       invoices = await Purchase.getPurchases(sheetId: current!.id!);
       setState(() {});
@@ -283,9 +288,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor)),
             Text(
-                l.NumberFormat().format(
-                        double.tryParse(invoicesLogs['TOTAL FACTURADO'])) ??
-                    '0.00',
+                l.NumberFormat()
+                    .format(double.tryParse(invoicesLogs['TOTAL FACTURADO'])),
                 style: const TextStyle(fontSize: 18, color: Colors.black54))
           ],
         ),
@@ -299,9 +303,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor)),
             Text(
-                l.NumberFormat().format(double.tryParse(
-                        invoicesLogs['TOTAL NETO FACTURADO'])) ??
-                    '0.00',
+                l.NumberFormat().format(
+                    double.tryParse(invoicesLogs['TOTAL NETO FACTURADO'])),
                 style: const TextStyle(fontSize: 18, color: Colors.black54))
           ],
         ),
@@ -315,9 +318,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor)),
             Text(
-                l.NumberFormat().format(double.tryParse(
-                        invoicesLogs['TOTAL ITBIS FACTURADO'])) ??
-                    '0.00',
+                l.NumberFormat().format(
+                    double.tryParse(invoicesLogs['TOTAL ITBIS FACTURADO'])),
                 style: const TextStyle(fontSize: 18, color: Colors.black54))
           ],
         )
@@ -381,13 +383,22 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                               var cell = values[j];
                               return GestureDetector(
                                 onTap: () async {
-                                  await showDialog(
+                                  var result = await showDialog(
                                       context: context,
                                       builder: (ctx) => AddPurchaseModal(
                                           isEditing: true,
                                           book: widget.book,
                                           sheet: current!,
                                           invoice: invoice));
+
+                           
+                                  if (result == 'DELETE') {
+                                    invoicesLogs = await calcData(sheetId: current!.id!);
+                                    invoices = await Purchase.getPurchases(
+                                        sheetId: current!.id!);
+                                    setState(() {
+                                    });
+                                  }
                                 },
                                 child: Container(
                                   width: j == 0 ? 80 : 260,
