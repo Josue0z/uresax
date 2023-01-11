@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uresaxapp/models/banking.dart';
 import 'package:uresaxapp/models/book.dart';
+import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/invoicetype.dart';
 import 'package:uresaxapp/models/ncftype.dart';
 import 'package:uresaxapp/models/payment-method.dart';
@@ -98,6 +99,8 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
               onChanged: (val) {
                 if (val == null) {
                   controller.value = const TextEditingValue(text: '');
+                  value = '';
+                  widget.onChanged(value);
                   return;
                 }
                 setState(() {
@@ -168,10 +171,12 @@ class AddPurchaseModal extends StatefulWidget {
 }
 
 class _AddPurchaseModalState extends State<AddPurchaseModal> {
+  List<Concept> concepts = [Concept(name: 'CONCEPTO')];
   List<Banking> bankings = [Banking(name: 'BANCO')];
   List<InvoiceType> invoiceTypes = [InvoiceType(name: 'TIPO DE FACTURA')];
   List<PaymentMethod> paymentMethods = [PaymentMethod(name: 'METODO DE PAGO')];
-
+  
+  int? currentConcept;
   int? currentBanking;
   int? currentType;
   int? currentPaymentMethod;
@@ -232,17 +237,16 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       setState(() {
         isLoading = true;
       });
-      var banks = await Banking.getBankings();
-      var itypes = await InvoiceType.getInvoicesTypes();
-      var pays = await PaymentMethod.getPaymentsMethods();
-      bankings.addAll(banks);
-      invoiceTypes.addAll(itypes);
-      paymentMethods.addAll(pays);
+
+      concepts.addAll(await Concept.getConcepts());
+      bankings.addAll(await Banking.getBankings());
+      invoiceTypes.addAll(await InvoiceType.getInvoicesTypes());
+      paymentMethods.addAll(await PaymentMethod.getPaymentsMethods());
 
       if (widget.invoice != null) {
         rnc.value = TextEditingValue(text: widget.invoice!['RNC']);
         String c = '';
-
+   
         if (widget.invoice!['NUMERO DE CHEQUE'] == null) {
           c = '';
         } else {
@@ -251,6 +255,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
         ck.value = TextEditingValue(text: c);
         currentBanking = widget.invoice!['ID DE BANCO'];
+        currentConcept = widget.invoice!['ID DE CONCEPTO'];
         var chars = (widget.invoice!['DIA'] as String).split('');
         if (chars[0] == '0') chars[0] = '';
         day.value = TextEditingValue(text: chars.join(''));
@@ -305,6 +310,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       if (isAllCorrect) {
         var purchase = Purchase(
             invoiceRnc: rnc.text,
+            invoiceConceptId:currentConcept,
             invoiceTypeId: currentType!,
             invoicePaymentMethodId: currentPaymentMethod!,
             invoiceNcf: ncfVal,
@@ -323,24 +329,23 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             invoiceCk: ck.text.isEmpty ? null : ck.text);
 
         if (!widget.isEditing!) {
-         await purchase.create();
-        Navigator.pop(context, true);
+          await purchase.create();
+          Navigator.pop(context, true);
         }
-        print(purchase.toMap());
       }
+    } catch (e) {
+    }
+  }
+
+  Future<void> _deletePurchase() async {
+    try {
+      await Purchase(id: widget.invoice?['id']).delete();
+      Navigator.pop(context, 'DELETE');
     } catch (e) {
       print(e);
     }
   }
- 
- Future<void> _deletePurchase()async{
-    try{
-      await Purchase(id: widget.invoice?['id']).delete();
-      Navigator.pop(context,'DELETE');
-    }catch(e){
-      print(e);
-    }
- }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -394,6 +399,50 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                      child: DropdownButtonFormField<int?>(
+                                        value: currentConcept,
+                                        validator: (val) => val == null
+                                            ? 'CAMPO REQUERIDO'
+                                            : null,
+                                        decoration: InputDecoration(
+                                          enabledBorder:
+                                              const OutlineInputBorder(
+                                            //<-- SEE HERE
+                                            borderSide: BorderSide(
+                                                color: Colors.grey, width: 1),
+                                          ),
+                                          focusedBorder:
+                                              const OutlineInputBorder(
+                                            //<-- SEE HERE
+                                            borderSide: BorderSide(
+                                                color: Colors.grey, width: 1),
+                                          ),
+                                          errorBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Theme.of(context)
+                                                      .errorColor)),
+                                        ),
+                                        hint: const Text('CONCEPTO'),
+                                        dropdownColor: Colors.white,
+                                        enableFeedback: false,
+                                        isExpanded: true,
+                                        focusColor: Colors.white,
+                                        onChanged: (val) {
+                                          setState(() {
+                                            currentConcept = val;
+                                          });
+                                        },
+                                        items:
+                                            concepts.map((concept) {
+                                          return DropdownMenuItem(
+                                            value: concept.id,
+                                            child: Text(concept.name!),
+                                          );
+                                        }).toList(),
+                                      )),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10),
@@ -649,19 +698,21 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                                 const TextStyle(fontSize: 19)),
                                       )),
                                   const SizedBox(height: 10),
-                                 widget.isEditing! ?  SizedBox(
-                                      width: double.maxFinite,
-                                      height: 50,
-                                      child: ElevatedButton(
-                                        style: ButtonStyle(
-                                            backgroundColor:
-                                                MaterialStateProperty.all(
-                                                    Theme.of(context)
-                                                        .errorColor)),
-                                        onPressed:_deletePurchase,
-                                        child: const Text('ELIMINAR COMPRA',
-                                            style: TextStyle(fontSize: 19)),
-                                      )):Container()
+                                  widget.isEditing!
+                                      ? SizedBox(
+                                          width: double.maxFinite,
+                                          height: 50,
+                                          child: ElevatedButton(
+                                            style: ButtonStyle(
+                                                backgroundColor:
+                                                    MaterialStateProperty.all(
+                                                        Theme.of(context)
+                                                            .errorColor)),
+                                            onPressed: _deletePurchase,
+                                            child: const Text('ELIMINAR COMPRA',
+                                                style: TextStyle(fontSize: 19)),
+                                          ))
+                                      : Container()
                                 ],
                               )
                             ],

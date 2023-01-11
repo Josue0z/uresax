@@ -39,6 +39,14 @@ class Book {
     }
   }
 
+  Future<void> delete()async{
+    try{
+      await httpClient.delete('/books/$id');
+    }catch(e){
+      rethrow;
+    }
+  }
+
   static Future<List<Book>> getBooks(
       {BookType bookType = BookType.purchases, String? companyId}) async {
     try {

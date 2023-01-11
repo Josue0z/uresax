@@ -6,6 +6,7 @@ class Purchase {
   int? invoiceTypeId;
   int? invoiceBankingId;
   int? invoicePaymentMethodId;
+  int? invoiceConceptId;
   String? invoiceNcf;
   String? invoiceNcfModifed;
   double? invoiceItbis18;
@@ -23,6 +24,7 @@ class Purchase {
       {
       this.id,
       this.invoiceRnc,
+      this.invoiceConceptId,
       this.invoiceTypeId,
       this.invoicePaymentMethodId,
       this.invoiceNcf,
@@ -42,6 +44,7 @@ class Purchase {
   Map<String, dynamic> toMap() {
     return {
       'invoice_rnc': invoiceRnc,
+      'invoice_conceptId':invoiceConceptId,
       'invoice_typeId': invoiceTypeId,
       'invoice_bankingId': invoiceBankingId,
       'invoice_payment_methodId': invoicePaymentMethodId,

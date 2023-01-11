@@ -6,13 +6,8 @@ class Company {
   String? name;
   String? rnc;
   DateTime? updatedAt;
-  DateTime createdAt;
-  Company(
-      {required this.id,
-      required this.name,
-      required this.rnc,
-      this.updatedAt,
-      required this.createdAt});
+  DateTime? createdAt;
+  Company({this.id, this.name, this.rnc, this.updatedAt, this.createdAt});
 
   static Future<List<Company>> getCompanies() async {
     try {
@@ -39,6 +34,14 @@ class Company {
     }
   }
 
+  Future<void> delete() async {
+    try {
+      await httpClient.delete('/companies/$id');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   factory Company.fromJson(Map<String, dynamic> json) {
     return Company(
         id: json['id'],
@@ -56,7 +59,7 @@ class Company {
       'company_name': name,
       'company_rnc': rnc,
       'updated_at': updatedAt?.toUtc().toString(),
-      'created_at': createdAt.toUtc().toString()
+      'created_at': createdAt?.toUtc().toString()
     };
   }
 }

@@ -35,28 +35,28 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   Sheet? current;
   String? currentId;
 
-  late StreamController<String?> _stream;
+  late StreamController<String?> stream = StreamController();
 
   final ScrollController _scrollController = ScrollController();
   ScrollController? _horizontalScrollController;
   ScrollController? _verticalScrollController;
 
-  List<Sheet> _sheets = [];
+  List<Sheet> sheets = [];
 
   Map<String, dynamic> invoicesLogs = {};
 
   Widget? page;
 
   Sheet? get _latestSheet {
-    return _sheets.isNotEmpty ? _sheets.last : null;
+    return sheets.isNotEmpty ? sheets.last : null;
   }
 
   bool get _checkSheetLimit {
-    return _sheets.length != 12;
+    return sheets.length != 12;
   }
 
   String get _title {
-    return '${widget.book.name!} RNC ${widget.book.companyRnc}';
+    return '${widget.book.name!} RNC ${widget.book.companyRnc} $_topTitle';
   }
 
   String get _topTitle {
@@ -127,9 +127,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               book: widget.book, latestSheetInserted: _latestSheet));
 
       if (newSheet is Sheet) {
-        _sheets.add(newSheet);
-        _sheets.sort(((a, b) => a.sheetMonth! - b.sheetMonth!));
-        _stream.add(newSheet.id);
+        sheets.add(newSheet);
+        sheets.sort(((a, b) => a.sheetMonth! - b.sheetMonth!));
+        stream.add(newSheet.id);
       }
     } catch (e) {}
   }
@@ -178,8 +178,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
   }
 
-  Future<void> _fetchSales(String sheetId) async {}
-
   Future<void> _requestsInvoices(String sheetId) async {
     try {
       invoicesLogs = await calcData(sheetId: sheetId);
@@ -188,44 +186,49 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         case BookType.purchases:
           await _fecthPurchases(sheetId);
           break;
-        case BookType.sales:
-          await _fetchSales(sheetId);
-          break;
         default:
           break;
       }
     } catch (e) {
       invoices = [];
       invoicesLogs = {};
+      print(e);
     } finally {
       setState(() {});
+      print('init');
     }
   }
 
   Future<void> _onSheetChanged(String? sheetId) async {
     try {
       if (sheetId != null) {
-        var sheet = _sheets.firstWhere((sheet) => sheet.id == sheetId);
+        var sheet = sheets.firstWhere((sheet) => sheet.id == sheetId);
         current = sheet;
         widget.book.latestSheetVisited = current!.id;
         await _requestsInvoices(sheetId);
       }
     } catch (e) {
-      rethrow;
+      print(e);
     }
   }
 
   Future<void> _setCurrentSheet(Sheet sheet) async {
     try {
       await widget.book.updateLatestSheetVisited(sheet.id!);
-      _stream.add(sheet.id);
+      stream.add(sheet.id);
       _scrollController.jumpTo(0);
-    } catch (e) {}
+    } catch (e) {
+      print(e);
+    }
   }
 
   Future<void> _fetchSheets() async {
-    _sheets = await Sheet.getSheetsByBookId(bookId: widget.book.id ?? '');
-    _stream.add(widget.book.latestSheetVisited);
+    try {
+      sheets = await Sheet.getSheetsByBookId(bookId: widget.book.id ?? '');
+      stream.add(widget.book.latestSheetVisited);
+    } catch (e) {
+      print(e);
+    }
   }
 
   void _handlerKeys(RawKeyEvent value) {
@@ -256,10 +259,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   void initState() {
     _fetchSheets();
     RawKeyboard.instance.addListener(_handlerKeys);
-    _stream = StreamController();
     _verticalScrollController = ScrollController();
     _horizontalScrollController = ScrollController();
-    _stream.stream.listen(_onSheetChanged);
+    stream.stream.listen(_onSheetChanged);
     _scrollController.addListener(_setupScrollViews);
     super.initState();
   }
@@ -268,7 +270,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   void dispose() {
     invoices = [];
     invoicesLogs = {};
-    _stream.close();
+    sheets = [];
+    stream.close();
     _scrollController.dispose();
     _horizontalScrollController?.dispose();
     _verticalScrollController?.dispose();
@@ -276,54 +279,29 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   Widget get _infoTop {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Column(
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      children:invoicesLogs.keys.map((key) {
+        var val = invoicesLogs[key];
+        return Container(
+          margin: const EdgeInsets.only(left: 30,top: 20),
+       
+          child:  Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('TOTAL FACTURADO',
+            Text(key,
                 style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor)),
             Text(
                 l.NumberFormat()
-                    .format(double.tryParse(invoicesLogs['TOTAL FACTURADO'])),
+                    .format(double.tryParse(val)),
                 style: const TextStyle(fontSize: 18, color: Colors.black54))
           ],
         ),
-        const SizedBox(width: 30),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('TOTAL NETO FACTURADO',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).primaryColor)),
-            Text(
-                l.NumberFormat().format(
-                    double.tryParse(invoicesLogs['TOTAL NETO FACTURADO'])),
-                style: const TextStyle(fontSize: 18, color: Colors.black54))
-          ],
-        ),
-        const SizedBox(width: 30),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('ITBIS FACTURADO',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).primaryColor)),
-            Text(
-                l.NumberFormat().format(
-                    double.tryParse(invoicesLogs['TOTAL ITBIS FACTURADO'])),
-                style: const TextStyle(fontSize: 18, color: Colors.black54))
-          ],
-        )
-      ],
+        );
+      }).toList()
     );
   }
 
@@ -343,17 +321,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            child: Row(
-              children: [
-                Text(_topTitle,
-                    style: TextStyle(
-                        color: Theme.of(context).primaryColor, fontSize: 24)),
-                const Spacer(),
-                _infoTop
-              ],
-            )),
+        SizedBox(height: 80,child:  _infoTop),
         Container(
           height: 60,
           alignment: Alignment.center,
@@ -391,13 +359,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                                           sheet: current!,
                                           invoice: invoice));
 
-                           
                                   if (result == 'DELETE') {
-                                    invoicesLogs = await calcData(sheetId: current!.id!);
+                                    invoicesLogs =
+                                        await calcData(sheetId: current!.id!);
                                     invoices = await Purchase.getPurchases(
                                         sheetId: current!.id!);
-                                    setState(() {
-                                    });
+                                    setState(() {});
                                   }
                                 },
                                 child: Container(
@@ -436,7 +403,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        children: _sheets.map((sheet) {
+        children: sheets.map((sheet) {
           var isCurrent = widget.book.latestSheetVisited == sheet.id;
           return GestureDetector(
             onTap: () => _setCurrentSheet(sheet),
@@ -490,10 +457,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           children: [
             FloatingActionButton(
                 heroTag: null,
-                tooltip: _sheets.isEmpty
+                tooltip: sheets.isEmpty
                     ? 'AÑADE UNA HOJA PRIMERO'
                     : 'AÑADIR FACTURA DE ${widget.book.bookTypeName}',
-                onPressed: _sheets.isNotEmpty ? _showModal : null,
+                onPressed: sheets.isNotEmpty ? _showModal : null,
                 child: const Icon(Icons.insert_drive_file_outlined)),
             const SizedBox(width: 10),
             FloatingActionButton(

@@ -5,7 +5,6 @@ import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/pages/book_details.dart';
 
-
 class BooksPage extends StatefulWidget {
   Company company;
   BookType bookType;
@@ -22,8 +21,23 @@ class _BooksPageState extends State<BooksPage> {
     try {
       books = await Book.getBooks(
           companyId: widget.company.id, bookType: widget.bookType);
-    } catch (e) {}
-    setState(() {});
+    } catch (e) {
+      print(e);
+    } finally {
+      setState(() {});
+    }
+  }
+
+  _delete(Book book, int index) async {
+    try {
+      await book.delete();
+      books.removeAt(index);
+      setState(() {
+      });
+      return;
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -64,7 +78,11 @@ class _BooksPageState extends State<BooksPage> {
                         context,
                         MaterialPageRoute(
                             builder: (ctx) => BookDetailsPage(book: book))),
-                    icon: const Icon(Icons.remove_red_eye))
+                    icon: const Icon(Icons.remove_red_eye)),
+                IconButton(
+                    onPressed: () => _delete(book, index),
+                    color: Theme.of(context).errorColor,
+                    icon: const Icon(Icons.delete))
               ],
             ),
           );

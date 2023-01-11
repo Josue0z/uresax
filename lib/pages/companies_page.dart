@@ -15,9 +15,23 @@ class CompaniesPage extends StatefulWidget {
 
 class _CompaniesPageState extends State<CompaniesPage> {
   List<Company> companies = [];
+
   _fetchCompanies() async {
     companies = await Company.getCompanies();
     setState(() {});
+  }
+
+  _deleteCompany(Company company,int index)async{
+     try{
+      await Company(id: company.id).delete();
+      companies.removeAt(index);
+      setState(() {
+        
+      });
+      return;
+     }catch(e){
+      print(e);
+     }
   }
 
   @override
@@ -52,7 +66,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
                     style: Theme.of(context).textTheme.headline5),
                 minVerticalPadding: 15,
                 subtitle: Text(
-                  'RNC ${company.rnc} ${company.createdAt.format("DD/MM/y")}',
+                  'RNC ${company.rnc} ${company.createdAt?.format("DD/MM/y")}',
                   style: const TextStyle(fontSize: 18),
                 ),
                 trailing: Wrap(
@@ -69,7 +83,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
                         tooltip: 'COMPRAS Y GASTOS'),
                     const SizedBox(width: 10),
                     IconButton(
-                        onPressed: () {},
+                        onPressed:()=>_deleteCompany(company,index),
                         icon: Icon(Icons.delete,
                             color: Theme.of(context).errorColor),
                         tooltip: 'ELIMINAR')
