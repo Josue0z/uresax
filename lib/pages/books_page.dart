@@ -1,9 +1,14 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:moment_dart/moment_dart.dart';
 import 'package:uresaxapp/modals/add-book-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
+import 'package:uresaxapp/models/purchase.dart';
+import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/pages/book_details.dart';
+import 'package:uresaxapp/utils/functions.dart';
 
 class BooksPage extends StatefulWidget {
   Company company;
@@ -16,6 +21,9 @@ class BooksPage extends StatefulWidget {
 
 class _BooksPageState extends State<BooksPage> {
   List<Book> books = [];
+  List<Sheet> sheets = [];
+  var invoicesLogs = {};
+  var invoices = [];
 
   _fetchBooks() async {
     try {
@@ -32,8 +40,7 @@ class _BooksPageState extends State<BooksPage> {
     try {
       await book.delete();
       books.removeAt(index);
-      setState(() {
-      });
+      setState(() {});
       return;
     } catch (e) {
       print(e);
@@ -74,13 +81,36 @@ class _BooksPageState extends State<BooksPage> {
             trailing: Wrap(
               children: [
                 IconButton(
-                    onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (ctx) => BookDetailsPage(book: book))),
+                    onPressed: () async {
+                      try {
+                        showLoader(context);
+                        var data = await fetchDataBook(
+                            bookId: book.id!,
+                            sheetId: book.latestSheetVisited ?? 'x');
+
+                        await Future.delayed(const Duration(milliseconds: 200));
+
+                        Navigator.pop(context);
+                        invoices = data['invoices'];
+                        invoicesLogs = data['invoicesLogs'];
+                        sheets = data['sheets'];
+                      
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (ctx) => BookDetailsPage(
+                                    book: book,
+                                    invoices: invoices,
+                                    invoicesLogs: invoicesLogs,
+                                    sheets: sheets)));
+                    
+                       
+                      } catch (_) {
+                      }
+                    },
                     icon: const Icon(Icons.remove_red_eye)),
                 IconButton(
-                    onPressed: () => _delete(book, index),
+                    onPressed:null, //() => _delete(book, index),
                     color: Theme.of(context).errorColor,
                     icon: const Icon(Icons.delete))
               ],
@@ -117,6 +147,7 @@ class _BooksPageState extends State<BooksPage> {
               context: context,
               builder: (ctx) => AddBookModal(
                   company: widget.company,
+                  books: books,
                   bookTypeId: widget.bookType == BookType.purchases ? 1 : 2,
                   bookYear: y));
           if (book is Book) {

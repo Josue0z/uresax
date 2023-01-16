@@ -23,36 +23,37 @@ String _formatNumber(String value, String pattern) {
 
 class BookDetailsPage extends StatefulWidget {
   Book book;
-  BookDetailsPage({super.key, required this.book});
+  List<Sheet> sheets = [];
+  var invoices = [];
+  var invoicesLogs = {};
+  BookDetailsPage(
+      {super.key,
+      required this.book,
+      required this.invoices,
+      required this.invoicesLogs,
+      required this.sheets});
 
   @override
   State<BookDetailsPage> createState() => _BookDetailsPageState();
 }
 
 class _BookDetailsPageState extends State<BookDetailsPage> {
-  List<Map<String, dynamic>> invoices = [];
-
   Sheet? current;
-  String? currentId;
-
   late StreamController<String?> stream = StreamController();
 
   final ScrollController _scrollController = ScrollController();
-  ScrollController? _horizontalScrollController;
-  ScrollController? _verticalScrollController;
 
-  List<Sheet> sheets = [];
+  final ScrollController _horizontalScrollController = ScrollController();
+  final ScrollController _verticalScrollController = ScrollController();
 
   Map<String, dynamic> invoicesLogs = {};
 
-  Widget? page;
-
   Sheet? get _latestSheet {
-    return sheets.isNotEmpty ? sheets.last : null;
+    return widget.sheets.isNotEmpty ? widget.sheets.last : null;
   }
 
   bool get _checkSheetLimit {
-    return sheets.length != 12;
+    return widget.sheets.length != 12;
   }
 
   String get _title {
@@ -68,9 +69,24 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     return _formatNumber(current!.sheetDate!, 'XXXXXX');
   }
 
+  _moveLeft() {
+    var currentOffset = _scrollController.offset;
+    if (currentOffset >= 0) {
+      _scrollController.jumpTo(_scrollController.offset - 50);
+    }
+  }
+
+  _moveUp() {
+    _verticalScrollController.jumpTo(_verticalScrollController.offset - 50);
+  }
+
+  _moveDown() {
+    _verticalScrollController.jumpTo(_verticalScrollController.offset + 50);
+  }
+
   _generate606() async {
     try {
-      if (invoices.isNotEmpty) {
+      if (widget.invoices.isNotEmpty) {
         var filePath =
             'c:\\URESAX\\${widget.book.companyRnc}\\${widget.book.year}\\606\\DGII_F_606_${widget.book.companyRnc}_$_date.TXT';
         var file = File(filePath);
@@ -79,7 +95,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             data: {'FILE_PATH': filePath});
         var content = await file.readAsString();
 
-        var l = invoices
+        var l = widget.invoices
             .where((e) => !((e['NCF'] as String).contains('B02')))
             .toList()
             .length;
@@ -111,13 +127,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     RawKeyboard.instance.addListener(_handlerKeys);
 
     if (result != null) {
-      invoicesLogs = await calcData(sheetId: current!.id);
-      invoices = await Purchase.getPurchases(sheetId: current!.id!);
+      var data = await fetchDataBook(sheetId: current!.id);
+      widget.invoicesLogs = data['invoicesLogs'];
+      widget.invoices = data['invoices'];
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('SE INSERTO LA FACTURA CON EL RNC: ${result['RNC']} Y EL NCF: ${result['NCF']}')));
       setState(() {});
     }
   }
-
-  _showModalSale() {}
 
   _showModalSheet() async {
     try {
@@ -127,23 +143,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               book: widget.book, latestSheetInserted: _latestSheet));
 
       if (newSheet is Sheet) {
-        sheets.add(newSheet);
-        sheets.sort(((a, b) => a.sheetMonth! - b.sheetMonth!));
+        widget.sheets.add(newSheet);
+        widget.sheets.sort(((a, b) => a.sheetMonth! - b.sheetMonth!));
         stream.add(newSheet.id);
       }
     } catch (e) {}
   }
 
   _showModal() {
-    switch (widget.book.bookType) {
-      case BookType.purchases:
-        _showModalPurchase();
-        break;
-      case BookType.sales:
-        _showModalSale();
-        break;
-      default:
-    }
+    _showModalPurchase();
   }
 
   _moveRight() {
@@ -155,80 +163,29 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
   }
 
-  _moveLeft() {
-    var currentOffset = _scrollController.offset;
-    if (currentOffset >= 0) {
-      _scrollController.jumpTo(_scrollController.offset - 50);
-    }
-  }
-
-  _moveUp() {
-    _verticalScrollController?.jumpTo(_verticalScrollController!.offset - 50);
-  }
-
-  _moveDown() {
-    _verticalScrollController?.jumpTo(_verticalScrollController!.offset + 50);
-  }
-
-  Future<void> _fecthPurchases(String sheetId) async {
-    try {
-      invoices = await Purchase.getPurchases(sheetId: sheetId);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<void> _requestsInvoices(String sheetId) async {
-    try {
-      invoicesLogs = await calcData(sheetId: sheetId);
-
-      switch (widget.book.bookType!) {
-        case BookType.purchases:
-          await _fecthPurchases(sheetId);
-          break;
-        default:
-          break;
-      }
-    } catch (e) {
-      invoices = [];
-      invoicesLogs = {};
-      print(e);
-    } finally {
-      setState(() {});
-      print('init');
-    }
-  }
-
   Future<void> _onSheetChanged(String? sheetId) async {
     try {
       if (sheetId != null) {
-        var sheet = sheets.firstWhere((sheet) => sheet.id == sheetId);
+        var sheet = widget.sheets.firstWhere((sheet) => sheet.id == sheetId);
         current = sheet;
-        widget.book.latestSheetVisited = current!.id;
-        await _requestsInvoices(sheetId);
+        widget.book.latestSheetVisited = sheetId;
+        await widget.book.updateLatestSheetVisited(sheetId);
+        showLoader(context);
+        var data = await fetchDataBook(bookId: widget.book.id!, sheetId: sheetId);
+        widget.invoices = data['invoices'];
+        widget.invoicesLogs = data['invoicesLogs'];
+        await Future.delayed(const Duration(milliseconds: 300));
+        Navigator.pop(context);
+        _scrollController.jumpTo(0);
       }
-    } catch (e) {
-      print(e);
+    } catch (_) {
+    } finally {
+      setState(() {});
     }
   }
 
   Future<void> _setCurrentSheet(Sheet sheet) async {
-    try {
-      await widget.book.updateLatestSheetVisited(sheet.id!);
-      stream.add(sheet.id);
-      _scrollController.jumpTo(0);
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  Future<void> _fetchSheets() async {
-    try {
-      sheets = await Sheet.getSheetsByBookId(bookId: widget.book.id ?? '');
-      stream.add(widget.book.latestSheetVisited);
-    } catch (e) {
-      print(e);
-    }
+    stream.add(sheet.id);
   }
 
   void _handlerKeys(RawKeyEvent value) {
@@ -252,61 +209,80 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   _setupScrollViews() {
-    _horizontalScrollController?.jumpTo(_scrollController.offset);
+    _horizontalScrollController.jumpTo(_scrollController.offset);
+  }
+
+  _selectInvoice(invoice) async {
+    var result = await showDialog(
+        context: context,
+        builder: (ctx) => AddPurchaseModal(
+            book: widget.book,
+            sheet: current!,
+            invoice: invoice,
+            isEditing: true));
+
+    if (result['method'] == 'DELETE') {
+      var data =
+          await fetchDataBook(bookId: widget.book.id!, sheetId: current!.id!);
+      widget.invoices = data['invoices'];
+      widget.invoicesLogs = data['invoicesLogs'];
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('SE ELIMINO LA FACTURA CON EL RNC: ${result['invoice']['RNC']} Y EL NCF: ${result['invoice']['NCF']}')));
+      setState(() {});
+    }
   }
 
   @override
   void initState() {
-    _fetchSheets();
-    RawKeyboard.instance.addListener(_handlerKeys);
-    _verticalScrollController = ScrollController();
-    _horizontalScrollController = ScrollController();
-    stream.stream.listen(_onSheetChanged);
-    _scrollController.addListener(_setupScrollViews);
+    try {
+      if (widget.sheets.isNotEmpty) {
+        var sheet = widget.sheets
+            .firstWhere((sheet) => sheet.id == widget.book.latestSheetVisited);
+        current = sheet;
+      }
+      RawKeyboard.instance.addListener(_handlerKeys);
+      stream.stream.listen(_onSheetChanged);
+      _scrollController.addListener(_setupScrollViews);
+    } catch (e) {}
     super.initState();
   }
 
   @override
   void dispose() {
-    invoices = [];
-    invoicesLogs = {};
-    sheets = [];
+    widget.invoices = [];
+    widget.invoicesLogs = {};
+    widget.sheets = [];
     stream.close();
     _scrollController.dispose();
-    _horizontalScrollController?.dispose();
-    _verticalScrollController?.dispose();
+    _horizontalScrollController.dispose();
+    _verticalScrollController.dispose();
     super.dispose();
   }
 
   Widget get _infoTop {
     return ListView(
-      scrollDirection: Axis.horizontal,
-      children:invoicesLogs.keys.map((key) {
-        var val = invoicesLogs[key];
-        return Container(
-          margin: const EdgeInsets.only(left: 30,top: 20),
-       
-          child:  Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(key,
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).primaryColor)),
-            Text(
-                l.NumberFormat()
-                    .format(double.tryParse(val)),
-                style: const TextStyle(fontSize: 18, color: Colors.black54))
-          ],
-        ),
-        );
-      }).toList()
-    );
+        scrollDirection: Axis.horizontal,
+        children: widget.invoicesLogs.keys.map((key) {
+          var val = widget.invoicesLogs[key];
+          return Container(
+            margin: const EdgeInsets.only(left: 30, top: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(key,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).primaryColor)),
+                Text(l.NumberFormat().format(double.tryParse(val ?? 'b')),
+                    style: const TextStyle(fontSize: 18, color: Colors.black54))
+              ],
+            ),
+          );
+        }).toList());
   }
 
   Widget get _invoicesView {
-    var invs = [...invoices];
+    var invs = [...widget.invoices];
     var columns = invs[0].keys.toList();
     columns.remove('id');
     columns = [invs.length.toString(), ...columns];
@@ -321,7 +297,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 80,child:  _infoTop),
+        SizedBox(height: 80, child: _infoTop),
         Container(
           height: 60,
           alignment: Alignment.center,
@@ -350,23 +326,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                             var widgets = List.generate(values.length, (j) {
                               var cell = values[j];
                               return GestureDetector(
-                                onTap: () async {
-                                  var result = await showDialog(
-                                      context: context,
-                                      builder: (ctx) => AddPurchaseModal(
-                                          isEditing: true,
-                                          book: widget.book,
-                                          sheet: current!,
-                                          invoice: invoice));
-
-                                  if (result == 'DELETE') {
-                                    invoicesLogs =
-                                        await calcData(sheetId: current!.id!);
-                                    invoices = await Purchase.getPurchases(
-                                        sheetId: current!.id!);
-                                    setState(() {});
-                                  }
-                                },
+                                onTap: () => _selectInvoice(invoice),
                                 child: Container(
                                   width: j == 0 ? 80 : 260,
                                   color: Colors.grey.withOpacity(0.09),
@@ -403,7 +363,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        children: sheets.map((sheet) {
+        children: widget.sheets.map((sheet) {
           var isCurrent = widget.book.latestSheetVisited == sheet.id;
           return GestureDetector(
             onTap: () => _setCurrentSheet(sheet),
@@ -451,16 +411,16 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             IconButton(onPressed: _generate606, icon: const Icon(Icons.save))
           ],
         ),
-        body: invoices.isNotEmpty ? _invoicesView : _emptyContainer,
+        body: widget.invoices.isNotEmpty ? _invoicesView : _emptyContainer,
         floatingActionButton: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             FloatingActionButton(
                 heroTag: null,
-                tooltip: sheets.isEmpty
+                tooltip: widget.sheets.isEmpty
                     ? 'AÑADE UNA HOJA PRIMERO'
                     : 'AÑADIR FACTURA DE ${widget.book.bookTypeName}',
-                onPressed: sheets.isNotEmpty ? _showModal : null,
+                onPressed: widget.sheets.isNotEmpty ? _showModal : null,
                 child: const Icon(Icons.insert_drive_file_outlined)),
             const SizedBox(width: 10),
             FloatingActionButton(

@@ -330,7 +330,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
         if (!widget.isEditing!) {
           await purchase.create();
-          Navigator.pop(context, true);
+          Navigator.pop(context, {
+            'method':'INSERT',
+            'RNC':purchase.invoiceRnc,
+            'NCF':purchase.invoiceNcf
+          });
         }
       }
     } catch (e) {
@@ -340,7 +344,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   Future<void> _deletePurchase() async {
     try {
       await Purchase(id: widget.invoice?['id']).delete();
-      Navigator.pop(context, 'DELETE');
+      Navigator.pop(context, {'method':'DELETE','invoice':widget.invoice});
     } catch (e) {
       print(e);
     }

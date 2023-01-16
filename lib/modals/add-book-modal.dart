@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
+import 'package:uresaxapp/utils/modals-actions.dart';
 
 class AddBookModal extends StatefulWidget {
+  List<Book> books = [];
   Company company;
   int bookTypeId;
   int bookYear;
 
   AddBookModal(
       {super.key,
+      required this.books,
       required this.bookYear,
       required this.company,
       required this.bookTypeId});
@@ -28,16 +31,20 @@ class _AddBookModalState extends State<AddBookModal> {
 
   _addBook() async {
     try {
-      var book = await Book.fromJson({
-        'book_year': widget.bookYear,
-        'company_rnc': widget.company.rnc,
-        'companyId': widget.company.id,
-        'book_typeId': widget.bookTypeId
-      }).create();
-  
-      Navigator.pop(context,book);
+      int year =  int.parse(bookYear!.text);
+      if(widget.books.any((element) => element.year == year)){
+        throw 'YA EXISTE ESTE LIBRO';
+      }
+      var book = await Book(
+              year:year,
+              companyRnc: widget.company.rnc,
+              companyId: widget.company.id,
+              bookTypeId: widget.bookTypeId)
+          .create();
+
+      Navigator.pop(context, book);
     } catch (e) {
-      print(e);
+       showAlert(context,message: e.toString());
     }
   }
 
@@ -68,7 +75,6 @@ class _AddBookModalState extends State<AddBookModal> {
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           child: TextField(
                               controller: bookYear,
-                              readOnly: true,
                               style: const TextStyle(fontSize: 20),
                               decoration: const InputDecoration(
                                   border: OutlineInputBorder(),

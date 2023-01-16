@@ -83,7 +83,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
                         tooltip: 'COMPRAS Y GASTOS'),
                     const SizedBox(width: 10),
                     IconButton(
-                        onPressed:()=>_deleteCompany(company,index),
+                        onPressed:null,//()=>_deleteCompany(company,index),
                         icon: Icon(Icons.delete,
                             color: Theme.of(context).errorColor),
                         tooltip: 'ELIMINAR')

@@ -7,7 +7,7 @@ class AddSheetModal extends StatefulWidget {
   final Book book;
   Sheet? latestSheetInserted;
 
-  AddSheetModal({super.key, required this.book, this.latestSheetInserted});
+  AddSheetModal({super.key, required this.book,this.latestSheetInserted});
 
   @override
   State<AddSheetModal> createState() => _AddSheetModalState();
@@ -24,11 +24,14 @@ class _AddSheetModalState extends State<AddSheetModal> {
   Future<void> _addSheet() async {
     try {
       if (_formKey.currentState!.validate()) {
+        var y = int.parse(_bookYear!.text);
+        var m = int.parse(_monthYear!.text);
+
         var newSheet = await Sheet(
                 bookId: widget.book.id,
                 companyId: widget.book.companyId,
-                sheetYear: int.parse(_bookYear!.text),
-                sheetMonth: int.parse(_monthYear!.text))
+                sheetYear: y,
+                sheetMonth: m)
             .create();
         Navigator.pop(context, newSheet);
       }
