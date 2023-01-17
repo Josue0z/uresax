@@ -14,6 +14,7 @@ import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:path/path.dart' as path;
+import 'package:uresaxapp/utils/modals-actions.dart';
 
 String _formatNumber(String value, String pattern) {
   int i = 0;
@@ -220,7 +221,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       if (key == LogicalKeyboardKey.arrowDown.keyId) {
         _moveDown();
       }
-    } catch (e) {}
+    } catch (_) {}
   }
 
   _setupScrollViews() {
@@ -266,22 +267,27 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   _deleteSheet() async {
     try {
       if (widget.sheets.isNotEmpty) {
-        await Sheet(id: current!.id!).delete();
-        widget.sheets.remove(current!);
-        widget.book.latestSheetVisited = current!.id;
+        var isConfirm =
+            await showConfirm(context, body: 'DESEAS ELIMINAR ESTA HOJA?');
 
-        if(currentSheetIndex == 0 && widget.sheets.isNotEmpty){
-           widget.book.latestSheetVisited = widget.sheets[currentSheetIndex].id;
-           currentSheetIndex+=1;
+        if (isConfirm!) {
+          await Sheet(id: current!.id!).delete();
+          widget.sheets.remove(current!);
+          widget.book.latestSheetVisited = current!.id;
+
+          if (currentSheetIndex == 0 && widget.sheets.isNotEmpty) {
+            widget.book.latestSheetVisited =
+                widget.sheets[currentSheetIndex].id;
+            currentSheetIndex += 1;
+          }
+          if (currentSheetIndex >= 0 && widget.sheets.isNotEmpty) {
+            currentSheetIndex -= 1;
+            widget.book.latestSheetVisited =
+                widget.sheets[currentSheetIndex].id;
+          }
+
+          stream.add(widget.book.latestSheetVisited);
         }
-
-        if (currentSheetIndex >= 0 && widget.sheets.isNotEmpty) {
-          currentSheetIndex-=1;
-          widget.book.latestSheetVisited =
-              widget.sheets[currentSheetIndex].id;
-        }
-
-        stream.add(widget.book.latestSheetVisited);
       }
     } catch (e) {
       print(e);

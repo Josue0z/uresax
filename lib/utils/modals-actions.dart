@@ -42,3 +42,49 @@ void showAlert(BuildContext context, {String message = '', String? title}) {
                 ),
               ))));
 }
+
+Future<bool?> showConfirm(BuildContext context,
+    {String title = 'CONFIRMAR ACCION', String body = ''}) async {
+  return await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+            child: SizedBox(
+                width: 350,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      Row(children: [
+                        Text(title,
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).primaryColor)),
+                        const Spacer(),
+                      ]),
+                      const SizedBox(height: 15),
+                      Text(body, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(height: 15),
+                      Row(
+                        children: [
+                          const Spacer(),
+                          ElevatedButton(
+                              style: ButtonStyle(
+                                  backgroundColor:
+                                      MaterialStateProperty.all(Colors.grey)),
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('CERRAR')),
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('CONFIRMAR'))
+                        ],
+                      )
+                    ],
+                  ),
+                )),
+          ));
+}
