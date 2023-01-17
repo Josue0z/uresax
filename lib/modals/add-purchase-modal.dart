@@ -175,7 +175,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   List<Banking> bankings = [Banking(name: 'BANCO')];
   List<InvoiceType> invoiceTypes = [InvoiceType(name: 'TIPO DE FACTURA')];
   List<PaymentMethod> paymentMethods = [PaymentMethod(name: 'METODO DE PAGO')];
-  
+
   int? currentConcept;
   int? currentBanking;
   int? currentType;
@@ -246,7 +246,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       if (widget.invoice != null) {
         rnc.value = TextEditingValue(text: widget.invoice!['RNC']);
         String c = '';
-   
+
         if (widget.invoice!['NUMERO DE CHEQUE'] == null) {
           c = '';
         } else {
@@ -296,8 +296,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         itbis18.value = val2;
         itbis16.value = val4;
       }
-    } catch (e) {
-      print(e);
+    } catch (_) {
     } finally {
       setState(() {
         isLoading = false;
@@ -309,8 +308,9 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
     try {
       if (isAllCorrect) {
         var purchase = Purchase(
+            id: widget.invoice?['id'] ?? '',
             invoiceRnc: rnc.text,
-            invoiceConceptId:currentConcept,
+            invoiceConceptId: currentConcept,
             invoiceTypeId: currentType!,
             invoicePaymentMethodId: currentPaymentMethod!,
             invoiceNcf: ncfVal,
@@ -331,23 +331,30 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         if (!widget.isEditing!) {
           await purchase.create();
           Navigator.pop(context, {
-            'method':'INSERT',
-            'RNC':purchase.invoiceRnc,
-            'NCF':purchase.invoiceNcf
+            'method': 'INSERT',
+            'RNC': purchase.invoiceRnc,
+            'NCF': purchase.invoiceNcf
+          });
+        }else{
+          //print(purchase.id);
+          var data = await purchase.update();
+          Navigator.pop(context,{
+            'method':'UPDATE',
+            'RNC':data['RNC'],
+            'NCF':data['NCF']
           });
         }
       }
     } catch (e) {
+      print(e);
     }
   }
 
   Future<void> _deletePurchase() async {
     try {
       await Purchase(id: widget.invoice?['id']).delete();
-      Navigator.pop(context, {'method':'DELETE','invoice':widget.invoice});
-    } catch (e) {
-      print(e);
-    }
+      Navigator.pop(context, {'method': 'DELETE', 'invoice': widget.invoice});
+    } catch (_) {}
   }
 
   @override
@@ -403,7 +410,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
-                                    Padding(
+                                  Padding(
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 10),
                                       child: DropdownButtonFormField<int?>(
@@ -439,8 +446,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                             currentConcept = val;
                                           });
                                         },
-                                        items:
-                                            concepts.map((concept) {
+                                        items: concepts.map((concept) {
                                           return DropdownMenuItem(
                                             value: concept.id,
                                             child: Text(concept.name!),
@@ -637,9 +643,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                     child: TextFormField(
                                       style: const TextStyle(fontSize: 18),
                                       controller: totalServ,
-                                      validator: (val) => val!.isEmpty
-                                          ? 'CAMPO REQUERIDO'
-                                          : null,
+                                      validator: currentType == 9
+                                          ? null
+                                          : (val) => val!.isEmpty
+                                              ? 'CAMPO REQUERIDO'
+                                              : null,
                                       inputFormatters: [
                                         ThousandsFormatter(allowFraction: true)
                                       ],

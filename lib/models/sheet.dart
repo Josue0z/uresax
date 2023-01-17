@@ -47,6 +47,14 @@ class Sheet {
       rethrow;
     }
   }
+
+  Future<void> delete()async{
+     try{
+      await httpClient.delete('/sheets/$id');
+     }catch(e){
+      rethrow;
+     }
+  }
   Map<String,dynamic>  toMap(){
     return {
       'id':id,

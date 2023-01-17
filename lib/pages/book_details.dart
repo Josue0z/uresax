@@ -39,6 +39,7 @@ class BookDetailsPage extends StatefulWidget {
 
 class _BookDetailsPageState extends State<BookDetailsPage> {
   Sheet? current;
+  int currentSheetIndex = -1;
   late StreamController<String?> stream = StreamController();
 
   final ScrollController _scrollController = ScrollController();
@@ -120,19 +121,24 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   _showModalPurchase() async {
-    RawKeyboard.instance.removeListener(_handlerKeys);
-    var result = await showDialog(
-        context: context,
-        builder: (ctx) => AddPurchaseModal(book: widget.book, sheet: current!));
-    RawKeyboard.instance.addListener(_handlerKeys);
+    try {
+      RawKeyboard.instance.removeListener(_handlerKeys);
+      var result = await showDialog(
+          context: context,
+          builder: (ctx) =>
+              AddPurchaseModal(book: widget.book, sheet: current!));
+      RawKeyboard.instance.addListener(_handlerKeys);
 
-    if (result != null) {
-      var data = await fetchDataBook(sheetId: current!.id);
-      widget.invoicesLogs = data['invoicesLogs'];
-      widget.invoices = data['invoices'];
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('SE INSERTO LA FACTURA CON EL RNC: ${result['RNC']} Y EL NCF: ${result['NCF']}')));
-      setState(() {});
-    }
+      if (result['method'] == 'INSERT') {
+        var data = await fetchDataBook(sheetId: current!.id);
+        widget.invoicesLogs = data['invoicesLogs'];
+        widget.invoices = data['invoices'];
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'SE INSERTO LA FACTURA CON EL RNC: ${result['RNC']} Y EL NCF: ${result['NCF']}')));
+        setState(() {});
+      }
+    } catch (_) {}
   }
 
   _showModalSheet() async {
@@ -145,9 +151,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       if (newSheet is Sheet) {
         widget.sheets.add(newSheet);
         widget.sheets.sort(((a, b) => a.sheetMonth! - b.sheetMonth!));
+        currentSheetIndex = widget.sheets.indexOf(newSheet);
         stream.add(newSheet.id);
       }
-    } catch (e) {}
+    } catch (_) {}
   }
 
   _showModal() {
@@ -166,25 +173,33 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   Future<void> _onSheetChanged(String? sheetId) async {
     try {
       if (sheetId != null) {
-        var sheet = widget.sheets.firstWhere((sheet) => sheet.id == sheetId);
-        current = sheet;
+        if (widget.sheets.isNotEmpty) {
+          var sheet = widget.sheets.firstWhere((sheet) => sheet.id == sheetId);
+          current = sheet;
+        }
         widget.book.latestSheetVisited = sheetId;
         await widget.book.updateLatestSheetVisited(sheetId);
         showLoader(context);
-        var data = await fetchDataBook(bookId: widget.book.id!, sheetId: sheetId);
+        var data =
+            await fetchDataBook(bookId: widget.book.id!, sheetId: sheetId);
         widget.invoices = data['invoices'];
         widget.invoicesLogs = data['invoicesLogs'];
         await Future.delayed(const Duration(milliseconds: 300));
         Navigator.pop(context);
-        _scrollController.jumpTo(0);
+
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(0);
+        }
       }
-    } catch (_) {
+    } catch (e) {
+      print(e);
     } finally {
       setState(() {});
     }
   }
 
-  Future<void> _setCurrentSheet(Sheet sheet) async {
+  Future<void> _setCurrentSheet(Sheet sheet, int index) async {
+    currentSheetIndex = index;
     stream.add(sheet.id);
   }
 
@@ -213,35 +228,79 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   _selectInvoice(invoice) async {
-    var result = await showDialog(
-        context: context,
-        builder: (ctx) => AddPurchaseModal(
-            book: widget.book,
-            sheet: current!,
-            invoice: invoice,
-            isEditing: true));
+    try {
+      var result = await showDialog(
+          context: context,
+          builder: (ctx) => AddPurchaseModal(
+              book: widget.book,
+              sheet: current!,
+              invoice: invoice,
+              isEditing: true));
 
-    if (result['method'] == 'DELETE') {
-      var data =
-          await fetchDataBook(bookId: widget.book.id!, sheetId: current!.id!);
-      widget.invoices = data['invoices'];
-      widget.invoicesLogs = data['invoicesLogs'];
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('SE ELIMINO LA FACTURA CON EL RNC: ${result['invoice']['RNC']} Y EL NCF: ${result['invoice']['NCF']}')));
-      setState(() {});
+      if (result['method'] == 'DELETE') {
+        var data =
+            await fetchDataBook(bookId: widget.book.id!, sheetId: current!.id!);
+        widget.invoices = data['invoices'];
+        widget.invoicesLogs = data['invoicesLogs'];
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'SE ELIMINO LA FACTURA CON EL RNC: ${result['invoice']['RNC']} Y EL NCF: ${result['invoice']['NCF']}')));
+        setState(() {});
+      }
+
+      if (result['method'] == 'UPDATE') {
+        var data =
+            await fetchDataBook(bookId: widget.book.id!, sheetId: current!.id!);
+        widget.invoices = data['invoices'];
+        widget.invoicesLogs = data['invoicesLogs'];
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'SE ACTUALIZO LA FACTURA CON EL RNC: ${result['RNC']} Y EL NCF: ${result['NCF']}')));
+        setState(() {});
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  _deleteSheet() async {
+    try {
+      if (widget.sheets.isNotEmpty) {
+        await Sheet(id: current!.id!).delete();
+        widget.sheets.remove(current!);
+        widget.book.latestSheetVisited = current!.id;
+
+        if(currentSheetIndex == 0 && widget.sheets.isNotEmpty){
+           widget.book.latestSheetVisited = widget.sheets[currentSheetIndex].id;
+           currentSheetIndex+=1;
+        }
+
+        if (currentSheetIndex >= 0 && widget.sheets.isNotEmpty) {
+          currentSheetIndex-=1;
+          widget.book.latestSheetVisited =
+              widget.sheets[currentSheetIndex].id;
+        }
+
+        stream.add(widget.book.latestSheetVisited);
+      }
+    } catch (e) {
+      print(e);
     }
   }
 
   @override
   void initState() {
     try {
-      if (widget.sheets.isNotEmpty) {
-        var sheet = widget.sheets
-            .firstWhere((sheet) => sheet.id == widget.book.latestSheetVisited);
-        current = sheet;
-      }
       RawKeyboard.instance.addListener(_handlerKeys);
       stream.stream.listen(_onSheetChanged);
       _scrollController.addListener(_setupScrollViews);
+
+      if (mounted) {
+        current = widget.sheets
+            .firstWhere((s) => s.id == widget.book.latestSheetVisited);
+        currentSheetIndex = widget.sheets.indexOf(current!);
+        setState(() {});
+      }
     } catch (e) {}
     super.initState();
   }
@@ -291,7 +350,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         width: index == 0 ? 80 : 260,
         padding: const EdgeInsets.all(15),
         child: Text(columns[index],
-            style: const TextStyle(color: Colors.blue, fontSize: 19)),
+            style: const TextStyle(color: Colors.blue, fontSize: 17)),
       );
     });
     return Column(
@@ -336,7 +395,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                                         ? 'NINGUNO'
                                         : cell.value.toString(),
                                     style: const TextStyle(
-                                        fontSize: 19,
+                                        fontSize: 17,
                                         overflow: TextOverflow.ellipsis),
                                   ),
                                 ),
@@ -365,8 +424,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         scrollDirection: Axis.horizontal,
         children: widget.sheets.map((sheet) {
           var isCurrent = widget.book.latestSheetVisited == sheet.id;
+          var index = widget.sheets.indexOf(sheet);
           return GestureDetector(
-            onTap: () => _setCurrentSheet(sheet),
+            onTap: () => _setCurrentSheet(sheet, index),
             child: AnimatedContainer(
                 decoration: BoxDecoration(
                     color: isCurrent ? Colors.blue : Colors.transparent,
@@ -408,7 +468,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         appBar: AppBar(
           title: Text(_title),
           actions: [
-            IconButton(onPressed: _generate606, icon: const Icon(Icons.save))
+            IconButton(
+                onPressed: _deleteSheet,
+                icon: const Icon(Icons.delete),
+                tooltip: 'ELIMINAR ESTA HOJA'),
+            IconButton(onPressed: _generate606, icon: const Icon(Icons.save)),
           ],
         ),
         body: widget.invoices.isNotEmpty ? _invoicesView : _emptyContainer,

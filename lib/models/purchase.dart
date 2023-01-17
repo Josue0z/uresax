@@ -71,7 +71,15 @@ class Purchase {
       rethrow;
     }
   }
-
+  
+  Future<Map<String,dynamic>> update()async{
+    try{
+      var result = await httpClient.patch('/purchases/$id',data: toMap());
+      return result.data;
+    }catch(_){
+      rethrow;
+    }
+  }
   Future<void> delete()async{
      try{
        await httpClient.delete('/purchases/$id');
