@@ -126,7 +126,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ));
       }
     } catch (e) {
-      print(e);
+      showAlert(context, message: e.toString());
     }
   }
 
