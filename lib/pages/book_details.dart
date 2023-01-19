@@ -112,7 +112,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         var content =
             const ListToCsvConverter(fieldDelimiter: '|').convert(arr);
 
-        file.writeAsString(content);
+        await file.writeAsString(content);
 
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('FUE GENERADO EL 606!'),
