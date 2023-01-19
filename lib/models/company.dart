@@ -1,5 +1,5 @@
-import 'package:dio/dio.dart';
-import 'package:uresaxapp/apis/http-client.dart';
+import 'package:uuid/uuid.dart';
+import 'package:uresaxapp/apis/connection.dart';
 
 class Company {
   String? id;
@@ -10,36 +10,38 @@ class Company {
   Company({this.id, this.name, this.rnc, this.updatedAt, this.createdAt});
 
   static Future<List<Company>> getCompanies() async {
-    try {
-      var response = await httpClient.get('/companies');
-      return (response.data as List)
-          .map((map) => Company.fromJson(map))
-          .toList()
-          .cast<Company>();
-    } catch (e) {
-      rethrow;
+    try{
+     var results = await connection
+      .mappedResultsQuery('''select * from public."CompanyDetails";''');
+      return results.map((row) => Company.fromJson(row['']!)).toList();
+    }catch(e){
+       rethrow;
     }
   }
 
   Future<Company> create() async {
-    try {
-      var response =
-          await httpClient.post('/companies', data: {'company_rnc': rnc});
-      return Company.fromJson(response.data);
-    } on DioError catch (e) {
-      if (e.error == 'Http status error [422]') {
-        throw CompanyExists();
-      }
-      throw '';
-    }
-  }
-
-  Future<void> delete() async {
-    try {
-      await httpClient.delete('/companies/$id');
+     try {
+      var id = const Uuid().v4();
+      await connection.query(
+          '''insert into public."Company"("id","company_rnc") values('$id','$rnc');''');
+      var results = await connection.mappedResultsQuery(
+          '''select * from public."CompanyDetails" where "id" = '$id';''');
+      return Company.fromJson(results.first['']!);
     } catch (e) {
       rethrow;
     }
+  }
+
+
+   Future<void> delete()async{
+     try{
+      await connection.query('''DELETE FROM public."Purchase" WHERE "invoice_companyId" = '$id';''');
+      await connection.query('''DELETE FROM public."Sheet" WHERE "companyId" = '$id';''');
+      await connection.query('''DELETE FROM public."Book" WHERE "companyId" = '$id';''');
+      await connection.query('''DELETE FROM public."Company" WHERE "id" = '$id';''');
+     }catch(e){
+      rethrow;
+     }
   }
 
   factory Company.fromJson(Map<String, dynamic> json) {
@@ -47,10 +49,8 @@ class Company {
         id: json['id'],
         name: json['company_name'],
         rnc: json['company_rnc'],
-        updatedAt: DateTime.tryParse(json['updated_at'] ?? ''),
-        createdAt: json['created_at'] != null
-            ? DateTime.parse(json['created_at'])
-            : DateTime.now());
+        updatedAt: json['updated_at'],
+        createdAt: json['created_at']);
   }
 
   toJson() {
@@ -64,6 +64,3 @@ class Company {
   }
 }
 
-class CompanyExists implements Exception {
-  CompanyExists({String? message});
-}

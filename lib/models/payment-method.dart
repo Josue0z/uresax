@@ -1,4 +1,4 @@
-import 'package:uresaxapp/apis/http-client.dart';
+import 'package:uresaxapp/apis/connection.dart';
 
 class PaymentMethod {
   int? id;
@@ -6,19 +6,19 @@ class PaymentMethod {
   DateTime? createdAt;
   PaymentMethod({this.id, required this.name, this.createdAt});
 
-  static Future<List<PaymentMethod>> getPaymentsMethods() async {
-    var response = await httpClient.get('/payments-methods');
-    return (response.data as List)
-        .map((e) => PaymentMethod.fromJson(e))
-        .toList()
-        .cast<PaymentMethod>();
+  static Future<List<PaymentMethod>> getPaymentMethods() async {
+    var results = await connection
+        .mappedResultsQuery('''select * from public."PaymentMethod";''');
+    return results
+        .map((e) => PaymentMethod.fromJson(e['PaymentMethod']!))
+        .toList();
   }
 
   factory PaymentMethod.fromJson(Map<String, dynamic> json) {
     return PaymentMethod(
         id: json['id'],
         name: json['name'],
-        createdAt: DateTime.tryParse(json['created_at']));
+        createdAt:json['created_at']);
   }
 
   toMap() {

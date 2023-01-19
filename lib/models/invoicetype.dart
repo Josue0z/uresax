@@ -1,4 +1,4 @@
-import 'package:uresaxapp/apis/http-client.dart';
+import 'package:uresaxapp/apis/connection.dart';
 
 class InvoiceType {
   int? id;
@@ -6,17 +6,17 @@ class InvoiceType {
   DateTime? createdAt;
   InvoiceType({this.id, required this.name, this.createdAt});
 
-  
-  static Future<List<InvoiceType>> getInvoicesTypes()async{
-     var response = await httpClient.get('/invoices-types');
-     return (response.data as List).map((e) => InvoiceType.fromJson(e)).toList().cast<InvoiceType>();
+  static Future<List<InvoiceType>> getInvoiceTypes() async {
+    var results = await connection
+        .mappedResultsQuery('''select * from public."InvoiceType";''');
+    return results.map((e) => InvoiceType.fromJson(e['InvoiceType']!)).toList();
   }
 
   factory InvoiceType.fromJson(Map<String, dynamic> json) {
     return InvoiceType(
         id: json['id'],
         name: json['name'],
-        createdAt: DateTime.tryParse(json['created_at']));
+        createdAt: json['created_at']);
   }
 
   Map<String, dynamic> toMap() {

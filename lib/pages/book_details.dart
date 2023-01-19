@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'package:csv/csv.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/apis/http-client.dart';
@@ -93,18 +94,26 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             'c:\\URESAX\\${widget.book.companyRnc}\\${widget.book.year}\\606\\DGII_F_606_${widget.book.companyRnc}_$_date.TXT';
         var file = File(filePath);
         await file.create(recursive: true);
-        await httpClient.post('/generate-606?sheetId=${current?.id}',
-            data: {'FILE_PATH': filePath});
-        var content = await file.readAsString();
+        var result =
+            await generate606(sheetId: current!.id, filePath: filePath);
+        var arr = [
+          [606, widget.book.companyRnc, current?.sheetDate, result.length]
+        ];
 
-        var l = widget.invoices
-            .where((e) => !((e['NCF'] as String).contains('B02')))
-            .toList()
-            .length;
+        for (var item in result) {
+          var values = item?.values.toList();
 
-        await file.writeAsString(
-            '606|${widget.book.companyRnc}|${current?.sheetDate}|$l\n');
-        await file.writeAsString(content, mode: FileMode.append);
+          for (int i = 0; i < values!.length; i++) {
+            if (values[i] == null) values[i] = '';
+          }
+
+          arr.add(values);
+        }
+        var content =
+            const ListToCsvConverter(fieldDelimiter: '|').convert(arr);
+
+        file.writeAsString(content);
+
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('FUE GENERADO EL 606!'),
           action: SnackBarAction(
@@ -179,7 +188,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           current = sheet;
         }
         widget.book.latestSheetVisited = sheetId;
-        await widget.book.updateLatestSheetVisited(sheetId);
+        await widget.book.updateLatestSheetVisited();
         showLoader(context);
         var data =
             await fetchDataBook(bookId: widget.book.id!, sheetId: sheetId);
@@ -320,6 +329,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     _scrollController.dispose();
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
+    widget.book.updateBookUseStatus(false);
     super.dispose();
   }
 

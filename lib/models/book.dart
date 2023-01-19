@@ -1,4 +1,5 @@
-import 'package:uresaxapp/apis/http-client.dart';
+import 'package:uuid/uuid.dart';
+import 'package:uresaxapp/apis/connection.dart';
 
 enum BookType { purchases, sales }
 
@@ -27,58 +28,76 @@ class Book {
       this.bookType,
       this.createdAt});
 
-  Future<Book?> create() async {
+  Future<Book> create() async {
     try {
-      var map = toMap();
-      map.removeWhere((key, value) => value == null);
-      var response = await httpClient.post('/books', data: map);
-
-      return Book.fromJson(response.data);
+      var id = const Uuid().v4();
+      await connection.query('''
+        insert into public."Book"("id","book_year","company_rnc","companyId","book_typeId") values('$id',$year,'$companyRnc','$companyId','$bookType'); 
+       ''');
+      var results = await connection.mappedResultsQuery(
+          '''select * from public."BookDetails" where "id" = '$id';''');
+      return Book.fromJson(results.first['']!);
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<void> delete()async{
-    try{
-      await httpClient.delete('/books/$id');
-    }catch(e){
+  Future<void> delete() async {
+    try {
+      await connection.query(
+          '''DELETE FROM public."Purchase" WHERE "invoice_bookId" = '$id';''');
+      await connection
+          .query('''DELETE FROM public."Sheet" WHERE "bookId" = '$id';''');
+      await connection
+          .query('''DELETE FROM public."Book" WHERE "id" = '$id';''');
+    } catch (e) {
       rethrow;
     }
   }
 
-  static Future<List<Book>> getBooks(
-      {BookType bookType = BookType.purchases, String? companyId}) async {
+  static Future<List<Book>> getBooks({String? companyId}) async {
     try {
-      int type = bookType == BookType.purchases ? 1 : 2;
+      var results = await connection.mappedResultsQuery('''
+      select * from public."BookDetails" where "companyId" = '$companyId' and "book_typeId" = 1 order by "book_year";
+     ''');
+      return results.map((row) => Book.fromJson(row['']!)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
 
-      String whereContext = '?book_type=$type';
+  Future<void> updateLatestSheetVisited() async {
+    try {
+      await connection.query(
+          '''update public."Book" set "latest_sheet_visited" = '$latestSheetVisited' where "id" = '$id';''');
+    } catch (e) {
+      rethrow;
+    }
+  }
 
-      if (companyId != null && companyId != '') {
-        whereContext += '&companyId=$companyId';
+  Future<bool> checkIfBookIsUsed() async {
+    try {
+      var result = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."Book" WHERE "id" = '$id' and "in_use" = true;''');
+
+      if (result.isNotEmpty) {
+        return true;
       }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }
 
-      var response = await httpClient.get('/books$whereContext');
-
-      return (response.data as List)
-          .map((json) => Book.fromJson(json))
-          .toList()
-          .cast<Book>();
+  Future<void> updateBookUseStatus(bool status) async {
+    try {
+      await connection.query(
+          '''UPDATE public."Book" SET in_use = $status WHERE "id" = '$id';''');
     } catch (e) {
       rethrow;
     }
   }
-  
-  Future<void> updateLatestSheetVisited(String latestSheetVisited)async{
-     try{
-      await httpClient.patch('/update-latest-sheet-visited',data: {
-        'id':id,
-        'latest_sheet_visited':latestSheetVisited
-      });
-     }catch(e){
-       rethrow;
-     }
-  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -106,7 +125,7 @@ class Book {
         bookTypeName: json['book_type_name'],
         bookType:
             json['book_typeId'] == 1 ? BookType.purchases : BookType.sales,
-        updatedAt: DateTime.tryParse(json['updated_at'] ?? ''),
-        createdAt: DateTime.tryParse(json['created_at'] ?? ''));
+        updatedAt: json['updated_at'],
+        createdAt: json['created_at']);
   }
 }

@@ -9,6 +9,7 @@ import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/pages/book_details.dart';
 import 'package:uresaxapp/utils/functions.dart';
+import 'package:uresaxapp/utils/modals-actions.dart';
 
 class BooksPage extends StatefulWidget {
   Company company;
@@ -27,8 +28,7 @@ class _BooksPageState extends State<BooksPage> {
 
   _fetchBooks() async {
     try {
-      books = await Book.getBooks(
-          companyId: widget.company.id, bookType: widget.bookType);
+      books = await Book.getBooks(companyId: widget.company.id);
     } catch (e) {
       print(e);
     } finally {
@@ -44,6 +44,41 @@ class _BooksPageState extends State<BooksPage> {
       return;
     } catch (e) {
       print(e);
+    }
+  }
+
+  _preloadBookData(Book book) async {
+    try {
+      showLoader(context);
+
+      var inUse = await book.checkIfBookIsUsed();
+
+      if (inUse) {
+        throw 'EL LIBRO YA ESTA EN USO';
+      }
+
+      var data = await fetchDataBook(
+          bookId: book.id!, sheetId: book.latestSheetVisited ?? 'x');
+
+      await Future.delayed(const Duration(milliseconds: 100));
+      await book.updateBookUseStatus(true);
+
+      Navigator.pop(context);
+      invoices = data['invoices'];
+      invoicesLogs = data['invoicesLogs'];
+      sheets = data['sheets'];
+
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (ctx) => BookDetailsPage(
+                  book: book,
+                  invoices: invoices,
+                  invoicesLogs: invoicesLogs,
+                  sheets: sheets)));
+    } catch (e) {
+      Navigator.pop(context);
+      showAlert(context, message: e.toString());
     }
   }
 
@@ -81,36 +116,10 @@ class _BooksPageState extends State<BooksPage> {
             trailing: Wrap(
               children: [
                 IconButton(
-                    onPressed: () async {
-                      try {
-                        showLoader(context);
-                        var data = await fetchDataBook(
-                            bookId: book.id!,
-                            sheetId: book.latestSheetVisited ?? 'x');
-
-                        await Future.delayed(const Duration(milliseconds: 200));
-
-                        Navigator.pop(context);
-                        invoices = data['invoices'];
-                        invoicesLogs = data['invoicesLogs'];
-                        sheets = data['sheets'];
-                      
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (ctx) => BookDetailsPage(
-                                    book: book,
-                                    invoices: invoices,
-                                    invoicesLogs: invoicesLogs,
-                                    sheets: sheets)));
-                    
-                       
-                      } catch (_) {
-                      }
-                    },
+                    onPressed: () => _preloadBookData(book),
                     icon: const Icon(Icons.remove_red_eye)),
                 IconButton(
-                    onPressed:null, //() => _delete(book, index),
+                    onPressed: null, //() => _delete(book, index),
                     color: Theme.of(context).errorColor,
                     icon: const Icon(Icons.delete))
               ],

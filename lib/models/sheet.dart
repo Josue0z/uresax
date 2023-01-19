@@ -1,4 +1,5 @@
-import 'package:uresaxapp/apis/http-client.dart';
+import 'package:uresaxapp/apis/connection.dart';
+import 'package:uuid/uuid.dart';
 
 class Sheet {
   String? id;
@@ -26,12 +27,14 @@ class Sheet {
       this.updatedAt,
       this.createdAt});
 
-  static Future<List<Sheet>> getSheetsByBookId({String bookId = ''}) async {
+  static Future<List<Sheet>> getSheets({String? bookId = ''}) async {
     try {
-      var response = await httpClient.get('/sheets?bookId=$bookId');
-      return (response.data as List)
-          .map((json) => Sheet.fromJson(json))
-          .toList();
+      var results = await connection.mappedResultsQuery(
+          '''select * from public."SheetDetails" where "bookId" = '$bookId' order by "sheet_year","sheet_month";''');
+      return results
+          .map((row) => Sheet.fromJson(row['']!))
+          .toList()
+          .cast<Sheet>();
     } catch (e) {
       rethrow;
     }
@@ -39,36 +42,50 @@ class Sheet {
 
   Future<Sheet> create() async {
     try {
-      var map = toMap();
-      map.removeWhere((key, value) => value == null);
-      var response = await httpClient.post('/sheets', data:map);
-      return Sheet.fromJson(response.data);
+      var _id = const Uuid().v4();
+
+      var r = await connection.query(
+          '''select * from public."Sheet" where "bookId" = '$bookId' and "sheet_year" = $sheetYear and "sheet_month" = $sheetMonth;''');
+
+      if (r.isNotEmpty) {
+        throw 'YA EXISTE ESTA HOJA';
+      }
+      await connection.query(
+          '''insert into public."Sheet"("id","bookId","companyId","sheet_year","sheet_month") values('$_id','$bookId','$companyId','$sheetYear','$sheetMonth');''');
+      var results = await connection.mappedResultsQuery(
+          '''select * from public."SheetDetails" where "id" = '$_id';''');
+      return Sheet.fromJson(results.first['']!);
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<void> delete()async{
-     try{
-      await httpClient.delete('/sheets/$id');
-     }catch(e){
+  Future<void> delete() async {
+    try {
+      await connection.query(
+          '''DELETE FROM public."Purchase" WHERE "invoice_sheetId" = '$id';''');
+      await connection
+          .query('''DELETE FROM public."Sheet" WHERE "id" = '$id';''');
+    } catch (e) {
       rethrow;
-     }
+    }
   }
-  Map<String,dynamic>  toMap(){
+
+  Map<String, dynamic> toMap() {
     return {
-      'id':id,
-      'bookId':bookId,
-      'companyId':companyId,
-      'sheet_year':sheetYear,
-      'sheet_month':sheetMonth,
-      'sheet_date':sheetDate,
-      'present_status':presentStatus,
-      'present_status_name':presentStatusName,
-      'updated_at':updatedAt?.toUtc().toString(),
-      'created_at':createdAt?.toUtc().toString()
+      'id': id,
+      'bookId': bookId,
+      'companyId': companyId,
+      'sheet_year': sheetYear,
+      'sheet_month': sheetMonth,
+      'sheet_date': sheetDate,
+      'present_status': presentStatus,
+      'present_status_name': presentStatusName,
+      'updated_at': updatedAt?.toUtc().toString(),
+      'created_at': createdAt?.toUtc().toString()
     };
-   }
+  }
+
   factory Sheet.fromJson(Map<String, dynamic> json) {
     return Sheet(
         id: json['id'],
@@ -80,7 +97,7 @@ class Sheet {
         sheetDate: json['sheet_date'],
         presentStatus: json['present_status'],
         presentStatusName: json['present_status_name'],
-        updatedAt: DateTime.tryParse(json['updated_at'] ?? ''),
-        createdAt: DateTime.tryParse(json['created_at']));
+        updatedAt: json['updated_at'],
+        createdAt: json['created_at']);
   }
 }

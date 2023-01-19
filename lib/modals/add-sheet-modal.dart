@@ -36,7 +36,7 @@ class _AddSheetModalState extends State<AddSheetModal> {
         Navigator.pop(context, newSheet);
       }
     } catch (e) {
-      showAlert(context, message: 'OJO: ESTO PUEDE PASAR POR QUE TAL VEZ ESTE MES YA EXISTE');
+      showAlert(context, message:e.toString());
     }
   }
 

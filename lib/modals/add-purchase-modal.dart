@@ -12,6 +12,7 @@ import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
+import 'package:uresaxapp/utils/modals-actions.dart';
 
 class NcfEditorWidget extends StatefulWidget {
   Function(String) onChanged;
@@ -41,7 +42,7 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
 
   Future<void> _initElements() async {
     try {
-      var types = await NcfType.getNcfTypes();
+      var types = await NcfType.getNcfs();
       controller.addListener(() {
         value = '$currentNcfTag${controller.text}';
         widget.onChanged(value);
@@ -240,8 +241,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
       concepts.addAll(await Concept.getConcepts());
       bankings.addAll(await Banking.getBankings());
-      invoiceTypes.addAll(await InvoiceType.getInvoicesTypes());
-      paymentMethods.addAll(await PaymentMethod.getPaymentsMethods());
+      invoiceTypes.addAll(await InvoiceType.getInvoiceTypes());
+      paymentMethods.addAll(await PaymentMethod.getPaymentMethods());
 
       if (widget.invoice != null) {
         rnc.value = TextEditingValue(text: widget.invoice!['RNC']);
@@ -264,11 +265,13 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         ncfModifed = widget.invoice!['NOMBRE DE NCF MODIFICADO'];
         ncfModifedVal = widget.invoice!['NCF MODIFICADO'];
         currentType = invoiceTypes
-            .firstWhere((element) => element.name == widget.invoice!['TIPO'])
+            .firstWhere((element) =>
+                '${element.id}-${element.name}' == widget.invoice!['TIPO'])
             .id;
         currentPaymentMethod = paymentMethods
-            .firstWhere(
-                (element) => element.name == widget.invoice!['FORMA DE PAGO'])
+            .firstWhere((element) =>
+                '${element.id}-${element.name}' ==
+                widget.invoice!['FORMA DE PAGO'])
             .id;
 
         var formatter = ThousandsFormatter(allowFraction: true);
@@ -320,14 +323,18 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             invoiceSheetId: widget.sheet.id!,
             invoiceBookId: widget.book.id!,
             invoiceCompanyId: widget.book.companyId!,
-            invoiceItbis18: double.tryParse(itbis18.text.replaceAll(',', '')),
-            invoiceItbis16: double.tryParse(itbis16.text.replaceAll(',', '')),
+            invoiceItbis18:
+                double.tryParse(itbis18.text.replaceAll(',', '')) ?? 0.00,
+            invoiceItbis16:
+                double.tryParse(itbis16.text.replaceAll(',', '')) ?? 0.00,
             invoiceTotalServ:
-                double.tryParse(totalServ.text.replaceAll(',', '')),
-            invoiceTotalBin: double.tryParse(totalBin.text.replaceAll(',', '')),
+                double.tryParse(totalServ.text.replaceAll(',', '')) ?? 0.00,
+            invoiceTotalBin:
+                double.tryParse(totalBin.text.replaceAll(',', '')) ?? 0.00,
             invoiceBankingId: currentBanking,
             invoiceCk: ck.text.isEmpty ? null : ck.text);
 
+      
         if (!widget.isEditing!) {
           await purchase.create();
           Navigator.pop(context, {
@@ -335,18 +342,14 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             'RNC': purchase.invoiceRnc,
             'NCF': purchase.invoiceNcf
           });
-        }else{
-          //print(purchase.id);
+        } else {
           var data = await purchase.update();
-          Navigator.pop(context,{
-            'method':'UPDATE',
-            'RNC':data['RNC'],
-            'NCF':data['NCF']
-          });
+          Navigator.pop(context,
+              {'method': 'UPDATE', 'RNC': data['RNC'], 'NCF': data['NCF']});
         }
       }
     } catch (e) {
-      print(e);
+        showAlert(context,message: e.toString());
     }
   }
 

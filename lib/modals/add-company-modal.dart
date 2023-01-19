@@ -37,12 +37,11 @@ class AddCompanyModalState extends State<AddCompanyModal> {
     Company? company;
     try {
       if (!disabled) {
-        company = await Company.fromJson({'company_rnc': rnc!.text}).create();
+        company = await Company(rnc: rnc!.text).create();
         Navigator.pop(context, company);
       }
     } catch (e) {
-      if (e is CompanyExists)
-        showAlert(context, message: 'YA EXISTE UNA EMPRESA CON ESTE RNC');
+        showAlert(context, message: e.toString());
     }
   }
 
