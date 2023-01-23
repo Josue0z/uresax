@@ -173,7 +173,7 @@ class Purchase {
           "TOTAL GRAVADA",
           "EXENTO"
            FROM
-           public."PurchaseDetails" where "invoice_sheetId" = '$sheetId';
+           public."PurchaseDetails" where "invoice_sheetId" = '$sheetId' order by "EMPRESA","NCF";
           ''');
       return results.map((row) => row['']).toList();
     } catch (e) {

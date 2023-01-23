@@ -38,12 +38,16 @@ class _BooksPageState extends State<BooksPage> {
 
   _delete(Book book, int index) async {
     try {
-      await book.delete();
-      books.removeAt(index);
-      setState(() {});
-      return;
+      var isConfirm =
+          await showConfirm(context,title: 'Eliminar libro?');
+
+      if (isConfirm!) {
+        await book.delete();
+        books.removeAt(index);
+        setState(() {});
+      }
     } catch (e) {
-      print(e);
+       showAlert(context,message: e.toString());
     }
   }
 
@@ -60,15 +64,13 @@ class _BooksPageState extends State<BooksPage> {
       var data = await fetchDataBook(
           bookId: book.id!, sheetId: book.latestSheetVisited ?? 'x');
 
-      await Future.delayed(const Duration(milliseconds: 100));
-      await book.updateBookUseStatus(true);
+      await Future.delayed(const Duration(milliseconds: 300));
 
       Navigator.pop(context);
       invoices = data['invoices'];
       invoicesLogs = data['invoicesLogs'];
       sheets = data['sheets'];
-
-      Navigator.push(
+      await Navigator.push(
           context,
           MaterialPageRoute(
               builder: (ctx) => BookDetailsPage(
@@ -119,7 +121,7 @@ class _BooksPageState extends State<BooksPage> {
                     onPressed: () => _preloadBookData(book),
                     icon: const Icon(Icons.remove_red_eye)),
                 IconButton(
-                    onPressed: null, //() => _delete(book, index),
+                    onPressed: () => _delete(book, index),
                     color: Theme.of(context).errorColor,
                     icon: const Icon(Icons.delete))
               ],

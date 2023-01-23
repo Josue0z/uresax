@@ -7,7 +7,7 @@ class AddSheetModal extends StatefulWidget {
   final Book book;
   Sheet? latestSheetInserted;
 
-  AddSheetModal({super.key, required this.book,this.latestSheetInserted});
+  AddSheetModal({super.key, required this.book, this.latestSheetInserted});
 
   @override
   State<AddSheetModal> createState() => _AddSheetModalState();
@@ -36,7 +36,7 @@ class _AddSheetModalState extends State<AddSheetModal> {
         Navigator.pop(context, newSheet);
       }
     } catch (e) {
-      showAlert(context, message:e.toString());
+      showAlert(context, message: e.toString());
     }
   }
 
@@ -44,7 +44,7 @@ class _AddSheetModalState extends State<AddSheetModal> {
   void initState() {
     _bookYear = TextEditingController();
     _monthYear = TextEditingController();
-     int year = widget.book.year ?? DateTime.now().year;
+    int year = widget.book.year ?? DateTime.now().year;
     _month = widget.latestSheetInserted?.sheetMonth ?? 0;
     _month = _month == 12 ? _month : _month + 1;
     _bookYear!.value = TextEditingValue(text: (year).toString());
@@ -75,7 +75,11 @@ class _AddSheetModalState extends State<AddSheetModal> {
                     Row(
                       children: [
                         Text('Añadiendo  Nueva Hoja...',
-                            style: Theme.of(context).textTheme.headline5),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headline5
+                                ?.copyWith(
+                                    color: Theme.of(context).primaryColor)),
                         const Spacer(),
                         IconButton(
                             onPressed: () => Navigator.pop(context),

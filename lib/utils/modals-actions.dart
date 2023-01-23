@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
+
+import 'package:flutter/services.dart';
 
 void showAlert(BuildContext context, {String message = '', String? title}) {
   showDialog(
       context: context,
       builder: (ctx) => Dialog(
           child: SizedBox(
-              width: 150,
+              width: 450,
               child: Material(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -13,7 +16,7 @@ void showAlert(BuildContext context, {String message = '', String? title}) {
                     shrinkWrap: true,
                     children: [
                       Text(
-                        title ?? 'Notificacion',
+                        title ?? 'Alerta',
                         style: TextStyle(
                             fontSize: 19,
                             fontWeight: FontWeight.w600,
@@ -44,47 +47,81 @@ void showAlert(BuildContext context, {String message = '', String? title}) {
 }
 
 Future<bool?> showConfirm(BuildContext context,
-    {String title = 'CONFIRMAR ACCION', String body = ''}) async {
-  return await showDialog<bool>(
+    {String title = 'Confirmacion...', String body = ''}) async {
+  var formKey = GlobalKey<FormState>();
+  TextEditingController code = TextEditingController();
+
+  var number = math.Random().nextInt(999999);
+
+  void ok() {
+    if (formKey.currentState!.validate()) {
+        Navigator.pop(context, true);
+      
+    }
+  }
+
+  var result = await showDialog<bool>(
       context: context,
       builder: (ctx) => Dialog(
+        shape: ShapeBorder.lerp(Border.all(color: Colors.transparent), Border.all(color: Colors.transparent),0),
             child: SizedBox(
-                width: 350,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      Row(children: [
-                        Text(title,
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(context).primaryColor)),
-                        const Spacer(),
-                      ]),
-                      const SizedBox(height: 15),
-                      Text(body, style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 15),
-                      Row(
+                width: 400,
+                child: Form(
+                    key: formKey,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: ListView(
+                        shrinkWrap: true,
                         children: [
-                          const Spacer(),
-                          ElevatedButton(
-                              style: ButtonStyle(
-                                  backgroundColor:
-                                      MaterialStateProperty.all(Colors.grey)),
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('CERRAR')),
-                          const SizedBox(
-                            width: 10,
+                          Row(children: [
+                            Text(title,
+                                style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context).primaryColor)),
+                            const Spacer(),
+                          ]),
+                          const SizedBox(height: 15),
+                          Text('Escribe el siguiente codigo $number',
+                              style: const TextStyle(fontSize: 18)),
+                          const SizedBox(height: 15),
+                          TextFormField(
+                            controller: code,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: (val) =>
+                                int.parse(val!.length.toString()) < 6
+                                    ? 'Debe ser un numero de 6 digitos'
+                                    : int.parse(val!.length.toString()) > 6 ? 'El numero tiene mas de 6 digitos': int.parse(val) != number ?'El numero digitado no es correcto': null,
+                            style: const TextStyle(fontSize: 18),
+                            decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: '######'),
                           ),
-                          ElevatedButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('CONFIRMAR'))
+                          const SizedBox(height: 15),
+                          Row(
+                            children: [
+                              const Spacer(),
+                              ElevatedButton(
+                                  style: ButtonStyle(
+                                      backgroundColor:
+                                          MaterialStateProperty.all(
+                                              Colors.grey)),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('CERRAR')),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              ElevatedButton(
+                                  onPressed: ok, child: const Text('CONFIRMAR'))
+                            ],
+                          )
                         ],
-                      )
-                    ],
-                  ),
-                )),
+                      ),
+                    ))),
           ));
+
+  return result == true;
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
@@ -21,22 +23,23 @@ class AddBookModal extends StatefulWidget {
 }
 
 class _AddBookModalState extends State<AddBookModal> {
-  TextEditingController? bookYear;
+  TextEditingController bookYear = TextEditingController();
   @override
   void initState() {
-    bookYear = TextEditingController();
-    bookYear!.value = TextEditingValue(text: (widget.bookYear).toString());
+    if (mounted) {
+      bookYear.value = TextEditingValue(text: (widget.bookYear).toString());
+    }
     super.initState();
   }
 
   _addBook() async {
     try {
-      int year =  int.parse(bookYear!.text);
-      if(widget.books.any((element) => element.year == year)){
+      int year = int.parse(bookYear.text);
+      if (widget.books.any((element) => element.year == year)) {
         throw 'YA EXISTE ESTE LIBRO';
       }
       var book = await Book(
-              year:year,
+              year: year,
               companyRnc: widget.company.rnc,
               companyId: widget.company.id,
               bookTypeId: widget.bookTypeId)
@@ -44,8 +47,14 @@ class _AddBookModalState extends State<AddBookModal> {
 
       Navigator.pop(context, book);
     } catch (e) {
-       showAlert(context,message: e.toString());
+      showAlert(context, message: e.toString());
     }
+  }
+
+  @override
+  void dispose() {
+    bookYear.dispose();
+    super.dispose();
   }
 
   @override

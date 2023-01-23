@@ -8,6 +8,7 @@ class Book {
   String? name;
   int? year;
   String? companyRnc;
+  String? companyName;
   String? companyId;
   String? latestSheetVisited;
   int? bookTypeId;
@@ -20,6 +21,7 @@ class Book {
       this.name,
       this.year,
       this.companyRnc,
+      this.companyName,
       this.companyId,
       this.latestSheetVisited,
       this.bookTypeId,
@@ -31,11 +33,13 @@ class Book {
   Future<Book> create() async {
     try {
       var id = const Uuid().v4();
+
       await connection.query('''
-        insert into public."Book"("id","book_year","company_rnc","companyId","book_typeId") values('$id',$year,'$companyRnc','$companyId','$bookType'); 
+        insert into public."Book"("id","book_year","company_rnc","companyId","book_typeId") values('$id',$year,'$companyRnc','$companyId',$bookTypeId); 
        ''');
       var results = await connection.mappedResultsQuery(
           '''select * from public."BookDetails" where "id" = '$id';''');
+
       return Book.fromJson(results.first['']!);
     } catch (e) {
       rethrow;
@@ -106,6 +110,7 @@ class Book {
       'company_rnc': companyRnc,
       'companyId': companyId,
       'latest_sheet_visited': latestSheetVisited,
+      'company_name': companyName,
       'book_typeId': bookTypeId,
       'book_type_name': bookTypeName,
       'updated_at': updatedAt,
@@ -119,6 +124,7 @@ class Book {
         name: json['book_name'],
         year: json['book_year'],
         companyRnc: json['company_rnc'],
+        companyName: json['company_name'],
         companyId: json['companyId'],
         latestSheetVisited: json['latest_sheet_visited'],
         bookTypeId: json['book_typeId'],

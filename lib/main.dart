@@ -1,25 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_session_manager/flutter_session_manager.dart';
 import 'package:uresaxapp/apis/connection.dart';
+import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
+import 'package:uresaxapp/pages/login_page.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await windowManager.ensureInitialized();
     await connection.open();
+
+    //await SessionManager().destroy();
+
+    var userData = await SessionManager().get('USER');
+
+    User.current = userData == null ? null : User.fromJson(userData);
+
+    WindowOptions windowOptions =
+        const WindowOptions(size: Size(1280, 720), center: true);
+
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+
     runApp(const MyApp());
   } catch (e) {
-    runApp(MaterialApp(
-        title: 'URESAX',
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-            body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(e.toString(), style: const TextStyle(fontSize: 25),textAlign: TextAlign.center),
-            ],
-          ),
-        ))));
+    print(e);
   }
 }
 
@@ -34,7 +43,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const CompaniesPage(),
+      home: User.current is User ? const CompaniesPage() : const LoginPage(),
     );
   }
 }

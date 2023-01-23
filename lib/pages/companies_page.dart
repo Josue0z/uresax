@@ -3,8 +3,10 @@ import 'package:uresaxapp/modals/add-company-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:moment_dart/moment_dart.dart';
+import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/books_page.dart';
-
+import 'package:uresaxapp/pages/users_page.dart';
+import 'package:uresaxapp/utils/modals-actions.dart';
 
 class CompaniesPage extends StatefulWidget {
   const CompaniesPage({super.key});
@@ -21,17 +23,32 @@ class _CompaniesPageState extends State<CompaniesPage> {
     setState(() {});
   }
 
-  _deleteCompany(Company company,int index)async{
-     try{
-      await Company(id: company.id).delete();
-      companies.removeAt(index);
-      setState(() {
-        
-      });
-      return;
-     }catch(e){
+  _deleteCompany(Company company, int index) async {
+    try {
+      var isConfirm =
+          await showConfirm(context, title: 'Eliminar esta empresa?');
+
+      if (isConfirm!) {
+        await Company(id: company.id).delete();
+        companies.removeAt(index);
+        setState(() {});
+      }
+    } catch (e) {
+      showAlert(context, message: e.toString());
+    }
+  }
+
+  _viewUsers() {
+    Navigator.push(
+        context, MaterialPageRoute(builder: (ctx) => const UsersPage()));
+  }
+
+  _loggout() async {
+    try {
+      await User.loggout(context);
+    } catch (e) {
       print(e);
-     }
+    }
   }
 
   @override
@@ -49,7 +66,14 @@ class _CompaniesPageState extends State<CompaniesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('COMPAÑIAS')),
+      appBar: AppBar(
+        title: const Text('COMPAÑIAS'),
+        actions: [
+          IconButton(
+              onPressed: _viewUsers, icon: const Icon(Icons.account_circle)),
+          IconButton(onPressed: _loggout, icon: const Icon(Icons.exit_to_app))
+        ],
+      ),
       body: ListView.separated(
           separatorBuilder: (ctx, index) => const Divider(),
           itemCount: companies.length,
@@ -71,7 +95,6 @@ class _CompaniesPageState extends State<CompaniesPage> {
                 ),
                 trailing: Wrap(
                   children: [
-                   
                     IconButton(
                         onPressed: () => Navigator.push(
                             context,
@@ -83,10 +106,10 @@ class _CompaniesPageState extends State<CompaniesPage> {
                         tooltip: 'COMPRAS Y GASTOS'),
                     const SizedBox(width: 10),
                     IconButton(
-                        onPressed:null,//()=>_deleteCompany(company,index),
-                        icon: Icon(Icons.delete,
-                            color: Theme.of(context).errorColor),
-                        tooltip: 'ELIMINAR')
+                        onPressed: () => _deleteCompany(company, index),
+                        icon: const Icon(Icons.delete),
+                        color: Theme.of(context).errorColor,
+                        tooltip: 'ELIMINAR'),
                   ],
                 ));
           }),

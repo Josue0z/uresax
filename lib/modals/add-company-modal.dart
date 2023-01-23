@@ -41,7 +41,7 @@ class AddCompanyModalState extends State<AddCompanyModal> {
         Navigator.pop(context, company);
       }
     } catch (e) {
-        showAlert(context, message: e.toString());
+      showAlert(context, message: e.toString());
     }
   }
 
@@ -82,7 +82,12 @@ class AddCompanyModalState extends State<AddCompanyModal> {
                           Row(
                             children: [
                               Text('Añadiendo Compañia...',
-                                  style: Theme.of(context).textTheme.headline5),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headline5
+                                      ?.copyWith(
+                                          color:
+                                              Theme.of(context).primaryColor)),
                               const Spacer(),
                               IconButton(
                                   onPressed: () => Navigator.pop(context),

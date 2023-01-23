@@ -5,17 +5,16 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:uresaxapp/apis/http-client.dart';
 import 'package:uresaxapp/modals/add-purchase-modal.dart';
 import 'package:uresaxapp/modals/add-sheet-modal.dart';
 import 'package:uresaxapp/models/book.dart';
-import 'package:uresaxapp/models/ncftype.dart';
 import 'package:intl/intl.dart' as l;
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:path/path.dart' as path;
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:window_manager/window_manager.dart';
 
 String _formatNumber(String value, String pattern) {
   int i = 0;
@@ -39,9 +38,11 @@ class BookDetailsPage extends StatefulWidget {
   State<BookDetailsPage> createState() => _BookDetailsPageState();
 }
 
-class _BookDetailsPageState extends State<BookDetailsPage> {
+class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   Sheet? current;
   int currentSheetIndex = -1;
+
+  l.NumberFormat formatter = l.NumberFormat();
   late StreamController<String?> stream = StreamController();
 
   final ScrollController _scrollController = ScrollController();
@@ -90,8 +91,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   _generate606() async {
     try {
       if (widget.invoices.isNotEmpty) {
-        var filePath =
-            'c:\\URESAX\\${widget.book.companyRnc}\\${widget.book.year}\\606\\DGII_F_606_${widget.book.companyRnc}_$_date.TXT';
+        var filePath = path.join(
+            Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
+            'URESAX',
+            widget.book.companyName,
+            widget.book.year.toString(),
+            '606',
+            'DGII_F_606_${widget.book.companyRnc}_$_date.TXT');
+
         var file = File(filePath);
         await file.create(recursive: true);
         var result =
@@ -201,8 +208,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           _scrollController.jumpTo(0);
         }
       }
-    } catch (e) {
-      print(e);
+    } catch (_) {
     } finally {
       setState(() {});
     }
@@ -268,16 +274,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 'SE ACTUALIZO LA FACTURA CON EL RNC: ${result['RNC']} Y EL NCF: ${result['NCF']}')));
         setState(() {});
       }
-    } catch (e) {
-      print(e);
-    }
+    } catch (_) {}
   }
 
   _deleteSheet() async {
     try {
       if (widget.sheets.isNotEmpty) {
         var isConfirm =
-            await showConfirm(context, body: 'DESEAS ELIMINAR ESTA HOJA?');
+            await showConfirm(context, title: 'Eliminar esta hoja?');
 
         if (isConfirm!) {
           await Sheet(id: current!.id!).delete();
@@ -298,14 +302,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           stream.add(widget.book.latestSheetVisited);
         }
       }
-    } catch (e) {
-      print(e);
-    }
+    } catch (_) {}
   }
 
   @override
   void initState() {
     try {
+      windowManager.addListener(this);
       RawKeyboard.instance.addListener(_handlerKeys);
       stream.stream.listen(_onSheetChanged);
       _scrollController.addListener(_setupScrollViews);
@@ -314,10 +317,16 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         current = widget.sheets
             .firstWhere((s) => s.id == widget.book.latestSheetVisited);
         currentSheetIndex = widget.sheets.indexOf(current!);
+        widget.book.updateBookUseStatus(true);
         setState(() {});
       }
-    } catch (e) {}
+    } catch (_) {}
     super.initState();
+  }
+
+  @override
+  void onWindowClose() async {
+    await widget.book.updateBookUseStatus(false);
   }
 
   @override
@@ -348,7 +357,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: Theme.of(context).primaryColor)),
-                Text(l.NumberFormat().format(double.tryParse(val ?? 'b')),
+                Text(formatter.format(double.tryParse(val ?? '0.00')),
                     style: const TextStyle(fontSize: 18, color: Colors.black54))
               ],
             ),
@@ -369,6 +378,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             style: const TextStyle(color: Colors.blue, fontSize: 17)),
       );
     });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

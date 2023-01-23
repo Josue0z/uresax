@@ -375,7 +375,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                           Row(
                             children: [
                               Text(_title,
-                                  style: const TextStyle(fontSize: 22)),
+                                  style:  TextStyle(fontSize: 22,color: Theme.of(context).primaryColor)),
                               const Spacer(),
                               IconButton(
                                   onPressed: () => Navigator.pop(context),
