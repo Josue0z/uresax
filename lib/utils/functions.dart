@@ -125,7 +125,7 @@ Future<List<Map<String,dynamic>?>> generate606(
    SELECT 
   "EMPRESA",
   "RNC",
-   1,
+   CASE WHEN LENGTH("RNC") < 11 THEN 1 ELSE 2 END,
   "TIPO FACT",
   "NCF",
   "NCF MODIFICADO",

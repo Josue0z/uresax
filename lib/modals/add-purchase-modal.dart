@@ -212,6 +212,12 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
     return widget.isEditing! ? 'EDITAR COMPRA' : 'AÑADIR COMPRA';
   }
 
+  bool get isBinCode =>
+      currentType == 3 ||
+      currentType == 8 ||
+      currentType == 9 ||
+      currentType == 10;
+
   _verifyTaxPayer() async {
     try {
       var data = await verifyTaxPayer(rnc.value.text);
@@ -276,8 +282,14 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
         var formatter = ThousandsFormatter(allowFraction: true);
 
-        var val1 = formatter.formatEditUpdate(const TextEditingValue(text: ''),
-            TextEditingValue(text: widget.invoice!['TOTAL EN SERVICIOS']));
+        var nval5 = double.parse(widget.invoice!['TOTAL EN SERVICIOS']);
+
+        var val1 = formatter.formatEditUpdate(
+            const TextEditingValue(text: ''),
+            TextEditingValue(
+                text: nval5 == 0.00
+                    ? ''
+                    : widget.invoice!['TOTAL EN SERVICIOS']));
 
         var nval3 = double.parse(widget.invoice!['TOTAL EN BIENES']);
 
@@ -311,30 +323,30 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
     try {
       if (isAllCorrect) {
         var purchase = Purchase(
-            id: widget.invoice?['id'] ?? '',
-            invoiceRnc: rnc.text,
-            invoiceConceptId: currentConcept,
-            invoiceTypeId: currentType!,
-            invoicePaymentMethodId: currentPaymentMethod!,
-            invoiceNcf: ncfVal,
-            invoiceNcfModifed: ncfModifedVal,
-            invoiceNcfDate: year.text,
-            invoiceNcfDay: day.text,
-            invoiceSheetId: widget.sheet.id!,
-            invoiceBookId: widget.book.id!,
-            invoiceCompanyId: widget.book.companyId!,
-            invoiceItbis18:
-                double.tryParse(itbis18.text.replaceAll(',', '')) ?? 0.00,
-            invoiceItbis16:
-                double.tryParse(itbis16.text.replaceAll(',', '')) ?? 0.00,
-            invoiceTotalServ:
-                double.tryParse(totalServ.text.replaceAll(',', '')) ?? 0.00,
-            invoiceTotalBin:
-                double.tryParse(totalBin.text.replaceAll(',', '')) ?? 0.00,
-            invoiceBankingId: currentBanking,
-            invoiceCk: ck.text.isEmpty ? null : ck.text);
+          id: widget.invoice?['id'] ?? '',
+          invoiceRnc: rnc.text,
+          invoiceConceptId: currentConcept,
+          invoiceTypeId: currentType,
+          invoicePaymentMethodId: currentPaymentMethod,
+          invoiceNcf: ncfVal,
+          invoiceNcfModifed: ncfModifedVal,
+          invoiceNcfDate: year.text,
+          invoiceNcfDay: day.text,
+          invoiceSheetId: widget.sheet.id,
+          invoiceBookId: widget.book.id,
+          invoiceCompanyId: widget.book.companyId,
+          invoiceBankingId: currentBanking,
+          invoiceCk: ck.text.isEmpty ? null : ck.text,
+          invoiceItbis18:
+              double.tryParse(itbis18.text.replaceAll(',', '')) ?? 0.00,
+          invoiceItbis16:
+              double.tryParse(itbis16.text.replaceAll(',', '')) ?? 0.00,
+          invoiceTotalServ:
+              double.tryParse(totalServ.text.replaceAll(',', '')) ?? 0.00,
+          invoiceTotalBin:
+              double.tryParse(totalBin.text.replaceAll(',', '')) ?? 0.00,
+        );
 
-      
         if (!widget.isEditing!) {
           await purchase.create();
           Navigator.pop(context, {
@@ -349,7 +361,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         }
       }
     } catch (e) {
-        showAlert(context,message: e.toString());
+      showAlert(context, message: e.toString());
     }
   }
 
@@ -375,7 +387,9 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                           Row(
                             children: [
                               Text(_title,
-                                  style:  TextStyle(fontSize: 22,color: Theme.of(context).primaryColor)),
+                                  style: TextStyle(
+                                      fontSize: 22,
+                                      color: Theme.of(context).primaryColor)),
                               const Spacer(),
                               IconButton(
                                   onPressed: () => Navigator.pop(context),
@@ -551,6 +565,10 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         onChanged: (val) {
                                           setState(() {
                                             currentType = val;
+                                            totalServ.value =
+                                                TextEditingValue.empty;
+                                            totalBin.value =
+                                                TextEditingValue.empty;
                                           });
                                         },
                                         items: invoiceTypes.map((invoiceType) {
@@ -646,11 +664,16 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                     child: TextFormField(
                                       style: const TextStyle(fontSize: 18),
                                       controller: totalServ,
-                                      validator: currentType == 9
-                                          ? null
-                                          : (val) => val!.isEmpty
+                                      enabled: !isBinCode,
+                                      validator: (val) {
+                                        if (isBinCode) return null;
+                                        if (val != null) {
+                                          return val.isEmpty
                                               ? 'CAMPO REQUERIDO'
-                                              : null,
+                                              : null;
+                                        }
+                                        return null;
+                                      },
                                       inputFormatters: [
                                         ThousandsFormatter(allowFraction: true)
                                       ],
@@ -665,9 +688,18 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                     child: TextFormField(
                                       style: const TextStyle(fontSize: 18),
                                       controller: totalBin,
+                                      enabled: isBinCode,
                                       inputFormatters: [
                                         ThousandsFormatter(allowFraction: true)
                                       ],
+                                      validator: (val) {
+                                        if (val != null) {
+                                          if (isBinCode && val.isEmpty) {
+                                            return 'CAMPO REQUERIDO';
+                                          }
+                                        }
+                                        return null;
+                                      },
                                       decoration: const InputDecoration(
                                           hintText: 'TOTAL COMO BIEN',
                                           border: OutlineInputBorder()),
@@ -679,6 +711,33 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                     child: TextFormField(
                                       style: const TextStyle(fontSize: 18),
                                       controller: itbis18,
+                                      validator: (val) {
+                                        if (val != null && val.isNotEmpty) {
+                                          var n1 = double.parse(
+                                              val.replaceAll(',', ''));
+
+                                          var n2 = double.tryParse(totalServ
+                                                  .text
+                                                  .replaceAll(',', '')) ??
+                                              0;
+                                          var n3 = double.tryParse(totalBin.text
+                                                  .replaceAll(',', '')) ??
+                                              0;
+                                          var tax1 = n2 * (18 / 100);
+                                          var tax2 = n3 * (18 / 100);
+
+                                          if (isBinCode) {
+                                            if (n1 > tax2) {
+                                              return 'ITBIS ES MAYOR QUE EL 18% DEL TOTAL - EL VALOR DESEADO DEBE SER IGUAL O MENOR QUE: $tax2';
+                                            }
+                                          } else {
+                                            if (n1 > tax1) {
+                                              return 'ITBIS ES MAYOR QUE EL 18% DEL TOTAL - EL VALOR DESEADO DEBE SER IGUAL O MENOR QUE: $tax1';
+                                            }
+                                          }
+                                        }
+                                        return null;
+                                      },
                                       inputFormatters: [
                                         ThousandsFormatter(allowFraction: true)
                                       ],

@@ -6,6 +6,7 @@ import 'package:flutter_session_manager/flutter_session_manager.dart';
 import 'package:uresaxapp/apis/storage.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
+import 'package:uresaxapp/utils/modals-actions.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,7 +28,7 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (ctx) => const CompaniesPage()),
           (route) => false);
     } catch (e) {
-      print(e);
+       showAlert(context,message:e.toString());
     }
   }
 

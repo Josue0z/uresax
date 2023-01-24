@@ -27,7 +27,8 @@ class _UsersPageState extends State<UsersPage> {
       appBar: AppBar(
         title: const Text('USUARIOS'),
       ),
-      body: ListView.builder(
+      body: ListView.separated(
+          separatorBuilder: (ctx, i) => const Divider(),
           itemCount: users.length,
           itemBuilder: (ctx, index) {
             var user = users[index];
@@ -37,15 +38,40 @@ class _UsersPageState extends State<UsersPage> {
               minVerticalPadding: 15,
               title: Text(
                 user.name!,
-                style: const TextStyle(fontSize: 24),
+                style: const TextStyle(fontSize: 26),
               ),
-              subtitle: Text('${user.roleName} - ${user.username}'),
+              subtitle: Column(
+                children: [
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor,
+                            borderRadius: BorderRadius.circular(2)),
+                        child: Text(
+                          user.roleName!,
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(user.username!, style: const TextStyle(fontSize: 18))
+                    ],
+                  ),
+                ],
+              ),
               trailing: Wrap(
                 children: [
                   IconButton(
                       onPressed: () {},
                       color: Theme.of(context).errorColor,
-                      icon: const Icon(Icons.delete))
+                      icon: const Icon(Icons.delete)),
+                  IconButton(
+                      onPressed: () {},
+                      color: Colors.green,
+                      icon: const Icon(Icons.edit))
                 ],
               ),
             );

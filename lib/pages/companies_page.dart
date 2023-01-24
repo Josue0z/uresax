@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:moment_dart/moment_dart.dart';
+
 import 'package:uresaxapp/modals/add-company-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
-import 'package:moment_dart/moment_dart.dart';
+import 'package:uresaxapp/models/page-option.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/books_page.dart';
 import 'package:uresaxapp/pages/users_page.dart';
@@ -47,7 +49,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
     try {
       await User.loggout(context);
     } catch (e) {
-      print(e);
+     showAlert(context,message:e.toString());
     }
   }
 
@@ -67,11 +69,28 @@ class _CompaniesPageState extends State<CompaniesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('COMPAÑIAS'),
+        title: const Text('EMPRESAS'),
         actions: [
-          IconButton(
-              onPressed: _viewUsers, icon: const Icon(Icons.account_circle)),
-          IconButton(onPressed: _loggout, icon: const Icon(Icons.exit_to_app))
+          PopupMenuButton(
+            onSelected: (option){
+               switch(option){
+                case PageOptionType.users:
+                   _viewUsers();
+                  break;
+                case PageOptionType.loggout:
+                   _loggout();
+                   break;
+                  default:
+               }
+            },
+            itemBuilder: (ctx){
+            return options.map((e) {
+              return PopupMenuItem(
+                value: e.type,
+                child: Text(e.name));
+            }).toList();
+          }),
+       
         ],
       ),
       body: ListView.separated(

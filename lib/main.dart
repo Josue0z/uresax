@@ -11,9 +11,6 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
     await connection.open();
-
-    //await SessionManager().destroy();
-
     var userData = await SessionManager().get('USER');
 
     User.current = userData == null ? null : User.fromJson(userData);
