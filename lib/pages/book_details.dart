@@ -308,12 +308,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   @override
   void initState() {
     try {
-      windowManager.addListener(this);
-      RawKeyboard.instance.addListener(_handlerKeys);
-      stream.stream.listen(_onSheetChanged);
-      _scrollController.addListener(_setupScrollViews);
-
       if (mounted) {
+        windowManager.addListener(this);
+        RawKeyboard.instance.addListener(_handlerKeys);
+        stream.stream.listen(_onSheetChanged);
+        _scrollController.addListener(_setupScrollViews);
+
         current = widget.sheets
             .firstWhere((s) => s.id == widget.book.latestSheetVisited);
         currentSheetIndex = widget.sheets.indexOf(current!);

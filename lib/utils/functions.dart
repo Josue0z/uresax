@@ -94,7 +94,6 @@ Future<void> launchFile(String path) async {
   }
 }
 
-
 showLoader(BuildContext context) async {
   showDialog(
       context: context,
@@ -114,16 +113,10 @@ showLoader(BuildContext context) async {
       });
 }
 
-Future<List<Map<String,dynamic>?>> generate606(
+Future<List<Map<String, dynamic>?>> generate606(
     {String? sheetId = '', String? filePath = ''}) async {
-  await connection.query('''
-   DROP TABLE IF EXISTS public."TempTable";
-  ''');
-  await connection.query('''
-   CREATE TABLE public."TempTable"
-   AS
+  var result = await connection.mappedResultsQuery('''
    SELECT 
-  "EMPRESA",
   "RNC",
    CASE WHEN LENGTH("RNC") < 11 THEN 1 ELSE 2 END,
   "TIPO FACT",
@@ -150,13 +143,8 @@ Future<List<Map<String,dynamic>?>> generate606(
    FROM public."PurchaseDetails" 
    WHERE not ("NCF" like '%B02%') 
    and "invoice_sheetId" = '$sheetId'
-   ORDER BY "EMPRESA","NCF"
+   ORDER BY "NCF"
    ''');
-  await connection.query('''
-  ALTER TABLE public."TempTable" DROP COLUMN "EMPRESA";
-  ''');
 
-  var result = await  connection.mappedResultsQuery('''SELECT * FROM public."TempTable";''');
-
-  return result.map((e) => e['TempTable']).toList();
+  return result.map((e) => e['']).toList();
 }
