@@ -402,6 +402,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                             shrinkWrap: true,
                             children: [
                               Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -459,9 +460,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         isExpanded: true,
                                         focusColor: Colors.white,
                                         onChanged: (val) {
-                                          setState(() {
-                                            currentConcept = val;
-                                          });
+                                          currentConcept = val;
                                         },
                                         items: concepts.map((concept) {
                                           return DropdownMenuItem(
@@ -506,9 +505,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         isExpanded: true,
                                         focusColor: Colors.white,
                                         onChanged: (val) {
-                                          setState(() {
-                                            currentBanking = val;
-                                          });
+                                          currentBanking = val;
                                         },
                                         items: bankings.map((banking) {
                                           return DropdownMenuItem(
@@ -563,13 +560,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         isExpanded: true,
                                         focusColor: Colors.white,
                                         onChanged: (val) {
-                                          setState(() {
-                                            currentType = val;
-                                            totalServ.value =
-                                                TextEditingValue.empty;
-                                            totalBin.value =
-                                                TextEditingValue.empty;
-                                          });
+                                          currentType = val;
+                                          totalServ.value =
+                                              TextEditingValue.empty;
+                                          totalBin.value =
+                                              TextEditingValue.empty;
                                         },
                                         items: invoiceTypes.map((invoiceType) {
                                           return DropdownMenuItem(
@@ -610,9 +605,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         isExpanded: true,
                                         focusColor: Colors.white,
                                         onChanged: (val) {
-                                          setState(() {
-                                            currentPaymentMethod = val;
-                                          });
+                                          currentPaymentMethod = val;
                                         },
                                         items:
                                             paymentMethods.map((paymentMethod) {
@@ -760,6 +753,20 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
+                                  const SizedBox(height: 10),
+                                  widget.isEditing!
+                                      ? Text.rich(TextSpan(children: [
+                                          TextSpan(
+                                              text: 'AUTOR: ',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Theme.of(context)
+                                                      .primaryColor)),
+                                          TextSpan(
+                                              text: widget.invoice?['USUARIO']
+                                                  .toUpperCase())
+                                        ]))
+                                      : Container(),
                                   const SizedBox(height: 10),
                                   SizedBox(
                                       width: double.maxFinite,

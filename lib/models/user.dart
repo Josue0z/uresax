@@ -63,11 +63,11 @@ class User {
       password = BCrypt.hashpw(password!, BCrypt.gensalt());
 
       await connection.query(
-          '''INSERT INTO User(id,name,username,password,roleId) VALUES('$id','$name','$username','$password', $roleId);''');
+          '''INSERT INTO "User"(id,name,username,password,"roleId") VALUES('$id','$name','$username','$password', $roleId)''');
       var result = await connection.mappedResultsQuery(
           '''SELECT * FROM public."UserView" WHERE "id" = '$id' ''');
 
-      return User.fromMap(result.first);
+      return User.fromMap(result.first['']!);
     } catch (e) {
       rethrow;
     }

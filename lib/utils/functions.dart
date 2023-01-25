@@ -98,18 +98,22 @@ showLoader(BuildContext context) async {
   showDialog(
       context: context,
       builder: (ctx) {
-        return Dialog(
-            insetAnimationDuration: const Duration(milliseconds: 5),
-            child: SizedBox(
-              width: 100,
-              height: 100,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [CircularProgressIndicator()],
-                ),
-              ),
-            ));
+        return WillPopScope(
+            child: Dialog(
+                insetAnimationDuration: const Duration(milliseconds: 5),
+                child: SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [CircularProgressIndicator()],
+                    ),
+                  ),
+                )),
+            onWillPop: () async {
+              return false;
+            });
       });
 }
 

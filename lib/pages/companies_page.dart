@@ -49,8 +49,20 @@ class _CompaniesPageState extends State<CompaniesPage> {
     try {
       await User.loggout(context);
     } catch (e) {
-     showAlert(context,message:e.toString());
+      showAlert(context, message: e.toString());
     }
+  }
+
+  List<PopupMenuEntry<dynamic>> _createOptions() {
+    List<PopupMenuEntry<dynamic>> ops = [];
+
+    for (var op in options) {
+      if (!(op.type == PageOptionType.users && !User.current?.isAdmin)) {
+        ops.add(PopupMenuItem(value: op.type, child: Text(op.name)));
+      }
+    }
+
+    return ops;
   }
 
   @override
@@ -69,28 +81,21 @@ class _CompaniesPageState extends State<CompaniesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('EMPRESAS'),
+        title: Text('EMPRESAS, HOLA ${User.current!.username!.toUpperCase()}'),
         actions: [
-          PopupMenuButton(
-            onSelected: (option){
-               switch(option){
-                case PageOptionType.users:
-                   _viewUsers();
-                  break;
-                case PageOptionType.loggout:
-                   _loggout();
-                   break;
-                  default:
-               }
-            },
-            itemBuilder: (ctx){
-            return options.map((e) {
-              return PopupMenuItem(
-                value: e.type,
-                child: Text(e.name));
-            }).toList();
-          }),
-       
+          PopupMenuButton(onSelected: (option) {
+            switch (option) {
+              case PageOptionType.users:
+                _viewUsers();
+                break;
+              case PageOptionType.loggout:
+                _loggout();
+                break;
+              default:
+            }
+          }, itemBuilder: (ctx) {
+            return _createOptions();
+          })
         ],
       ),
       body: ListView.separated(
@@ -124,11 +129,13 @@ class _CompaniesPageState extends State<CompaniesPage> {
                         icon: const Icon(Icons.insert_drive_file_rounded),
                         tooltip: 'COMPRAS Y GASTOS'),
                     const SizedBox(width: 10),
-                    IconButton(
-                        onPressed: () => _deleteCompany(company, index),
-                        icon: const Icon(Icons.delete),
-                        color: Theme.of(context).errorColor,
-                        tooltip: 'ELIMINAR'),
+                    User.current?.isAdmin
+                        ? IconButton(
+                            onPressed: () => _deleteCompany(company, index),
+                            icon: const Icon(Icons.delete),
+                            color: Theme.of(context).errorColor,
+                            tooltip: 'ELIMINAR')
+                        : const SizedBox(),
                   ],
                 ));
           }),

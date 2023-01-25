@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:uresaxapp/modals/add-user-modal.dart';
 import 'package:uresaxapp/models/user.dart';
 
 class UsersPage extends StatefulWidget {
@@ -11,6 +11,7 @@ class UsersPage extends StatefulWidget {
 
 class _UsersPageState extends State<UsersPage> {
   List<User> users = [];
+
   @override
   void initState() {
     User.all()
@@ -19,6 +20,17 @@ class _UsersPageState extends State<UsersPage> {
             }))
         .catchError(print);
     super.initState();
+  }
+
+  _showModal() async {
+    var result = await showDialog(
+        context: context, builder: (ctx) => const AddUserModal());
+
+    if (result is User) {
+      setState(() {
+        users.add(result);
+      });
+    }
   }
 
   @override
@@ -77,7 +89,7 @@ class _UsersPageState extends State<UsersPage> {
             );
           }),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: _showModal,
         child: const Icon(Icons.add),
       ),
     );

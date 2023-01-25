@@ -7,6 +7,7 @@ import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
+import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/book_details.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
@@ -120,10 +121,11 @@ class _BooksPageState extends State<BooksPage> {
                 IconButton(
                     onPressed: () => _preloadBookData(book),
                     icon: const Icon(Icons.remove_red_eye)),
+                User.current?.isAdmin?
                 IconButton(
                     onPressed: () => _delete(book, index),
                     color: Theme.of(context).errorColor,
-                    icon: const Icon(Icons.delete))
+                    icon: const Icon(Icons.delete)):const SizedBox()
               ],
             ),
           );

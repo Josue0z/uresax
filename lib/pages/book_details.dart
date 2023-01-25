@@ -11,6 +11,8 @@ import 'package:uresaxapp/models/book.dart';
 import 'package:intl/intl.dart' as l;
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
+import 'package:uresaxapp/models/user.dart';
+import 'package:uresaxapp/pages/companies_page.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:path/path.dart' as path;
 import 'package:uresaxapp/utils/modals-actions.dart';
@@ -90,6 +92,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   _generate606() async {
     try {
+      showLoader(context);
       if (widget.invoices.isNotEmpty) {
         var filePath = path.join(
             Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
@@ -121,6 +124,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
         await file.writeAsString(content);
 
+        Navigator.pop(context);
+
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('FUE GENERADO EL 606!'),
           action: SnackBarAction(
@@ -133,6 +138,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         ));
       }
     } catch (e) {
+      Navigator.pop(context);
       showAlert(context, message: e.toString());
     }
   }
@@ -342,6 +348,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     super.dispose();
   }
 
+  _goHome() {
+    Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (ctx) => const CompaniesPage()),
+        (route) => false);
+  }
+
   Widget get _infoTop {
     return ListView(
         scrollDirection: Axis.horizontal,
@@ -494,10 +507,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         appBar: AppBar(
           title: Text(_title),
           actions: [
-            IconButton(
-                onPressed: _deleteSheet,
-                icon: const Icon(Icons.delete),
-                tooltip: 'ELIMINAR ESTA HOJA'),
+            IconButton(onPressed: _goHome, icon: const Icon(Icons.home)),
+            User.current?.isAdmin
+                ? IconButton(
+                    onPressed: _deleteSheet,
+                    icon: const Icon(Icons.delete),
+                    tooltip: 'ELIMINAR ESTA HOJA')
+                : const SizedBox(),
             IconButton(onPressed: _generate606, icon: const Icon(Icons.save)),
           ],
         ),

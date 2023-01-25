@@ -1,4 +1,5 @@
 import 'package:uresaxapp/apis/connection.dart';
+import 'package:uresaxapp/models/user.dart';
 import 'package:uuid/uuid.dart';
 
 class Purchase {
@@ -20,6 +21,7 @@ class Purchase {
   String? invoiceSheetId;
   String? invoiceBookId;
   String? invoiceCompanyId;
+  String? invoiceCreatedBy;
 
   Purchase(
       {this.id,
@@ -39,11 +41,13 @@ class Purchase {
       this.invoiceTotalBin,
       this.invoiceNcfModifed,
       this.invoiceBankingId,
+      this.invoiceCreatedBy,
       this.invoiceCk});
 
   Map<String, dynamic> toMap() {
     return {
       'invoice_rnc': invoiceRnc,
+      'invoice_created_by':invoiceCreatedBy,
       'invoice_conceptId': invoiceConceptId,
       'invoice_typeId': invoiceTypeId,
       'invoice_bankingId': invoiceBankingId,
@@ -82,8 +86,9 @@ class Purchase {
       await checkIfExistsPurchase();
       var id = const Uuid().v4();
       invoiceNcfModifed ??= '';
+      invoiceCreatedBy??= User.current!.id;
       await connection.query(
-          ''' INSERT INTO public."Purchase" ("id","invoice_rnc","invoice_conceptId","invoice_sheetId","invoice_bookId","invoice_companyId","invoice_ncf","invoice_ncf_modifed","invoice_typeId","invoice_ck","invoice_bankingId","invoice_payment_methodId","invoice_ncf_date","invoice_ncf_day","invoice_itbis_18","invoice_itbis_16","invoice_total_serv","invoice_total_bin") VALUES('$id','$invoiceRnc',$invoiceConceptId,'$invoiceSheetId','$invoiceBookId','$invoiceCompanyId','$invoiceNcf', '$invoiceNcfModifed', $invoiceTypeId, $invoiceCk, $invoiceBankingId, $invoicePaymentMethodId,'$invoiceNcfDate','$invoiceNcfDay', $invoiceItbis18, $invoiceItbis16, $invoiceTotalServ, $invoiceTotalBin) ''');
+          ''' INSERT INTO public."Purchase" ("id","invoice_rnc","invoice_conceptId","invoice_sheetId","invoice_bookId","invoice_companyId","invoice_ncf","invoice_ncf_modifed","invoice_typeId","invoice_ck","invoice_bankingId","invoice_payment_methodId","invoice_ncf_date","invoice_ncf_day","invoice_itbis_18","invoice_itbis_16","invoice_total_serv","invoice_total_bin","invoice_created_by") VALUES('$id','$invoiceRnc',$invoiceConceptId,'$invoiceSheetId','$invoiceBookId','$invoiceCompanyId','$invoiceNcf', '$invoiceNcfModifed', $invoiceTypeId, $invoiceCk, $invoiceBankingId, $invoicePaymentMethodId,'$invoiceNcfDate','$invoiceNcfDay', $invoiceItbis18, $invoiceItbis16, $invoiceTotalServ, $invoiceTotalBin,'$invoiceCreatedBy') ''');
     } catch (e) {
       rethrow;
     }
@@ -146,6 +151,7 @@ class Purchase {
       var results = await connection.mappedResultsQuery('''
           SELECT
           "id",
+          "USUARIO",
           "RNC",
           "EMPRESA",
           "ID DE CONCEPTO",
