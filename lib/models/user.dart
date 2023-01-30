@@ -1,8 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:convert';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_session_manager/flutter_session_manager.dart';
 import 'package:uresaxapp/apis/connection.dart';
@@ -73,9 +71,19 @@ class User {
     }
   }
 
+  Future<User> update()async{
+    try{
+      await connection.query('''UPDATE public."User" SET "name" = '$name', "roleId" = $roleId, "username" = '$username' WHERE "id" = '$id';''');
+      var result = await connection.mappedResultsQuery('''SELECT * FROM public."UserView" WHERE "id" = '$id';''');
+      return User.fromMap(result.first['']!);
+    }catch(e){
+      rethrow;
+    }
+  }
+
   Future<void> delete() async {
     try {
-      await connection.query('''DELETE FROM User WHERE id = '$id';''');
+      await connection.query('''DELETE FROM public."User" WHERE id = '$id';''');
     } catch (e) {
       rethrow;
     }

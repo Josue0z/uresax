@@ -1,158 +1,17 @@
 // ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uresaxapp/models/banking.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/invoicetype.dart';
-import 'package:uresaxapp/models/ncftype.dart';
 import 'package:uresaxapp/models/payment-method.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
-
-class NcfEditorWidget extends StatefulWidget {
-  Function(String) onChanged;
-  String? val;
-  String? ncfVal;
-  String? hintText;
-  String? Function(int?)? validator;
-  NcfEditorWidget(
-      {super.key,
-      this.validator,
-      this.hintText = 'NUMERO DE COMPROBANTE',
-      required this.onChanged,
-      required this.val,
-      required this.ncfVal});
-
-  @override
-  State<NcfEditorWidget> createState() => _NcfEditorWidgetState();
-}
-
-class _NcfEditorWidgetState extends State<NcfEditorWidget> {
-  TextEditingController controller = TextEditingController();
-  List<NcfType> ncfs = [NcfType(name: 'TIPO DE COMPROBANTE')];
-  TextEditingController ncf = TextEditingController();
-  int? currentNcfType;
-  String? currentNcfTag;
-  String value = '';
-
-  Future<void> _initElements() async {
-    try {
-      var types = await NcfType.getNcfs();
-      controller.addListener(() {
-        value = '$currentNcfTag${controller.text}';
-        widget.onChanged(value);
-      });
-
-      ncfs.addAll(types);
-      var item = ncfs.firstWhere((element) => element.name == widget.val);
-      currentNcfType = item.id;
-      currentNcfTag = item.ncfTag;
-      controller.value = TextEditingValue(text: widget.ncfVal!.substring(3));
-      value = '$currentNcfTag${controller.text}';
-      widget.onChanged(value);
-    } catch (e) {
-    } finally {
-      setState(() {});
-    }
-  }
-
-  @override
-  void initState() {
-    _initElements();
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: DropdownButtonFormField<int?>(
-              value: currentNcfType,
-              validator: widget.validator,
-              decoration: InputDecoration(
-                  enabledBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey, width: 1),
-                  ),
-                  focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey, width: 1),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: Theme.of(context).errorColor))),
-              hint: const Text('TIPO DE COMPROBANTE'),
-              dropdownColor: Colors.white,
-              enableFeedback: false,
-              isExpanded: true,
-              focusColor: Colors.white,
-              onChanged: (val) {
-                if (val == null) {
-                  controller.value = const TextEditingValue(text: '');
-                  value = '';
-                  widget.onChanged(value);
-                  return;
-                }
-                setState(() {
-                  currentNcfType = val;
-                });
-              },
-              items: ncfs.map((ncf) {
-                return DropdownMenuItem(
-                  value: ncf.id,
-                  child: Text(ncf.name),
-                  onTap: () => setState(() {
-                    currentNcfTag = ncf.ncfTag;
-                    widget.onChanged('$currentNcfTag${controller.text}');
-                  }),
-                );
-              }).toList(),
-            )),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: TextFormField(
-            keyboardType: TextInputType.number,
-            controller: controller,
-            validator: currentNcfTag != null
-                ? (val) => val!.isEmpty
-                    ? 'CAMPO REQUERIDO'
-                    : !(val.length == 8 || val.length == 10)
-                        ? 'EL NUMERO DE DIGITOS DEBE SER 8 O 10'
-                        : null
-                : null,
-            inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.digitsOnly
-            ],
-            style: const TextStyle(fontSize: 18),
-            enabled: currentNcfTag != null,
-            maxLength: currentNcfTag != 'E31' ? 8 : 10,
-            decoration: InputDecoration(
-                isDense: true,
-                prefixIcon: currentNcfTag != null
-                    ? Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(currentNcfTag ?? '',
-                            style: const TextStyle(fontSize: 18)))
-                    : null,
-                hintText: widget.hintText,
-                border: const OutlineInputBorder()),
-          ),
-        ),
-      ],
-    );
-  }
-}
+import 'package:uresaxapp/widgets/ncf-editor-widget.dart';
 
 class AddPurchaseModal extends StatefulWidget {
   final Book book;
@@ -217,19 +76,6 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       currentType == 8 ||
       currentType == 9 ||
       currentType == 10;
-
-  _verifyTaxPayer() async {
-    try {
-      var data = await verifyTaxPayer(rnc.value.text);
-      company.value = TextEditingValue(text: data['tax_payer_company_name']);
-      isCorrectRnc = true;
-    } catch (e) {
-      company.value = const TextEditingValue(text: '');
-      isCorrectRnc = false;
-    } finally {
-      setState(() {});
-    }
-  }
 
   @override
   void initState() {
@@ -316,6 +162,19 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  _verifyTaxPayer() async {
+    try {
+      var data = await verifyTaxPayer(rnc.value.text);
+      company.value = TextEditingValue(text: data['tax_payer_company_name']);
+      isCorrectRnc = true;
+    } catch (e) {
+      company.value = const TextEditingValue(text: '');
+      isCorrectRnc = false;
+    } finally {
+      setState(() {});
     }
   }
 
@@ -565,6 +424,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                               TextEditingValue.empty;
                                           totalBin.value =
                                               TextEditingValue.empty;
+                                          setState(() {});
                                         },
                                         items: invoiceTypes.map((invoiceType) {
                                           return DropdownMenuItem(

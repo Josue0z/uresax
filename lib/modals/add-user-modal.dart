@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/role.dart';
 import 'package:uresaxapp/models/user.dart';
@@ -5,7 +7,10 @@ import 'package:uresaxapp/utils/formatters.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 
 class AddUserModal extends StatefulWidget {
-  const AddUserModal({super.key});
+  User? user;
+  bool? isEditing;
+
+  AddUserModal({super.key, this.isEditing = false, this.user});
 
   @override
   State<AddUserModal> createState() => _AddUserModalState();
@@ -21,6 +26,7 @@ class _AddUserModalState extends State<AddUserModal> {
   List<Role> roles = [Role(id: null, name: 'ROLE')];
 
   int? roleId;
+
   bool showPassword = false;
 
   @override
@@ -29,6 +35,12 @@ class _AddUserModalState extends State<AddUserModal> {
       Role.all()
           .then((value) => setState(() {
                 roles.addAll(value);
+                if (widget.user != null) {
+                  username.value =
+                      TextEditingValue(text: widget.user!.username!);
+                  fullname.value = TextEditingValue(text: widget.user!.name!);
+                  roleId = widget.user!.roleId;
+                }
               }))
           .catchError(print);
     }
@@ -37,15 +49,19 @@ class _AddUserModalState extends State<AddUserModal> {
 
   _onSubmit() async {
     try {
-      var newUser = await User(
-              name: fullname.text,
-              username: username.text,
-              password: password.text,
-              roleId: roleId)
-          .create();
-      print(newUser.toMap());
+      var newUser = User(
+          id: widget.user?.id ??  '',
+          name: fullname.text,
+          username: username.text,
+          password: password.text,
+          roleId: roleId);
 
-      Navigator.pop(context,newUser);
+      if (!widget.isEditing!) {
+        newUser = await newUser.create();
+      } else {
+        newUser = await newUser.update();
+      }
+      Navigator.pop(context, newUser);
     } catch (e) {
       showAlert(context, message: e.toString());
     }
@@ -63,7 +79,7 @@ class _AddUserModalState extends State<AddUserModal> {
               children: [
                 Row(
                   children: [
-                    Text('Añadiendo Usuario...',
+                    Text(widget.isEditing! ? 'Editando Usuario...' :'Añadiendo Usuario...',
                         style: TextStyle(
                             color: Theme.of(context).primaryColor,
                             fontSize: 24)),
@@ -97,6 +113,7 @@ class _AddUserModalState extends State<AddUserModal> {
                 const SizedBox(
                   height: 20,
                 ),
+                !widget.isEditing! ?
                 TextFormField(
                   controller: password,
                   style: const TextStyle(fontSize: 18),
@@ -113,10 +130,10 @@ class _AddUserModalState extends State<AddUserModal> {
                               : Icons.visibility_off_outlined)),
                       border: const OutlineInputBorder(),
                       hintText: 'CONTRASEÑA'),
-                ),
-                const SizedBox(
+                ):Container(),
+                !widget.isEditing! ? const SizedBox(
                   height: 20,
-                ),
+                ):Container(),
                 DropdownButtonFormField(
                   value: roleId,
                   decoration: InputDecoration(
@@ -150,7 +167,9 @@ class _AddUserModalState extends State<AddUserModal> {
                   width: double.maxFinite,
                   child: ElevatedButton(
                     onPressed: _onSubmit,
-                    child: const Text('AÑADIR USUARIO'),
+                    child: Text(widget.isEditing!
+                        ? 'EDITAR USUARIO'
+                        : 'AÑADIR USUARIO'),
                   ),
                 )
               ],

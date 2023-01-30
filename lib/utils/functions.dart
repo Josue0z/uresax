@@ -73,6 +73,7 @@ Future fetchDataBook({String? bookId, String? sheetId}) async {
     ]);
     return {'sheets': data[0], 'invoices': data[1], 'invoicesLogs': data[2]};
   } catch (e) {
+    print(e);
     return {'sheets': [], 'invoices': [], 'invoicesLogs': {}};
   }
 }
@@ -145,7 +146,7 @@ Future<List<Map<String, dynamic>?>> generate606(
   "MONTO PROPINA LEGAL",
   "METODO DE PAGO"
    FROM public."PurchaseDetails" 
-   WHERE not ("NCF" like '%B02%') 
+   WHERE not ("NCF" like '%B02%' OR "NCF" like '%E32%') 
    and "invoice_sheetId" = '$sheetId'
    ORDER BY "NCF"
    ''');

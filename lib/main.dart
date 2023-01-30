@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_session_manager/flutter_session_manager.dart';
-import 'package:uresaxapp/apis/connection.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
 import 'package:uresaxapp/pages/login_page.dart';
@@ -10,7 +9,6 @@ void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
-    await connection.open();
     var userData = await SessionManager().get('USER');
 
     User.current = userData == null ? null : User.fromJson(userData);

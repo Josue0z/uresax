@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/modals/add-user-modal.dart';
 import 'package:uresaxapp/models/user.dart';
+import 'package:uresaxapp/utils/modals-actions.dart';
 
 class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
@@ -22,14 +23,39 @@ class _UsersPageState extends State<UsersPage> {
     super.initState();
   }
 
-  _showModal() async {
-    var result = await showDialog(
-        context: context, builder: (ctx) => const AddUserModal());
-
+  _showModalForAddUser() async {
+    var result =
+        await showDialog(context: context, builder: (ctx) => AddUserModal());
     if (result is User) {
       setState(() {
         users.add(result);
       });
+    }
+  }
+
+  _showModalForEdit(User user, int index) async {
+    var result = await showDialog(
+        context: context,
+        builder: (ctx) => AddUserModal(isEditing: true, user: user));
+    if (result is User) {
+      setState(() {
+        users[index] = result;
+      });
+    }
+  }
+
+  _deleteUser(User user, int index) async {
+    var isConfirm = await showConfirm(context, title: 'Eliminar Usuario?');
+    try {
+      if (isConfirm!) {
+        await user.delete();
+        users.removeAt(index);
+        setState(() {
+          
+        });
+      }
+    } catch (e) {
+      showAlert(context, message: e.toString());
     }
   }
 
@@ -77,11 +103,11 @@ class _UsersPageState extends State<UsersPage> {
               trailing: Wrap(
                 children: [
                   IconButton(
-                      onPressed: () {},
+                      onPressed: () => _deleteUser(user, index),
                       color: Theme.of(context).errorColor,
                       icon: const Icon(Icons.delete)),
                   IconButton(
-                      onPressed: () {},
+                      onPressed: () => _showModalForEdit(user, index),
                       color: Colors.green,
                       icon: const Icon(Icons.edit))
                 ],
@@ -89,7 +115,7 @@ class _UsersPageState extends State<UsersPage> {
             );
           }),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showModal,
+        onPressed: _showModalForAddUser,
         child: const Icon(Icons.add),
       ),
     );

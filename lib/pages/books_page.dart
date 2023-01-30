@@ -5,7 +5,6 @@ import 'package:moment_dart/moment_dart.dart';
 import 'package:uresaxapp/modals/add-book-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
-import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/book_details.dart';
@@ -70,7 +69,8 @@ class _BooksPageState extends State<BooksPage> {
       Navigator.pop(context);
       invoices = data['invoices'];
       invoicesLogs = data['invoicesLogs'];
-      sheets = data['sheets'];
+      sheets = data['sheets'].cast<Sheet>();
+
       await Navigator.push(
           context,
           MaterialPageRoute(

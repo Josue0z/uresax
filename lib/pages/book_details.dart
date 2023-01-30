@@ -175,7 +175,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         widget.sheets.add(newSheet);
         widget.sheets.sort(((a, b) => a.sheetMonth! - b.sheetMonth!));
         currentSheetIndex = widget.sheets.indexOf(newSheet);
-        stream.add(newSheet.id);
+        widget.book.latestSheetVisited = newSheet.id;
+        widget.invoices = [];
+        widget.invoicesLogs = {};
+        await widget.book.updateLatestSheetVisited();
+        setState((){});
       }
     } catch (_) {}
   }
