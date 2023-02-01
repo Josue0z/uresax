@@ -13,7 +13,8 @@ import 'package:postgres_pool/postgres_pool.dart';
     ),
     settings: PgPoolSettings()
       ..maxConnectionAge = const Duration(days: 365 * 1000)
-      ..concurrency = 4,
+      ..concurrency = 1000,
+      
   );
 
 

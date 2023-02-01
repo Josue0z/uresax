@@ -29,7 +29,7 @@ class User {
   static Future<List<User>> all() async {
     try {
       var result = await connection
-          .mappedResultsQuery('''SELECT * FROM public."UserView"''');
+          .mappedResultsQuery('''SELECT * FROM public."UserView" order by "created_at";''');
 
       return result.map((e) => User.fromMap(e['']!)).toList();
     } catch (e) {

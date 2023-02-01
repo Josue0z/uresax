@@ -55,15 +55,15 @@ Future<bool?> showConfirm(BuildContext context,
 
   void ok() {
     if (formKey.currentState!.validate()) {
-        Navigator.pop(context, true);
-      
+      Navigator.pop(context, true);
     }
   }
 
   var result = await showDialog<bool>(
       context: context,
       builder: (ctx) => Dialog(
-        shape: ShapeBorder.lerp(Border.all(color: Colors.transparent), Border.all(color: Colors.transparent),0),
+            shape: ShapeBorder.lerp(Border.all(color: Colors.transparent),
+                Border.all(color: Colors.transparent), 0),
             child: SizedBox(
                 width: 400,
                 child: Form(
@@ -90,10 +90,9 @@ Future<bool?> showConfirm(BuildContext context,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                             ],
-                            validator: (val) =>
-                                int.parse(val!.length.toString()) < 6
-                                    ? 'Debe ser un numero de 6 digitos'
-                                    : int.parse(val!.length.toString()) > 6 ? 'El numero tiene mas de 6 digitos': int.parse(val) != number ?'El numero digitado no es correcto': null,
+                            validator: (val) => int.parse(val!) != number
+                                ? 'El numero digitado no es correcto'
+                                : null,
                             style: const TextStyle(fontSize: 18),
                             decoration: const InputDecoration(
                                 border: OutlineInputBorder(),

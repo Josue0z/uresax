@@ -9,7 +9,6 @@ import 'package:uresaxapp/modals/add-purchase-modal.dart';
 import 'package:uresaxapp/modals/add-sheet-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:intl/intl.dart' as l;
-import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
@@ -18,6 +17,20 @@ import 'package:path/path.dart' as path;
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:window_manager/window_manager.dart';
 
+List<String> months = [
+  'ENERO',
+  'FEBRERO',
+  'MARZO',
+  'ABRIL',
+  'MAYO',
+  'JUNIO',
+  'JULIO',
+  'AGOSTO',
+  'SEPTIEMBRE',
+  'OCTUBRE',
+  'NOVIEMBRE',
+  'DICIEMBRE'
+];
 String _formatNumber(String value, String pattern) {
   int i = 0;
   var result = pattern.replaceAllMapped(RegExp('X'), (match) => value[i++]);
@@ -75,6 +88,26 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     return _formatNumber(current!.sheetDate!, 'XXXXXX');
   }
 
+  void _handlerKeys(RawKeyEvent value) {
+    try {
+      var key = value.logicalKey.keyId;
+
+      if (key == LogicalKeyboardKey.arrowLeft.keyId) {
+        _moveLeft();
+      }
+      if (key == LogicalKeyboardKey.arrowRight.keyId) {
+        _moveRight();
+      }
+
+      if (key == LogicalKeyboardKey.arrowUp.keyId) {
+        _moveUp();
+      }
+      if (key == LogicalKeyboardKey.arrowDown.keyId) {
+        _moveDown();
+      }
+    } catch (_) {}
+  }
+
   _moveLeft() {
     var currentOffset = _scrollController.offset;
     if (currentOffset >= 0) {
@@ -92,8 +125,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   _generate606() async {
     try {
-      showLoader(context);
       if (widget.invoices.isNotEmpty) {
+        showLoader(context);
+
         var filePath = path.join(
             Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
             'URESAX',
@@ -103,7 +137,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
             'DGII_F_606_${widget.book.companyRnc}_$_date.TXT');
 
         var file = File(filePath);
+
         await file.create(recursive: true);
+
         var result =
             await generate606(sheetId: current!.id, filePath: filePath);
         var arr = [
@@ -112,13 +148,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
         for (var item in result) {
           var values = item?.values.toList();
-
-          for (int i = 0; i < values!.length; i++) {
-            if (values[i] == null) values[i] = '';
+          for (int j = 0; j < values!.length; j++) {
+            if (values[j] == null) values[j] = '';
           }
-
           arr.add(values);
         }
+
         var content =
             const ListToCsvConverter(fieldDelimiter: '|').convert(arr);
 
@@ -135,6 +170,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
               await launchFile(dirPath);
             },
           ),
+        ));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('NO TIENES FACTURAS AÑADIDAS'),
         ));
       }
     } catch (e) {
@@ -178,14 +217,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         widget.book.latestSheetVisited = newSheet.id;
         widget.invoices = [];
         widget.invoicesLogs = {};
+        current = newSheet;
+
         await widget.book.updateLatestSheetVisited();
-        setState((){});
+        setState(() {});
       }
     } catch (_) {}
-  }
-
-  _showModal() {
-    _showModalPurchase();
   }
 
   _moveRight() {
@@ -200,22 +237,27 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   Future<void> _onSheetChanged(String? sheetId) async {
     try {
       if (sheetId != null) {
+        showLoader(context);
+
         if (widget.sheets.isNotEmpty) {
           var sheet = widget.sheets.firstWhere((sheet) => sheet.id == sheetId);
           current = sheet;
         }
+
         widget.book.latestSheetVisited = sheetId;
+
         await widget.book.updateLatestSheetVisited();
-        showLoader(context);
+
         var data =
             await fetchDataBook(bookId: widget.book.id!, sheetId: sheetId);
         widget.invoices = data['invoices'];
         widget.invoicesLogs = data['invoicesLogs'];
-        await Future.delayed(const Duration(milliseconds: 300));
+
         Navigator.pop(context);
 
         if (_scrollController.hasClients) {
           _scrollController.jumpTo(0);
+          _verticalScrollController.jumpTo(0);
         }
       }
     } catch (_) {
@@ -227,26 +269,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   Future<void> _setCurrentSheet(Sheet sheet, int index) async {
     currentSheetIndex = index;
     stream.add(sheet.id);
-  }
-
-  void _handlerKeys(RawKeyEvent value) {
-    try {
-      var key = value.logicalKey.keyId;
-
-      if (key == LogicalKeyboardKey.arrowLeft.keyId) {
-        _moveLeft();
-      }
-      if (key == LogicalKeyboardKey.arrowRight.keyId) {
-        _moveRight();
-      }
-
-      if (key == LogicalKeyboardKey.arrowUp.keyId) {
-        _moveUp();
-      }
-      if (key == LogicalKeyboardKey.arrowDown.keyId) {
-        _moveDown();
-      }
-    } catch (_) {}
   }
 
   _setupScrollViews() {
@@ -323,7 +345,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         RawKeyboard.instance.addListener(_handlerKeys);
         stream.stream.listen(_onSheetChanged);
         _scrollController.addListener(_setupScrollViews);
-
         current = widget.sheets
             .firstWhere((s) => s.id == widget.book.latestSheetVisited);
         currentSheetIndex = widget.sheets.indexOf(current!);
@@ -482,7 +503,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                 child: Padding(
                     padding:
                         const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Text(sheet.sheetDate!,
+                    child: Text(months[sheet.sheetMonth! - 1],
                         style: TextStyle(
                             color: isCurrent ? Colors.white : Colors.black45,
                             fontSize: 17,
@@ -512,7 +533,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
           title: Text(_title),
           actions: [
             IconButton(onPressed: _goHome, icon: const Icon(Icons.home)),
-            User.current?.isAdmin
+            User.current?.isAdmin && widget.sheets.isNotEmpty
                 ? IconButton(
                     onPressed: _deleteSheet,
                     icon: const Icon(Icons.delete),
@@ -530,7 +551,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                 tooltip: widget.sheets.isEmpty
                     ? 'AÑADE UNA HOJA PRIMERO'
                     : 'AÑADIR FACTURA DE ${widget.book.bookTypeName}',
-                onPressed: widget.sheets.isNotEmpty ? _showModal : null,
+                onPressed: widget.sheets.isNotEmpty ? _showModalPurchase : null,
                 child: const Icon(Icons.insert_drive_file_outlined)),
             const SizedBox(width: 10),
             FloatingActionButton(

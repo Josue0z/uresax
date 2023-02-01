@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uresaxapp/apis/http-client.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';

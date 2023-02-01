@@ -50,6 +50,9 @@ dependencies:
   flutter_secure_storage: ^4.2.1
   flutter_session_manager: ^1.0.3
   postgres_pool: ^2.1.5
+  flutter_platform_alert: ^0.3.0
+  flutter_phoenix: ^1.1.0
+  shell: ^2.0.0
   
 
 dev_dependencies:

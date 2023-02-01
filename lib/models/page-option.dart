@@ -1,4 +1,4 @@
-enum PageOptionType { users, profile, loggout }
+enum PageOptionType { users, loggout }
 
 class PageOption {
   String name;
@@ -8,6 +8,5 @@ class PageOption {
 
 List<PageOption> options = [
   PageOption(name: 'Ver Usuarios', type: PageOptionType.users),
-  PageOption(name: 'Ver Perfil', type: PageOptionType.profile),
   PageOption(name: 'Cerrar Sesion', type:PageOptionType.loggout)
 ];

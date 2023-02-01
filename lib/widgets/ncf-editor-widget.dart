@@ -96,12 +96,12 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
                 if (val == null) {
                   controller.value = const TextEditingValue(text: '');
                   value = '';
+                  currentNcfType = null;
+                  currentNcfTag = null;
                   widget.onChanged(value);
-                  return;
                 }
-                setState(() {
-                  currentNcfType = val;
-                });
+                currentNcfType = val;
+                setState(() {});
               },
               items: ncfs.map((ncf) {
                 return DropdownMenuItem(

@@ -102,10 +102,11 @@ class _UsersPageState extends State<UsersPage> {
               ),
               trailing: Wrap(
                 children: [
+                  index  > 0 ?
                   IconButton(
                       onPressed: () => _deleteUser(user, index),
                       color: Theme.of(context).errorColor,
-                      icon: const Icon(Icons.delete)),
+                      icon: const Icon(Icons.delete)):const SizedBox(),
                   IconButton(
                       onPressed: () => _showModalForEdit(user, index),
                       color: Colors.green,

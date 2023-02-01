@@ -9,6 +9,7 @@ class Purchase {
   int? invoiceBankingId;
   int? invoicePaymentMethodId;
   int? invoiceConceptId;
+  int? invoiceRetentionId;
   String? invoiceNcf;
   String? invoiceNcfModifed;
   double? invoiceItbis18;
@@ -34,6 +35,7 @@ class Purchase {
       this.invoiceNcfDay,
       this.invoiceSheetId,
       this.invoiceBookId,
+      this.invoiceRetentionId,
       this.invoiceCompanyId,
       this.invoiceItbis18,
       this.invoiceItbis16,
@@ -89,7 +91,7 @@ class Purchase {
       invoiceCreatedBy??= User.current!.id;
 
       await connection.query(
-          '''INSERT INTO public."Purchase" ("id","invoice_rnc","invoice_conceptId","invoice_sheetId","invoice_bookId","invoice_companyId","invoice_ncf","invoice_ncf_modifed","invoice_typeId","invoice_ck","invoice_bankingId","invoice_payment_methodId","invoice_ncf_date","invoice_ncf_day","invoice_itbis_18","invoice_itbis_16","invoice_total_serv","invoice_total_bin","invoice_created_by") VALUES('$id','$invoiceRnc',$invoiceConceptId,'$invoiceSheetId','$invoiceBookId','$invoiceCompanyId','$invoiceNcf', '$invoiceNcfModifed', $invoiceTypeId, $invoiceCk, $invoiceBankingId, $invoicePaymentMethodId,'$invoiceNcfDate','$invoiceNcfDay', $invoiceItbis18, $invoiceItbis16, $invoiceTotalServ, $invoiceTotalBin,'$invoiceCreatedBy') ''');
+          '''INSERT INTO public."Purchase" ("id","invoice_rnc","invoice_conceptId","invoice_sheetId","invoice_bookId","invoice_companyId","invoice_ncf","invoice_ncf_modifed","invoice_typeId","invoice_ck","invoice_bankingId","invoice_payment_methodId","invoice_ncf_date","invoice_ncf_day","invoice_itbis_18","invoice_itbis_16","invoice_total_serv","invoice_total_bin","invoice_created_by","invoice_retentionId") VALUES('$id','$invoiceRnc',$invoiceConceptId,'$invoiceSheetId','$invoiceBookId','$invoiceCompanyId','$invoiceNcf', '$invoiceNcfModifed', $invoiceTypeId, $invoiceCk, $invoiceBankingId, $invoicePaymentMethodId,'$invoiceNcfDate','$invoiceNcfDay', $invoiceItbis18, $invoiceItbis16, $invoiceTotalServ, $invoiceTotalBin,'$invoiceCreatedBy',$invoiceRetentionId) ''');
     } catch (e) {
       rethrow;
     }
@@ -98,7 +100,7 @@ class Purchase {
   Future<Map<String, dynamic>> update() async {
     try {
       await connection.query('''
-      UPDATE public."Purchase" SET "invoice_rnc" = '$invoiceRnc', "invoice_conceptId" = $invoiceConceptId, "invoice_ncf" = '$invoiceNcf', "invoice_ncf_modifed" = '$invoiceNcfModifed', "invoice_typeId" = $invoiceTypeId, "invoice_ck" = $invoiceCk, "invoice_bankingId" = $invoiceBankingId, "invoice_payment_methodId" = $invoicePaymentMethodId, "invoice_ncf_day" = '$invoiceNcfDay', "invoice_itbis_16" = $invoiceItbis16, "invoice_itbis_18" = $invoiceItbis18, "invoice_total_serv" = $invoiceTotalServ, "invoice_total_bin" = $invoiceTotalBin, "invoice_created_by" = '${User.current!.id}' WHERE "id" = '$id';
+      UPDATE public."Purchase" SET "invoice_rnc" = '$invoiceRnc', "invoice_conceptId" = $invoiceConceptId, "invoice_ncf" = '$invoiceNcf', "invoice_ncf_modifed" = '$invoiceNcfModifed', "invoice_typeId" = $invoiceTypeId, "invoice_ck" = $invoiceCk, "invoice_bankingId" = $invoiceBankingId, "invoice_payment_methodId" = $invoicePaymentMethodId, "invoice_ncf_day" = '$invoiceNcfDay', "invoice_itbis_16" = $invoiceItbis16, "invoice_itbis_18" = $invoiceItbis18, "invoice_total_serv" = $invoiceTotalServ, "invoice_total_bin" = $invoiceTotalBin, "invoice_created_by" = '${User.current!.id}', "invoice_retentionId" = $invoiceRetentionId WHERE "id" = '$id';
       ''');
    
       var result = await connection.mappedResultsQuery('''
@@ -124,6 +126,8 @@ class Purchase {
           "TOTAL NETO",
           "ITBIS 18%",
           "ITBIS 16%",
+          "ID RETENCION",
+          "ITBIS RETENIDO",
           "TOTAL ITBIS",
           "FORMA DE PAGO",
           "GRAVADA 18%",
@@ -174,6 +178,8 @@ class Purchase {
           "TOTAL NETO",
           "ITBIS 18%",
           "ITBIS 16%",
+          "ID RETENCION",
+          "ITBIS RETENIDO",
           "TOTAL ITBIS",
           "FORMA DE PAGO",
           "GRAVADA 18%",

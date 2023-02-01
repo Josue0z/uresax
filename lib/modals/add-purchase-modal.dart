@@ -7,6 +7,7 @@ import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/invoicetype.dart';
 import 'package:uresaxapp/models/payment-method.dart';
 import 'package:uresaxapp/models/purchase.dart';
+import 'package:uresaxapp/models/retention.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
@@ -35,11 +36,13 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   List<Banking> bankings = [Banking(name: 'BANCO')];
   List<InvoiceType> invoiceTypes = [InvoiceType(name: 'TIPO DE FACTURA')];
   List<PaymentMethod> paymentMethods = [PaymentMethod(name: 'METODO DE PAGO')];
+  List<Retention> retentions = [Retention(id: null, name: 'RETENCION')];
 
   int? currentConcept;
   int? currentBanking;
   int? currentType;
   int? currentPaymentMethod;
+  int? currentRetention;
   bool isCorrectRnc = false;
 
   TextEditingController rnc = TextEditingController();
@@ -95,6 +98,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       bankings.addAll(await Banking.getBankings());
       invoiceTypes.addAll(await InvoiceType.getInvoiceTypes());
       paymentMethods.addAll(await PaymentMethod.getPaymentMethods());
+      retentions.addAll(await Retention.all());
 
       if (widget.invoice != null) {
         rnc.value = TextEditingValue(text: widget.invoice!['RNC']);
@@ -109,6 +113,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         ck.value = TextEditingValue(text: c);
         currentBanking = widget.invoice!['ID DE BANCO'];
         currentConcept = widget.invoice!['ID DE CONCEPTO'];
+        currentRetention = widget.invoice!['ID RETENCION'];
         var chars = (widget.invoice!['DIA'] as String).split('');
         if (chars[0] == '0') chars[0] = '';
         day.value = TextEditingValue(text: chars.join(''));
@@ -157,7 +162,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         itbis18.value = val2;
         itbis16.value = val4;
       }
-    } catch (_) {
+    } catch (e) {
+      print(e);
     } finally {
       setState(() {
         isLoading = false;
@@ -196,6 +202,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
           invoiceCompanyId: widget.book.companyId,
           invoiceBankingId: currentBanking,
           invoiceCk: ck.text.isEmpty ? null : ck.text,
+          invoiceRetentionId: currentRetention,
           invoiceItbis18:
               double.tryParse(itbis18.text.replaceAll(',', '')) ?? 0.00,
           invoiceItbis16:
@@ -476,6 +483,44 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         }).toList(),
                                       )),
                                   Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                      child: DropdownButtonFormField<int?>(
+                                        value: currentRetention,
+                                        decoration: InputDecoration(
+                                          enabledBorder:
+                                              const OutlineInputBorder(
+                                            //<-- SEE HERE
+                                            borderSide: BorderSide(
+                                                color: Colors.grey, width: 1),
+                                          ),
+                                          focusedBorder:
+                                              const OutlineInputBorder(
+                                            //<-- SEE HERE
+                                            borderSide: BorderSide(
+                                                color: Colors.grey, width: 1),
+                                          ),
+                                          errorBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Theme.of(context)
+                                                      .errorColor)),
+                                        ),
+                                        hint: const Text('RETENCION'),
+                                        dropdownColor: Colors.white,
+                                        enableFeedback: false,
+                                        isExpanded: true,
+                                        focusColor: Colors.white,
+                                        onChanged: (val) {
+                                          currentRetention = val;
+                                        },
+                                        items: retentions.map((retention) {
+                                          return DropdownMenuItem(
+                                            value: retention.id,
+                                            child: Text(retention.name!),
+                                          );
+                                        }).toList(),
+                                      )),
+                                  Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10),
                                     child: TextFormField(
@@ -608,6 +653,33 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                       inputFormatters: [
                                         ThousandsFormatter(allowFraction: true)
                                       ],
+                                      validator: (val) {
+                                        if (val != null && val.isNotEmpty) {
+                                          var n1 = double.parse(
+                                              val.replaceAll(',', ''));
+
+                                          var n2 = double.tryParse(totalServ
+                                                  .text
+                                                  .replaceAll(',', '')) ??
+                                              0;
+                                          var n3 = double.tryParse(totalBin.text
+                                                  .replaceAll(',', '')) ??
+                                              0;
+                                          var tax1 = n2 * (16 / 100);
+                                          var tax2 = n3 * (16 / 100);
+
+                                          if (isBinCode) {
+                                            if (n1 > tax2) {
+                                              return 'ITBIS ES MAYOR QUE EL 16% DEL TOTAL - EL VALOR DESEADO DEBE SER IGUAL O MENOR QUE: $tax2';
+                                            }
+                                          } else {
+                                            if (n1 > tax1) {
+                                              return 'ITBIS ES MAYOR QUE EL 16% DEL TOTAL - EL VALOR DESEADO DEBE SER IGUAL O MENOR QUE: $tax1';
+                                            }
+                                          }
+                                        }
+                                        return null;
+                                      },
                                       decoration: const InputDecoration(
                                           hintText: 'ITBIS 16%',
                                           border: OutlineInputBorder()),
@@ -628,36 +700,40 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         ]))
                                       : Container(),
                                   const SizedBox(height: 10),
-                                  SizedBox(
-                                      width: double.maxFinite,
-                                      height: 50,
-                                      child: ElevatedButton(
-                                        onPressed:
-                                            !isCorrectRnc ? null : _onSubmit,
-                                        child: Text(_titleBtn,
-                                            style:
-                                                const TextStyle(fontSize: 19)),
-                                      )),
-                                  const SizedBox(height: 10),
-                                  widget.isEditing!
-                                      ? SizedBox(
-                                          width: double.maxFinite,
-                                          height: 50,
-                                          child: ElevatedButton(
-                                            style: ButtonStyle(
-                                                backgroundColor:
-                                                    MaterialStateProperty.all(
-                                                        Theme.of(context)
-                                                            .errorColor)),
-                                            onPressed: _deletePurchase,
-                                            child: const Text('ELIMINAR COMPRA',
-                                                style: TextStyle(fontSize: 19)),
-                                          ))
-                                      : Container()
                                 ],
-                              )
+                              ),
                             ],
-                          ))
+                          )),
+                          Row(
+                            children: [
+                              widget.isEditing!
+                                  ? Expanded(
+                                      child: ElevatedButton(
+                                      style: ButtonStyle(
+                                          padding: MaterialStateProperty.all(
+                                              const EdgeInsets.all(18)),
+                                          backgroundColor:
+                                              MaterialStateProperty.all(
+                                                  Theme.of(context)
+                                                      .errorColor)),
+                                      onPressed: _deletePurchase,
+                                      child: const Text('ELIMINAR COMPRA',
+                                          style: TextStyle(fontSize: 19)),
+                                    ))
+                                  : Container(),
+                              SizedBox(width: widget.isEditing! ? 20 : 0),
+                              Expanded(
+                                  child: ElevatedButton(
+                                style: ButtonStyle(
+                                  padding: MaterialStateProperty.all(
+                                      const EdgeInsets.all(18)),
+                                ),
+                                onPressed: !isCorrectRnc ? null : _onSubmit,
+                                child: Text(_titleBtn,
+                                    style: const TextStyle(fontSize: 19)),
+                              )),
+                            ],
+                          )
                         ],
                       )),
                 ))

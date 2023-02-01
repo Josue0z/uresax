@@ -161,7 +161,7 @@ class _BooksPageState extends State<BooksPage> {
               builder: (ctx) => AddBookModal(
                   company: widget.company,
                   books: books,
-                  bookTypeId: widget.bookType == BookType.purchases ? 1 : 2,
+                  bookTypeId:1,
                   bookYear: y));
           if (book is Book) {
             books.add(book);

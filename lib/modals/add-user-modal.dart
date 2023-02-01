@@ -29,6 +29,8 @@ class _AddUserModalState extends State<AddUserModal> {
 
   bool showPassword = false;
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     if (mounted) {
@@ -49,19 +51,21 @@ class _AddUserModalState extends State<AddUserModal> {
 
   _onSubmit() async {
     try {
-      var newUser = User(
-          id: widget.user?.id ??  '',
-          name: fullname.text,
-          username: username.text,
-          password: password.text,
-          roleId: roleId);
+      if (_formKey.currentState!.validate()) {
+        var newUser = User(
+            id: widget.user?.id ?? '',
+            name: fullname.text,
+            username: username.text,
+            password: password.text,
+            roleId: roleId);
 
-      if (!widget.isEditing!) {
-        newUser = await newUser.create();
-      } else {
-        newUser = await newUser.update();
+        if (!widget.isEditing!) {
+          newUser = await newUser.create();
+        } else {
+          newUser = await newUser.update();
+        }
+        Navigator.pop(context, newUser);
       }
-      Navigator.pop(context, newUser);
     } catch (e) {
       showAlert(context, message: e.toString());
     }
@@ -70,111 +74,124 @@ class _AddUserModalState extends State<AddUserModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: SizedBox(
-          width: 500,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                Row(
-                  children: [
-                    Text(widget.isEditing! ? 'Editando Usuario...' :'Añadiendo Usuario...',
-                        style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontSize: 24)),
-                    const Spacer(),
-                    IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close))
-                  ],
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                TextFormField(
-                  controller: fullname,
-                  style: const TextStyle(fontSize: 18),
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'NOMBRE DE COMPLETO'),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                TextFormField(
-                  controller: username,
-                  style: const TextStyle(fontSize: 18),
-                  inputFormatters: [LowerCaseTextFormatter()],
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'NOMBRE DE USUARIO'),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                !widget.isEditing! ?
-                TextFormField(
-                  controller: password,
-                  style: const TextStyle(fontSize: 18),
-                  obscureText: !showPassword,
-                  decoration: InputDecoration(
-                      suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              showPassword = !showPassword;
-                            });
-                          },
-                          icon: Icon(showPassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined)),
-                      border: const OutlineInputBorder(),
-                      hintText: 'CONTRASEÑA'),
-                ):Container(),
-                !widget.isEditing! ? const SizedBox(
-                  height: 20,
-                ):Container(),
-                DropdownButtonFormField(
-                  value: roleId,
-                  decoration: InputDecoration(
-                      enabledBorder: const OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey, width: 1),
+        child: Form(
+            key: _formKey,
+            child: SizedBox(
+                width: 500,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                              widget.isEditing!
+                                  ? 'Editando Usuario...'
+                                  : 'Añadiendo Usuario...',
+                              style: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                  fontSize: 24)),
+                          const Spacer(),
+                          IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.close))
+                        ],
                       ),
-                      focusedBorder: const OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey, width: 1),
+                      const SizedBox(
+                        height: 20,
                       ),
-                      errorBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                        color: Theme.of(context).primaryColor,
-                      ))),
-                  dropdownColor: Colors.white,
-                  enableFeedback: false,
-                  isExpanded: true,
-                  focusColor: Colors.white,
-                  onChanged: (val) {
-                    roleId = val;
-                  },
-                  items: roles.map((role) {
-                    return DropdownMenuItem(
-                        value: role.id, child: Text(role.name!));
-                  }).toList(),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                SizedBox(
-                  height: 50,
-                  width: double.maxFinite,
-                  child: ElevatedButton(
-                    onPressed: _onSubmit,
-                    child: Text(widget.isEditing!
-                        ? 'EDITAR USUARIO'
-                        : 'AÑADIR USUARIO'),
+                      TextFormField(
+                        controller: fullname,
+                        style: const TextStyle(fontSize: 18),
+                        validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO': null,
+                        decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'NOMBRE DE COMPLETO'),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      TextFormField(
+                        controller: username,
+                        style: const TextStyle(fontSize: 18),
+                         validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO': null,
+                        inputFormatters: [LowerCaseTextFormatter()],
+                        decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'NOMBRE DE USUARIO'),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      !widget.isEditing!
+                          ? TextFormField(
+                              controller: password,
+                              style: const TextStyle(fontSize: 18),
+                              obscureText: !showPassword,
+                               validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO': null,
+                              decoration: InputDecoration(
+                                  suffixIcon: IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          showPassword = !showPassword;
+                                        });
+                                      },
+                                      icon: Icon(showPassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined)),
+                                  border: const OutlineInputBorder(),
+                                  hintText: 'CONTRASEÑA'),
+                            )
+                          : Container(),
+                      !widget.isEditing!
+                          ? const SizedBox(
+                              height: 20,
+                            )
+                          : Container(),
+                      DropdownButtonFormField(
+                        value: roleId,
+                         validator: (val) => val == null ? 'CAMPO REQUERIDO':null,
+                        decoration: InputDecoration(
+                            enabledBorder: const OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.grey, width: 1),
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.grey, width: 1),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                              color: Theme.of(context).primaryColor,
+                            ))),
+                        dropdownColor: Colors.white,
+                        enableFeedback: false,
+                        isExpanded: true,
+                        focusColor: Colors.white,
+                        onChanged: (val) {
+                          roleId = val;
+                        },
+                        items: roles.map((role) {
+                          return DropdownMenuItem(
+                              value: role.id, child: Text(role.name!));
+                        }).toList(),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      SizedBox(
+                        height: 50,
+                        width: double.maxFinite,
+                        child: ElevatedButton(
+                          onPressed: _onSubmit,
+                          child: Text(widget.isEditing!
+                              ? 'EDITAR USUARIO'
+                              : 'AÑADIR USUARIO'),
+                        ),
+                      )
+                    ],
                   ),
-                )
-              ],
-            ),
-          )),
-    );
+                ))));
   }
 }

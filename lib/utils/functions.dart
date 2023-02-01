@@ -38,15 +38,15 @@ Future<Map<String, dynamic>?> calcData(
        SUM(TRUNC(cast("TOTAL FACTURADO" AS numeric),2))::text  AS "TOTAL FACTURADO",
        (SELECT 
        SUM(TRUNC(cast("TOTAL FACTURADO" AS numeric),2)) 
-       FROM public."PurchaseDetails" WHERE "NCF" NOT LIKE '%B02%' AND $whereContext) AS "TOTAL FACTURADO EN NCFS",
+       FROM public."PurchaseDetails" WHERE ("NCF" NOT LIKE '%B02%' OR "NCF" NOT LIKE '%E32%') AND ($whereContext)) AS "TOTAL FACTURADO EN NCFS",
        SUM(TRUNC(cast("TOTAL ITBIS" AS numeric),2))::text AS "TOTAL ITBIS FACTURADO", 
        (SELECT 
        SUM(TRUNC(cast("TOTAL ITBIS" AS numeric),2)) 
-       FROM public."PurchaseDetails" WHERE "NCF" NOT LIKE '%B02%' AND $whereContext) AS "TOTAL ITBIS FACTURADO EN NCFS",
-       SUM(TRUNC(cast("TOTAL NETO" AS numeric),2))::text AS "TOTAL NETO FACTURADO" ,
+       FROM public."PurchaseDetails" WHERE ("NCF" NOT LIKE '%B02%' OR "NCF" NOT LIKE '%E32%') AND ($whereContext)) AS "TOTAL ITBIS FACTURADO EN NCFS",
+       SUM(TRUNC(cast("TOTAL NETO" AS numeric),2))::text AS "TOTAL NETO FACTURADO",
        (SELECT 
        SUM(TRUNC(cast("TOTAL NETO" AS numeric),2)) 
-       FROM public."PurchaseDetails" WHERE "NCF" NOT LIKE '%B02%' AND $whereContext) AS "TOTAL NETO FACTURADO EN NCFS"
+       FROM public."PurchaseDetails" WHERE ("NCF" NOT LIKE '%B02%' OR "NCF" NOT LIKE '%E32%') AND ($whereContext)) AS "TOTAL NETO FACTURADO EN NCFS"
        FROM public."PurchaseDetails"
        WHERE $whereContext;
     ''');

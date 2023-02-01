@@ -8,7 +8,9 @@ import 'package:window_manager/window_manager.dart';
 void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
+    
     await windowManager.ensureInitialized();
+
     var userData = await SessionManager().get('USER');
 
     User.current = userData == null ? null : User.fromJson(userData);
@@ -22,9 +24,7 @@ void main() async {
     });
 
     runApp(const MyApp());
-  } catch (e) {
-    print(e);
-  }
+  } catch (_) {}
 }
 
 class MyApp extends StatelessWidget {
