@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:uresaxapp/modals/add-purchase-modal.dart';
 import 'package:uresaxapp/modals/add-sheet-modal.dart';
 import 'package:uresaxapp/models/book.dart';
-import 'package:intl/intl.dart' as l;
+import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
@@ -16,6 +16,11 @@ import 'package:uresaxapp/utils/functions.dart';
 import 'package:path/path.dart' as path;
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:window_manager/window_manager.dart';
+
+class ShowPurchaseModalIntent extends Intent {
+  final String name;
+  const ShowPurchaseModalIntent({required this.name});
+}
 
 List<String> months = [
   'ENERO',
@@ -39,13 +44,17 @@ String _formatNumber(String value, String pattern) {
 
 class BookDetailsPage extends StatefulWidget {
   Book book;
+  Sheet? currentSheet;
   List<Sheet> sheets = [];
-  var invoices = [];
+  List<Purchase> purchases = [];
   var invoicesLogs = {};
+  int currentSheetIndex;
   BookDetailsPage(
       {super.key,
+      this.currentSheet,
+      this.currentSheetIndex = -1,
       required this.book,
-      required this.invoices,
+      required this.purchases,
       required this.invoicesLogs,
       required this.sheets});
 
@@ -54,16 +63,14 @@ class BookDetailsPage extends StatefulWidget {
 }
 
 class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
-  Sheet? current;
-  int currentSheetIndex = -1;
-
-  l.NumberFormat formatter = l.NumberFormat();
   late StreamController<String?> stream = StreamController();
 
   final ScrollController _scrollController = ScrollController();
 
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
+
+  Sheet? oldSheet;
 
   Map<String, dynamic> invoicesLogs = {};
 
@@ -80,17 +87,22 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   }
 
   String get _topTitle {
-    if (current == null) return widget.book.bookTypeName!;
-    return '${widget.book.bookTypeName!.toUpperCase()} ${_formatNumber(current!.sheetDate!, 'XXXX-XX')}';
-  }
-
-  String get _date {
-    return _formatNumber(current!.sheetDate!, 'XXXXXX');
+    if (widget.currentSheet == null) return widget.book.bookTypeName ?? '';
+    return '${widget.book.bookTypeName!.toUpperCase()} ${_formatNumber(widget.currentSheet!.sheetDate!, 'XXXX-XX')}';
   }
 
   void _handlerKeys(RawKeyEvent value) {
     try {
       var key = value.logicalKey.keyId;
+
+      if (value.isControlPressed) {
+        if (key == LogicalKeyboardKey.keyN.keyId) {
+          _showModalPurchase();
+        }
+        if (key == LogicalKeyboardKey.keyS.keyId) {
+          _generate606();
+        }
+      }
 
       if (key == LogicalKeyboardKey.arrowLeft.keyId) {
         _moveLeft();
@@ -125,61 +137,61 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   _generate606() async {
     try {
-      if (widget.invoices.isNotEmpty) {
-        showLoader(context);
+      var purchases = [...widget.purchases];
+      purchases.removeWhere((element) =>
+          element.invoiceNcfTypeId == 2 || element.invoiceNcfTypeId == 32);
 
-        var filePath = path.join(
-            Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
-            'URESAX',
-            widget.book.companyName,
-            widget.book.year.toString(),
-            '606',
-            'DGII_F_606_${widget.book.companyRnc}_$_date.TXT');
+      var elements = purchases.map((e) => e.to606()).toList();
 
-        var file = File(filePath);
-
-        await file.create(recursive: true);
-
-        var result =
-            await generate606(sheetId: current!.id, filePath: filePath);
-        var arr = [
-          [606, widget.book.companyRnc, current?.sheetDate, result.length]
-        ];
-
-        for (var item in result) {
-          var values = item?.values.toList();
-          for (int j = 0; j < values!.length; j++) {
-            if (values[j] == null) values[j] = '';
-          }
-          arr.add(values);
-        }
-
-        var content =
-            const ListToCsvConverter(fieldDelimiter: '|').convert(arr);
-
-        await file.writeAsString(content);
-
-        Navigator.pop(context);
-
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('FUE GENERADO EL 606!'),
-          action: SnackBarAction(
-            label: 'ABRIR ARCHIVO',
-            onPressed: () async {
-              var dirPath = path.dirname(filePath);
-              await launchFile(dirPath);
-            },
-          ),
-        ));
-      } else {
+      if (purchases.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('NO TIENES FACTURAS AÑADIDAS'),
+          content: Text('NO TIENES FACTURAS EN ESTA HOJA'),
         ));
+        return;
       }
+
+      List<List<dynamic>> rows = [];
+
+      for (int i = 0; i < elements.length; i++) {
+        var item = elements[i];
+        var values = item.values.toList();
+        rows.add(values);
+      }
+      var result = const ListToCsvConverter().convert([
+        [
+          606,
+          widget.book.companyRnc,
+          widget.currentSheet?.sheetDate,
+          purchases.length
+        ],
+        ...rows
+      ], fieldDelimiter: '|');
+
+      var file = File(path.join(
+          Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
+          'URESAX',
+          widget.book.companyName,
+          widget.book.year.toString(),
+          '606',
+          'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}.TXT'));
+
+      await file.create(recursive: true);
+
+      await file.writeAsString(result);
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('FUE GENERADO EL 606'),
+          action: SnackBarAction(
+              label: 'ABRIR ARCHIVO',
+              onPressed: () {
+                var dirPath = path.dirname(file.path);
+                launchFile(dirPath);
+              })));
     } catch (e) {
-      Navigator.pop(context);
-      showAlert(context, message: e.toString());
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
+
+    return;
   }
 
   _showModalPurchase() async {
@@ -188,16 +200,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
       var result = await showDialog(
           context: context,
           builder: (ctx) =>
-              AddPurchaseModal(book: widget.book, sheet: current!));
+              AddPurchaseModal(book: widget.book, sheet: widget.currentSheet!));
       RawKeyboard.instance.addListener(_handlerKeys);
 
       if (result['method'] == 'INSERT') {
-        var data = await fetchDataBook(sheetId: current!.id);
-        widget.invoicesLogs = data['invoicesLogs'];
-        widget.invoices = data['invoices'];
+        var purchase = result['data'] as Purchase;
+        widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                'SE INSERTO LA FACTURA CON EL RNC: ${result['RNC']} Y EL NCF: ${result['NCF']}')));
+                'SE INSERTO LA FACTURA CON EL RNC: ${purchase.invoiceRnc} Y EL NCF: ${purchase.invoiceFullNcf}')));
         setState(() {});
       }
     } catch (_) {}
@@ -211,14 +222,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
               book: widget.book, latestSheetInserted: _latestSheet));
 
       if (newSheet is Sheet) {
-        widget.sheets.add(newSheet);
-        widget.sheets.sort(((a, b) => a.sheetMonth! - b.sheetMonth!));
-        currentSheetIndex = widget.sheets.indexOf(newSheet);
+        oldSheet = newSheet;
+        widget.sheets = await widget.book.getSheets();
+        widget.currentSheetIndex =
+            widget.sheets.indexWhere((e) => e.id == newSheet.id);
         widget.book.latestSheetVisited = newSheet.id;
-        widget.invoices = [];
+        widget.purchases = [];
         widget.invoicesLogs = {};
-        current = newSheet;
-
+        widget.currentSheet = newSheet;
         await widget.book.updateLatestSheetVisited();
         setState(() {});
       }
@@ -240,18 +251,17 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         showLoader(context);
 
         if (widget.sheets.isNotEmpty) {
-          var sheet = widget.sheets.firstWhere((sheet) => sheet.id == sheetId);
-          current = sheet;
+          widget.currentSheet =
+              widget.sheets.firstWhere((sheet) => sheet.id == sheetId);
+          widget.currentSheetIndex =
+              widget.sheets.indexWhere((element) => element.id == sheetId);
+          oldSheet = widget.currentSheet;
         }
 
         widget.book.latestSheetVisited = sheetId;
 
+        widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
         await widget.book.updateLatestSheetVisited();
-
-        var data =
-            await fetchDataBook(bookId: widget.book.id!, sheetId: sheetId);
-        widget.invoices = data['invoices'];
-        widget.invoicesLogs = data['invoicesLogs'];
 
         Navigator.pop(context);
 
@@ -261,13 +271,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         }
       }
     } catch (_) {
+      Navigator.pop(context);
     } finally {
       setState(() {});
     }
   }
 
   Future<void> _setCurrentSheet(Sheet sheet, int index) async {
-    currentSheetIndex = index;
+    widget.currentSheet = sheet;
+    widget.currentSheetIndex = index;
     stream.add(sheet.id);
   }
 
@@ -275,35 +287,27 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     _horizontalScrollController.jumpTo(_scrollController.offset);
   }
 
-  _selectInvoice(invoice) async {
+  _selectInvoice(Purchase purchase) async {
     try {
       var result = await showDialog(
           context: context,
           builder: (ctx) => AddPurchaseModal(
               book: widget.book,
-              sheet: current!,
-              invoice: invoice,
+              sheet: widget.currentSheet!,
+              purchase: purchase,
               isEditing: true));
 
       if (result['method'] == 'DELETE') {
-        var data =
-            await fetchDataBook(bookId: widget.book.id!, sheetId: current!.id!);
-        widget.invoices = data['invoices'];
-        widget.invoicesLogs = data['invoicesLogs'];
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'SE ELIMINO LA FACTURA CON EL RNC: ${result['invoice']['RNC']} Y EL NCF: ${result['invoice']['NCF']}')));
+        widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('SE ELIMINO LA FACTURA')));
         setState(() {});
       }
 
       if (result['method'] == 'UPDATE') {
-        var data =
-            await fetchDataBook(bookId: widget.book.id!, sheetId: current!.id!);
-        widget.invoices = data['invoices'];
-        widget.invoicesLogs = data['invoicesLogs'];
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'SE ACTUALIZO LA FACTURA CON EL RNC: ${result['RNC']} Y EL NCF: ${result['NCF']}')));
+        widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('SE ACTUALIZO LA FACTURA')));
         setState(() {});
       }
     } catch (_) {}
@@ -316,25 +320,46 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
             await showConfirm(context, title: 'Eliminar esta hoja?');
 
         if (isConfirm!) {
-          await Sheet(id: current!.id!).delete();
-          widget.sheets.remove(current!);
-          widget.book.latestSheetVisited = current!.id;
+          widget.currentSheetIndex = widget.sheets
+              .indexWhere((element) => element.id == widget.currentSheet?.id);
+          await widget.currentSheet?.delete();
 
-          if (currentSheetIndex == 0 && widget.sheets.isNotEmpty) {
-            widget.book.latestSheetVisited =
-                widget.sheets[currentSheetIndex].id;
-            currentSheetIndex += 1;
-          }
-          if (currentSheetIndex >= 0 && widget.sheets.isNotEmpty) {
-            currentSheetIndex -= 1;
-            widget.book.latestSheetVisited =
-                widget.sheets[currentSheetIndex].id;
+          var pindex = widget.currentSheetIndex;
+
+          oldSheet = widget.currentSheet;
+
+          if (widget.currentSheetIndex > 0) {
+            widget.currentSheetIndex -= 1;
+          } else if (widget.currentSheetIndex == 0 &&
+              widget.sheets.length > 1) {
+            widget.currentSheetIndex += 1;
           }
 
-          stream.add(widget.book.latestSheetVisited);
+          widget.currentSheet = widget.sheets[widget.currentSheetIndex];
+
+          widget.sheets.removeAt(pindex);
+
+          if (widget.sheets.isEmpty) {
+            widget.book.latestSheetVisited = null;
+            await widget.book.updateLatestSheetVisited();
+            widget.currentSheet = null;
+            widget.currentSheetIndex = 0;
+            pindex = 0;
+            widget.purchases = [];
+          }
+
+          widget.book.latestSheetVisited = widget.currentSheet?.id;
+
+          await widget.book.updateLatestSheetVisited();
+
+          widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
+
+          setState(() {});
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -345,11 +370,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         RawKeyboard.instance.addListener(_handlerKeys);
         stream.stream.listen(_onSheetChanged);
         _scrollController.addListener(_setupScrollViews);
-        current = widget.sheets
-            .firstWhere((s) => s.id == widget.book.latestSheetVisited);
-        currentSheetIndex = widget.sheets.indexOf(current!);
         widget.book.updateBookUseStatus(true);
-        setState(() {});
       }
     } catch (_) {}
     super.initState();
@@ -362,9 +383,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   @override
   void dispose() {
-    widget.invoices = [];
+    widget.purchases = [];
     widget.invoicesLogs = {};
     widget.sheets = [];
+    widget.currentSheet = null;
     stream.close();
     _scrollController.dispose();
     _horizontalScrollController.dispose();
@@ -380,38 +402,16 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         (route) => false);
   }
 
-  Widget get _infoTop {
-    return ListView(
-        scrollDirection: Axis.horizontal,
-        children: widget.invoicesLogs.keys.map((key) {
-          var val = widget.invoicesLogs[key];
-          return Container(
-            margin: const EdgeInsets.only(left: 30, top: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(key,
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).primaryColor)),
-                Text(formatter.format(double.tryParse(val ?? '0.00')),
-                    style: const TextStyle(fontSize: 18, color: Colors.black54))
-              ],
-            ),
-          );
-        }).toList());
-  }
-
   Widget get _invoicesView {
-    var invs = [...widget.invoices];
+    var invs = widget.purchases.map((e) => e.toDisplay()).toList();
     var columns = invs[0].keys.toList();
-    columns.remove('id');
+
     columns = [invs.length.toString(), ...columns];
     var widgets = List.generate(columns.length, (index) {
       return Container(
-        width: index == 0 ? 80 : 260,
+        width: index == 0 ? 80 : 225,
         padding: const EdgeInsets.all(15),
+        alignment: Alignment.centerLeft,
         child: Text(columns[index],
             style: const TextStyle(color: Colors.blue, fontSize: 17)),
       );
@@ -420,7 +420,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 80, child: _infoTop),
         Container(
           height: 60,
           alignment: Alignment.center,
@@ -445,13 +444,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                             var invoice = invs[i];
                             var values = invoice.entries.toList();
                             values = [MapEntry('', (i + 1)), ...values];
-                            values.removeAt(1);
+
                             var widgets = List.generate(values.length, (j) {
                               var cell = values[j];
                               return GestureDetector(
-                                onTap: () => _selectInvoice(invoice),
+                                onTap: () => _selectInvoice(
+                                    widget.purchases[invs.indexOf(invoice)]),
                                 child: Container(
-                                  width: j == 0 ? 80 : 260,
+                                  width: j == 0 ? 80 : 225,
                                   color: Colors.grey.withOpacity(0.09),
                                   padding: const EdgeInsets.all(15),
                                   child: Text(
@@ -487,7 +487,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: widget.sheets.map((sheet) {
-          var isCurrent = widget.book.latestSheetVisited == sheet.id;
+          var isCurrent = widget.currentSheet?.id == sheet.id;
           var index = widget.sheets.indexOf(sheet);
           return GestureDetector(
             onTap: () => _setCurrentSheet(sheet, index),
@@ -542,10 +542,16 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
             IconButton(onPressed: _generate606, icon: const Icon(Icons.save)),
           ],
         ),
-        body: widget.invoices.isNotEmpty ? _invoicesView : _emptyContainer,
+        body: widget.purchases.isNotEmpty ? _invoicesView : _emptyContainer,
         floatingActionButton: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            FloatingActionButton(
+                heroTag: null,
+                tooltip: 'VER REPORTE DEL MES',
+                onPressed: null,
+                child: const Icon(Icons.document_scanner)),
+            const SizedBox(width: 10),
             FloatingActionButton(
                 heroTag: null,
                 tooltip: widget.sheets.isEmpty

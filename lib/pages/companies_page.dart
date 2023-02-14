@@ -25,7 +25,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
 
   _fetchCompanies() async {
     try {
-      companies = await Company.getCompanies();
+      companies = await Company.all();
     } catch (e) {
       isError = true;
       message = e.toString();

@@ -5,6 +5,7 @@ import 'package:moment_dart/moment_dart.dart';
 import 'package:uresaxapp/modals/add-book-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
+import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/book_details.dart';
@@ -22,15 +23,11 @@ class BooksPage extends StatefulWidget {
 
 class _BooksPageState extends State<BooksPage> {
   List<Book> books = [];
-  List<Sheet> sheets = [];
-  var invoicesLogs = {};
-  var invoices = [];
 
   _fetchBooks() async {
     try {
-      books = await Book.getBooks(companyId: widget.company.id);
-    } catch (e) {
-      print(e);
+      books = await Book.all(companyId: widget.company.id);
+    } catch (_) {
     } finally {
       setState(() {});
     }
@@ -38,8 +35,7 @@ class _BooksPageState extends State<BooksPage> {
 
   _delete(Book book, int index) async {
     try {
-      var isConfirm =
-          await showConfirm(context,title: 'Eliminar libro?');
+      var isConfirm = await showConfirm(context, title: 'Eliminar libro?');
 
       if (isConfirm!) {
         await book.delete();
@@ -47,7 +43,7 @@ class _BooksPageState extends State<BooksPage> {
         setState(() {});
       }
     } catch (e) {
-       showAlert(context,message: e.toString());
+      showAlert(context, message: e.toString());
     }
   }
 
@@ -55,33 +51,55 @@ class _BooksPageState extends State<BooksPage> {
     try {
       showLoader(context);
 
+      List<Purchase> purchases = [];
+
+      List<Sheet> sheets = [];
+
+      Sheet? currentSheet;
+      int currentSheetIndex = 1;
+
       var inUse = await book.checkIfBookIsUsed();
 
       if (inUse) {
         throw 'EL LIBRO YA ESTA EN USO';
       }
 
-      var data = await fetchDataBook(
-          bookId: book.id!, sheetId: book.latestSheetVisited ?? 'x');
+      sheets = await book.getSheets();
 
-      await Future.delayed(const Duration(milliseconds: 300));
+      if (sheets.isNotEmpty) {
+        currentSheet = sheets.firstWhere((element) => element.id == book.latestSheetVisited,orElse: ()=> Sheet());
+        currentSheetIndex = sheets.indexWhere((element) => element.id == currentSheet?.id);
+      }
+
+      purchases = await currentSheet?.getPurchases() ?? [];
 
       Navigator.pop(context);
-      invoices = data['invoices'];
-      invoicesLogs = data['invoicesLogs'];
-      sheets = data['sheets'].cast<Sheet>();
 
       await Navigator.push(
           context,
           MaterialPageRoute(
               builder: (ctx) => BookDetailsPage(
                   book: book,
-                  invoices: invoices,
-                  invoicesLogs: invoicesLogs,
+                  currentSheet: currentSheet,
+                  currentSheetIndex: currentSheetIndex,
+                  purchases: purchases,
+                  invoicesLogs: const {},
                   sheets: sheets)));
     } catch (e) {
       Navigator.pop(context);
       showAlert(context, message: e.toString());
+    }
+  }
+
+  _showModal() async {
+    int y = books.isNotEmpty ? books.last.year! + 1 : DateTime.now().year;
+    var book = await showDialog(
+        context: context,
+        builder: (ctx) => AddBookModal(
+            company: widget.company, books: books, bookTypeId: 1, bookYear: y));
+    if (book is Book) {
+      books = await Book.all(companyId: widget.company.id);
+      setState(() {});
     }
   }
 
@@ -121,11 +139,12 @@ class _BooksPageState extends State<BooksPage> {
                 IconButton(
                     onPressed: () => _preloadBookData(book),
                     icon: const Icon(Icons.remove_red_eye)),
-                User.current?.isAdmin?
-                IconButton(
-                    onPressed: () => _delete(book, index),
-                    color: Theme.of(context).errorColor,
-                    icon: const Icon(Icons.delete)):const SizedBox()
+                User.current?.isAdmin
+                    ? IconButton(
+                        onPressed: () => _delete(book, index),
+                        color: Theme.of(context).colorScheme.error,
+                        icon: const Icon(Icons.delete))
+                    : const SizedBox()
               ],
             ),
           );
@@ -154,20 +173,7 @@ class _BooksPageState extends State<BooksPage> {
       body: books.isNotEmpty ? _bookView : _emptyView,
       floatingActionButton: FloatingActionButton(
         tooltip: 'AÑADIR LIBRO',
-        onPressed: () async {
-          int y = books.isNotEmpty ? books.last.year! + 1 : DateTime.now().year;
-          var book = await showDialog(
-              context: context,
-              builder: (ctx) => AddBookModal(
-                  company: widget.company,
-                  books: books,
-                  bookTypeId:1,
-                  bookYear: y));
-          if (book is Book) {
-            books.add(book);
-            setState(() {});
-          }
-        },
+        onPressed: _showModal,
         child: const Icon(Icons.add),
       ),
     );

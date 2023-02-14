@@ -6,15 +6,11 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <flutter_platform_alert/flutter_platform_alert_plugin.h>
 #include <flutter_secure_storage/flutter_secure_storage_plugin.h>
 #include <screen_retriever/screen_retriever_plugin.h>
 #include <window_manager/window_manager_plugin.h>
 
 void fl_register_plugins(FlPluginRegistry* registry) {
-  g_autoptr(FlPluginRegistrar) flutter_platform_alert_registrar =
-      fl_plugin_registry_get_registrar_for_plugin(registry, "FlutterPlatformAlertPlugin");
-  flutter_platform_alert_plugin_register_with_registrar(flutter_platform_alert_registrar);
   g_autoptr(FlPluginRegistrar) flutter_secure_storage_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "FlutterSecureStoragePlugin");
   flutter_secure_storage_plugin_register_with_registrar(flutter_secure_storage_registrar);

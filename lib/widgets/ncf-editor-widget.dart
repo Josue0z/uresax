@@ -3,69 +3,55 @@ import 'package:flutter/services.dart';
 import 'package:uresaxapp/models/ncftype.dart';
 
 class NcfEditorWidget extends StatefulWidget {
-  Function(String) onChanged;
-  String? val;
-  String? ncfVal;
+  List<NcfType> ncfs = [NcfType(name: 'TIPO DE COMPROBANTE')];
+  TextEditingController controller;
+  Function(int?) onChanged;
   String? hintText;
   String? Function(int?)? validator;
+  int? currentNcfTypeId;
+  bool isNcfModifed;
   NcfEditorWidget(
       {super.key,
       this.validator,
       this.hintText = 'NUMERO DE COMPROBANTE',
-      required this.onChanged,
-      required this.val,
-      required this.ncfVal});
+      this.isNcfModifed = false,
+      required this.currentNcfTypeId,
+      required this.controller,
+      required this.ncfs,
+      required this.onChanged});
 
   @override
   State<NcfEditorWidget> createState() => _NcfEditorWidgetState();
 }
 
 class _NcfEditorWidgetState extends State<NcfEditorWidget> {
-  TextEditingController controller = TextEditingController();
-  List<NcfType> ncfs = [NcfType(name: 'TIPO DE COMPROBANTE')];
-  TextEditingController ncf = TextEditingController();
-  int? currentNcfType;
-  String? currentNcfTag;
-  String value = '';
 
-  Future<void> _initElements() async {
-    try {
-      var types = await NcfType.getNcfs();
-      controller.addListener(() {
-        value = '$currentNcfTag${controller.text}';
-        widget.onChanged(value);
-      });
+  
+  NcfType? currentNcfType;
 
-      ncfs.addAll(types);
-      var item = ncfs.firstWhere((element) => element.name == widget.val);
-      currentNcfType = item.id;
-      currentNcfTag = item.ncfTag ?? '';
-      controller.value = TextEditingValue(text: widget.ncfVal!.substring(3));
-      value = '$currentNcfTag${controller.text}';
-      widget.onChanged(value);
-    } catch (e) {
-    } finally {
-      setState(() {});
-    }
+  bool get isReady {
+    return currentNcfType?.ncfTag != null;
+  }
+
+  bool get isElectronic{
+     if(!isReady)return false;
+     return currentNcfType!.ncfTag!.startsWith('E') == true;
   }
 
   @override
   void initState() {
-    _initElements();
+    if(!mounted)return;
+    setState(() {
+      currentNcfType = widget.ncfs
+          .firstWhere((element) => element.id == widget.currentNcfTypeId);
+    });
     super.initState();
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    currentNcfType = null;
     super.dispose();
-  }
-
-  bool get _checkEnabled {
-    if (currentNcfTag != null) {
-      return !currentNcfTag!.startsWith('E');
-    }
-    return true;
   }
 
   @override
@@ -75,8 +61,8 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: DropdownButtonFormField<int?>(
-              value: currentNcfType,
-              validator: widget.validator,
+              value: currentNcfType?.id,
+              validator:!widget.isNcfModifed ? widget.validator : null,
               decoration: InputDecoration(
                   enabledBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.grey, width: 1),
@@ -86,31 +72,22 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
                   ),
                   errorBorder: OutlineInputBorder(
                       borderSide:
-                          BorderSide(color: Theme.of(context).errorColor))),
+                          BorderSide(color: Theme.of(context).colorScheme.error))),
               hint: const Text('TIPO DE COMPROBANTE'),
               dropdownColor: Colors.white,
               enableFeedback: false,
               isExpanded: true,
               focusColor: Colors.white,
-              onChanged: (val) {
-                if (val == null) {
-                  controller.value = const TextEditingValue(text: '');
-                  value = '';
-                  currentNcfType = null;
-                  currentNcfTag = null;
-                  widget.onChanged(value);
-                }
-                currentNcfType = val;
+              onChanged: (id) {
+                currentNcfType =  widget.ncfs.firstWhere((element) => element.id == id);
+                widget.currentNcfTypeId = id;
+                widget.onChanged(id);
                 setState(() {});
               },
-              items: ncfs.map((ncf) {
+              items: widget.ncfs.map((ncf) {
                 return DropdownMenuItem(
                   value: ncf.id,
                   child: Text(ncf.name),
-                  onTap: () => setState(() {
-                    currentNcfTag = ncf.ncfTag ?? '';
-                    widget.onChanged('$currentNcfTag${controller.text}');
-                  }),
                 );
               }).toList(),
             )),
@@ -118,8 +95,8 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: TextFormField(
             keyboardType: TextInputType.number,
-            controller: controller,
-            validator: currentNcfTag != null
+            controller: widget.controller,
+            validator: isReady
                 ? (val) => val!.isEmpty
                     ? 'CAMPO REQUERIDO'
                     : !(val.length == 8 || val.length == 10)
@@ -130,14 +107,14 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
               FilteringTextInputFormatter.digitsOnly
             ],
             style: const TextStyle(fontSize: 18),
-            enabled: currentNcfTag != null,
-            maxLength: _checkEnabled ? 8 : 10,
+            enabled: isReady,
+            maxLength: !isElectronic ? 8 : 10,
             decoration: InputDecoration(
                 isDense: true,
-                prefixIcon: currentNcfTag != null
+                prefixIcon: isReady
                     ? Padding(
                         padding: const EdgeInsets.all(10),
-                        child: Text(currentNcfTag ?? '',
+                        child: Text(currentNcfType!.ncfTag!,
                             style: const TextStyle(fontSize: 18)))
                     : null,
                 hintText: widget.hintText,

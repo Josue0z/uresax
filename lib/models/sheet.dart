@@ -1,4 +1,5 @@
 import 'package:uresaxapp/apis/connection.dart';
+import 'package:uresaxapp/models/purchase.dart';
 import 'package:uuid/uuid.dart';
 
 class Sheet {
@@ -27,15 +28,14 @@ class Sheet {
       this.updatedAt,
       this.createdAt});
 
-  static Future<List<Sheet>> getSheets({String? bookId = ''}) async {
+
+
+  Future<List<Purchase>> getPurchases() async {
     try {
       var results = await connection.mappedResultsQuery(
-          '''select * from public."SheetDetails" where "bookId" = '$bookId' order by "sheet_year","sheet_month";''');
-
-      return results
-          .map((row) => Sheet.fromJson(row['']!))
-          .toList()
-          .cast<Sheet>();
+          '''SELECT * FROM public."PurchaseDetails" WHERE "invoice_sheetId" = '$id' order by "invoice_company_name","invoice_full_ncf";''');
+ 
+      return results.map((row) => Purchase.fromMap(row['']!)).toList();
     } catch (e) {
       rethrow;
     }
@@ -43,7 +43,7 @@ class Sheet {
 
   Future<Sheet> create() async {
     try {
-      var _id = const Uuid().v4();
+      id = const Uuid().v4();
 
       var r = await connection.query(
           '''select * from public."Sheet" where "bookId" = '$bookId' and "sheet_year" = $sheetYear and "sheet_month" = $sheetMonth;''');
@@ -52,9 +52,9 @@ class Sheet {
         throw 'YA EXISTE ESTA HOJA';
       }
       await connection.query(
-          '''insert into public."Sheet"("id","bookId","companyId","sheet_year","sheet_month") values('$_id','$bookId','$companyId','$sheetYear','$sheetMonth');''');
+          '''insert into public."Sheet"("id","bookId","companyId","sheet_year","sheet_month") values('$id','$bookId','$companyId','$sheetYear','$sheetMonth');''');
       var results = await connection.mappedResultsQuery(
-          '''select * from public."SheetDetails" where "id" = '$_id';''');
+          '''select * from public."SheetDetails" where "id" = '$id';''');
       return Sheet.fromJson(results.first['']!);
     } catch (e) {
       rethrow;

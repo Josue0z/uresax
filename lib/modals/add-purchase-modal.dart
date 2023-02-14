@@ -5,9 +5,11 @@ import 'package:uresaxapp/models/banking.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/invoicetype.dart';
+import 'package:uresaxapp/models/ncftype.dart';
 import 'package:uresaxapp/models/payment-method.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/retention.dart';
+import 'package:uresaxapp/models/retention.tax.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
@@ -15,13 +17,13 @@ import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/ncf-editor-widget.dart';
 
 class AddPurchaseModal extends StatefulWidget {
+  final Purchase? purchase;
   final Book book;
   final Sheet sheet;
-  Map<String, dynamic>? invoice;
-  bool? isEditing;
+  bool isEditing;
   AddPurchaseModal({
     super.key,
-    this.invoice,
+    this.purchase,
     this.isEditing = false,
     required this.book,
     required this.sheet,
@@ -36,46 +38,53 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   List<Banking> bankings = [Banking(name: 'BANCO')];
   List<InvoiceType> invoiceTypes = [InvoiceType(name: 'TIPO DE FACTURA')];
   List<PaymentMethod> paymentMethods = [PaymentMethod(name: 'METODO DE PAGO')];
-  List<Retention> retentions = [Retention(id: null, name: 'RETENCION')];
+  List<Retention> retentions = [Retention(id: null, name: 'RETENCION ISR')];
+  List<NcfType> ncfs = [NcfType(name: 'TIPO DE COMPROBANTE')];
+  List<RetentionTax> retentionTaxes = [
+    RetentionTax(name: 'RETENCION DE ITBIS')
+  ];
 
   int? currentConcept;
   int? currentBanking;
   int? currentType;
   int? currentPaymentMethod;
   int? currentRetention;
+  int? currentNcfTypeId;
+  int? currentNcfModifedTypeId;
+  int? currentRetentionTaxId;
+
   bool isCorrectRnc = false;
 
   TextEditingController rnc = TextEditingController();
   TextEditingController ck = TextEditingController();
   TextEditingController year = TextEditingController();
   TextEditingController day = TextEditingController();
-  TextEditingController totalServ = TextEditingController();
-  TextEditingController totalBin = TextEditingController();
-  TextEditingController itbis16 = TextEditingController();
-  TextEditingController itbis18 = TextEditingController();
+  TextEditingController total = TextEditingController();
+  TextEditingController tax = TextEditingController();
   TextEditingController company = TextEditingController();
+  TextEditingController ncf = TextEditingController();
+  TextEditingController ncfModifed = TextEditingController();
+  TextEditingController invoicePayYear = TextEditingController();
+  TextEditingController invoicePayMonth = TextEditingController();
+  TextEditingController invoicePayDay = TextEditingController();
 
-  String? ncf;
-  String? ncfVal;
-  String? ncfModifed;
-  String? ncfModifedVal;
-  bool isLoading = false;
+  bool isLoading = true;
+
   final _formKey = GlobalKey<FormState>();
 
   bool get isAllCorrect {
-    return isCorrectRnc && _formKey.currentState!.validate();
+    return _formKey.currentState!.validate();
   }
 
   String get _title {
-    return widget.isEditing! ? 'Compra Seleccionada...' : 'Añadiendo Compra...';
+    return widget.isEditing ? 'COMPRA SELECCIONADA...' : 'AÑANIENDO COMPRA...';
   }
 
   String get _titleBtn {
-    return widget.isEditing! ? 'EDITAR COMPRA' : 'AÑADIR COMPRA';
+    return widget.isEditing ? 'EDITAR COMPRA' : 'AÑADIR COMPRA';
   }
 
-  bool get isBinCode =>
-      currentType == 3 ||
+  bool get isGoodCode =>
       currentType == 8 ||
       currentType == 9 ||
       currentType == 10;
@@ -83,87 +92,52 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   @override
   void initState() {
     _initElements();
-    year.value = TextEditingValue(text: widget.sheet.sheetDate!);
     rnc.addListener(_verifyTaxPayer);
     super.initState();
   }
 
   Future<void> _initElements() async {
     try {
-      setState(() {
-        isLoading = true;
-      });
-
+      var formatter = ThousandsFormatter(allowFraction: true);
       concepts.addAll(await Concept.getConcepts());
       bankings.addAll(await Banking.getBankings());
       invoiceTypes.addAll(await InvoiceType.getInvoiceTypes());
       paymentMethods.addAll(await PaymentMethod.getPaymentMethods());
       retentions.addAll(await Retention.all());
+      ncfs.addAll(await NcfType.getNcfs());
+      retentionTaxes.addAll(await RetentionTax.all());
 
-      if (widget.invoice != null) {
-        rnc.value = TextEditingValue(text: widget.invoice!['RNC']);
-        String c = '';
-
-        if (widget.invoice!['NUMERO DE CHEQUE'] == null) {
-          c = '';
-        } else {
-          c = widget.invoice!['NUMERO DE CHEQUE'].toString();
-        }
-
-        ck.value = TextEditingValue(text: c);
-        currentBanking = widget.invoice!['ID DE BANCO'];
-        currentConcept = widget.invoice!['ID DE CONCEPTO'];
-        currentRetention = widget.invoice!['ID RETENCION'];
-        var chars = (widget.invoice!['DIA'] as String).split('');
-        if (chars[0] == '0') chars[0] = '';
-        day.value = TextEditingValue(text: chars.join(''));
-        ncf = widget.invoice!['NOMBRE DE NCF'];
-        ncfVal = widget.invoice!['NCF'];
-        ncfModifed = widget.invoice!['NOMBRE DE NCF MODIFICADO'];
-        ncfModifedVal = widget.invoice!['NCF MODIFICADO'];
-        currentType = invoiceTypes
-            .firstWhere((element) =>
-                '${element.id}-${element.name}' == widget.invoice!['TIPO'])
-            .id;
-        currentPaymentMethod = paymentMethods
-            .firstWhere((element) =>
-                '${element.id}-${element.name}' ==
-                widget.invoice!['FORMA DE PAGO'])
-            .id;
-
-        var formatter = ThousandsFormatter(allowFraction: true);
-
-        var nval5 = double.parse(widget.invoice!['TOTAL EN SERVICIOS']);
-
-        var val1 = formatter.formatEditUpdate(
-            const TextEditingValue(text: ''),
-            TextEditingValue(
-                text: nval5 == 0.00
-                    ? ''
-                    : widget.invoice!['TOTAL EN SERVICIOS']));
-
-        var nval3 = double.parse(widget.invoice!['TOTAL EN BIENES']);
-
-        var val3 = formatter.formatEditUpdate(const TextEditingValue(text: ''),
-            TextEditingValue(text: nval3 == 0.00 ? '' : nval3.toString()));
-
-        var nval2 = double.parse(widget.invoice!['ITBIS 18%']);
-
-        var val2 = formatter.formatEditUpdate(const TextEditingValue(text: ''),
-            TextEditingValue(text: nval2 == 0.00 ? '' : nval2.toString()));
-
-        var nval4 = double.parse(widget.invoice!['ITBIS 16%']);
-
-        var val4 = formatter.formatEditUpdate(const TextEditingValue(text: ''),
-            TextEditingValue(text: nval4 == 0.00 ? '' : nval4.toString()));
-
-        totalServ.value = val1;
-        totalBin.value = val3;
-        itbis18.value = val2;
-        itbis16.value = val4;
+      if (widget.purchase != null) {
+        rnc.value = TextEditingValue(text: widget.purchase!.invoiceRnc!);
+        currentConcept = widget.purchase?.invoiceConceptId;
+        currentNcfTypeId = widget.purchase?.invoiceNcfTypeId;
+        ncf.value = TextEditingValue(text: widget.purchase!.invoiceNcf!);
+        currentNcfModifedTypeId = widget.purchase?.invoiceNcfModifedTypeId;
+        ncfModifed.value =
+            TextEditingValue(text: widget.purchase?.invoiceNcfModifed ?? '');
+        currentType = widget.purchase?.invoiceTypeId;
+        currentPaymentMethod = widget.purchase?.invoicePaymentMethodId;
+        currentRetention = widget.purchase?.invoiceRetentionId;
+        currentBanking = widget.purchase?.invoiceBankingId;
+        currentRetentionTaxId = widget.purchase?.invoiceTaxRetentionId;
+        ck.value = TextEditingValue(
+            text: widget.purchase?.invoiceCk == null
+                ? ''
+                : widget.purchase!.invoiceCk.toString());
+        day.value = TextEditingValue(
+            text: widget.purchase?.invoiceNcfDay?.trim() ?? '');
+        total.value = formatter.formatEditUpdate(TextEditingValue.empty,
+            TextEditingValue(text: widget.purchase!.invoiceTotal.toString()));
+        tax.value = formatter.formatEditUpdate(TextEditingValue.empty,
+            TextEditingValue(text: widget.purchase!.invoiceTax.toString()));
+        invoicePayYear.value = TextEditingValue(
+            text: widget.purchase?.invoicePayYear?.toString() ?? '');
+        invoicePayMonth.value = TextEditingValue(
+            text: widget.purchase?.invoicePayMonth?.toString() ?? '');
+        invoicePayDay.value = TextEditingValue(
+            text: widget.purchase?.invoicePayDay?.toString() ?? '');
       }
-    } catch (e) {
-      print(e);
+    } catch (_) {
     } finally {
       setState(() {
         isLoading = false;
@@ -184,46 +158,62 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
     }
   }
 
+  String? _validateTax(val) {
+    if (val != null && val.isNotEmpty) {
+      var n1 = double.parse(val.replaceAll(',', ''));
+
+      var n2 = double.tryParse(total.text.replaceAll(',', '')) ?? 0;
+      var tax1 = n2 * (18 / 100);
+      var tax2 = n2 * (16 / 100);
+
+      if (n1 > tax1 || n1 > tax2) {
+        return 'ITBIS ES MAYOR QUE LA TASA APLICADA POR LEY';
+      }
+    }
+    return null;
+  }
+
   Future<void> _onSubmit() async {
     try {
       if (isAllCorrect) {
         var purchase = Purchase(
-          id: widget.invoice?['id'] ?? '',
+          id: widget.purchase?.id,
           invoiceRnc: rnc.text,
           invoiceConceptId: currentConcept,
           invoiceTypeId: currentType,
           invoicePaymentMethodId: currentPaymentMethod,
-          invoiceNcf: ncfVal,
-          invoiceNcfModifed: ncfModifedVal,
-          invoiceNcfDate: year.text,
-          invoiceNcfDay: day.text,
+          invoiceNcf: ncf.text,
+          invoiceNcfTypeId: currentNcfTypeId,
+          invoiceNcfModifed: ncfModifed.text,
+          invoiceNcfModifedTypeId: currentNcfModifedTypeId,
+          invoiceYear: widget.book.year,
+          invoiceMonth: widget.sheet.sheetMonth,
+          invoiceNcfDay: day.text.trim(),
           invoiceSheetId: widget.sheet.id,
           invoiceBookId: widget.book.id,
           invoiceCompanyId: widget.book.companyId,
           invoiceBankingId: currentBanking,
-          invoiceCk: ck.text.isEmpty ? null : ck.text,
+          invoicePayYear: int.tryParse(invoicePayYear.text),
+          invoicePayMonth: int.tryParse(invoicePayMonth.text),
+          invoicePayDay: int.tryParse(invoicePayDay.text),
+          invoiceCk: int.tryParse(ck.text.trim()),
           invoiceRetentionId: currentRetention,
-          invoiceItbis18:
-              double.tryParse(itbis18.text.replaceAll(',', '')) ?? 0.00,
-          invoiceItbis16:
-              double.tryParse(itbis16.text.replaceAll(',', '')) ?? 0.00,
-          invoiceTotalServ:
-              double.tryParse(totalServ.text.replaceAll(',', '')) ?? 0.00,
-          invoiceTotalBin:
-              double.tryParse(totalBin.text.replaceAll(',', '')) ?? 0.00,
+          invoiceTaxRetentionId: currentRetentionTaxId,
+          invoiceTax: double.tryParse(tax.text.trim().replaceAll(',', '')) ?? 0,
+          invoiceTotalAsService: !isGoodCode
+              ? double.tryParse(total.text.trim().replaceAll(',', ''))
+              : 0,
+          invoiceTotalAsGood: isGoodCode
+              ? double.tryParse(total.text.trim().replaceAll(',', ''))
+              : 0,
         );
 
-        if (!widget.isEditing!) {
-          await purchase.create();
-          Navigator.pop(context, {
-            'method': 'INSERT',
-            'RNC': purchase.invoiceRnc,
-            'NCF': purchase.invoiceNcf
-          });
+        if (!widget.isEditing) {
+          var newPurchase = await purchase.create();
+          Navigator.pop(context, {'method': 'INSERT', 'data': newPurchase});
         } else {
-          var data = await purchase.update();
-          Navigator.pop(context,
-              {'method': 'UPDATE', 'RNC': data['RNC'], 'NCF': data['NCF']});
+          var purchaseUpdated = await purchase.update();
+          Navigator.pop(context, {'method': 'UPDATE', 'data': purchaseUpdated});
         }
       }
     } catch (e) {
@@ -233,8 +223,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
   Future<void> _deletePurchase() async {
     try {
-      await Purchase(id: widget.invoice?['id']).delete();
-      Navigator.pop(context, {'method': 'DELETE', 'invoice': widget.invoice});
+      await widget.purchase?.delete();
+      Navigator.pop(context, {'method': 'DELETE', 'data': widget.purchase});
     } catch (_) {}
   }
 
@@ -289,6 +279,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                       controller: rnc,
                                       maxLength: 11,
                                       style: const TextStyle(fontSize: 18),
+                                      validator: (val) => val == null
+                                          ? 'CAMPO REQUERIDO'
+                                          : val.length != 9 && val.length != 11
+                                              ? 'LA CANTIDA DE CARACTERES NO ES VALIDA'
+                                              : null,
                                       decoration: const InputDecoration(
                                           hintText: 'RNC',
                                           border: OutlineInputBorder()),
@@ -318,7 +313,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           errorBorder: OutlineInputBorder(
                                               borderSide: BorderSide(
                                                   color: Theme.of(context)
-                                                      .errorColor)),
+                                                      .colorScheme
+                                                      .error)),
                                         ),
                                         hint: const Text('CONCEPTO'),
                                         dropdownColor: Colors.white,
@@ -381,18 +377,27 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         }).toList(),
                                       )),
                                   NcfEditorWidget(
-                                    val: ncf,
-                                    ncfVal: ncfVal,
+                                    currentNcfTypeId: currentNcfTypeId,
+                                    controller: ncf,
                                     hintText: 'NCF',
-                                    onChanged: (val) => ncfVal = val,
+                                    onChanged: (id) {
+                                      currentNcfTypeId = id;
+                                    },
+                                    ncfs: ncfs,
                                     validator: (val) =>
                                         val == null ? 'CAMPO REQUERIDO' : null,
                                   ),
                                   NcfEditorWidget(
-                                    val: ncfModifed,
-                                    ncfVal: ncfModifedVal,
+                                    currentNcfTypeId: currentNcfModifedTypeId,
+                                    isNcfModifed: true,
+                                    controller: ncfModifed,
                                     hintText: 'NCF MODIFICADO',
-                                    onChanged: (val) => ncfModifedVal = val,
+                                    onChanged: (id) {
+                                      currentNcfModifedTypeId = id;
+                                    },
+                                    ncfs: ncfs,
+                                    validator: (val) =>
+                                        val == null ? 'CAMPO REQUERIDO' : null,
                                   ),
                                   Padding(
                                       padding: const EdgeInsets.symmetric(
@@ -418,20 +423,16 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           errorBorder: OutlineInputBorder(
                                               borderSide: BorderSide(
                                                   color: Theme.of(context)
-                                                      .errorColor)),
+                                                      .colorScheme
+                                                      .error)),
                                         ),
                                         hint: const Text('TIPO DE FACTURA'),
                                         dropdownColor: Colors.white,
                                         enableFeedback: false,
                                         isExpanded: true,
                                         focusColor: Colors.white,
-                                        onChanged: (val) {
-                                          currentType = val;
-                                          totalServ.value =
-                                              TextEditingValue.empty;
-                                          totalBin.value =
-                                              TextEditingValue.empty;
-                                          setState(() {});
+                                        onChanged: (id) {
+                                          currentType = id;
                                         },
                                         items: invoiceTypes.map((invoiceType) {
                                           return DropdownMenuItem(
@@ -464,7 +465,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           errorBorder: OutlineInputBorder(
                                               borderSide: BorderSide(
                                                   color: Theme.of(context)
-                                                      .errorColor)),
+                                                      .colorScheme
+                                                      .error)),
                                         ),
                                         hint: const Text('METODO DE PAGO'),
                                         dropdownColor: Colors.white,
@@ -474,11 +476,49 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         onChanged: (val) {
                                           currentPaymentMethod = val;
                                         },
-                                        items:
-                                            paymentMethods.map((paymentMethod) {
+                                        items: paymentMethods.map((item) {
                                           return DropdownMenuItem(
-                                            value: paymentMethod.id,
-                                            child: Text(paymentMethod.name),
+                                            value: item.id,
+                                            child: Text(item.name),
+                                          );
+                                        }).toList(),
+                                      )),
+                                  Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                      child: DropdownButtonFormField<int?>(
+                                        value: currentRetentionTaxId,
+                                        decoration: InputDecoration(
+                                          enabledBorder:
+                                              const OutlineInputBorder(
+                                            //<-- SEE HERE
+                                            borderSide: BorderSide(
+                                                color: Colors.grey, width: 1),
+                                          ),
+                                          focusedBorder:
+                                              const OutlineInputBorder(
+                                            //<-- SEE HERE
+                                            borderSide: BorderSide(
+                                                color: Colors.grey, width: 1),
+                                          ),
+                                          errorBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .error)),
+                                        ),
+                                        hint: const Text('RETENCION DE ITBIS'),
+                                        dropdownColor: Colors.white,
+                                        enableFeedback: false,
+                                        isExpanded: true,
+                                        focusColor: Colors.white,
+                                        onChanged: (val) {
+                                          currentRetentionTaxId = val;
+                                        },
+                                        items: retentionTaxes.map((retention) {
+                                          return DropdownMenuItem(
+                                            value: retention.id,
+                                            child: Text(retention.name!),
                                           );
                                         }).toList(),
                                       )),
@@ -503,9 +543,10 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           errorBorder: OutlineInputBorder(
                                               borderSide: BorderSide(
                                                   color: Theme.of(context)
-                                                      .errorColor)),
+                                                      .colorScheme
+                                                      .error)),
                                         ),
-                                        hint: const Text('RETENCION'),
+                                        hint: const Text('RETENCION ISR'),
                                         dropdownColor: Colors.white,
                                         enableFeedback: false,
                                         isExpanded: true,
@@ -524,11 +565,59 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10),
                                     child: TextFormField(
-                                      controller: year,
+                                      keyboardType: TextInputType.number,
+                                      controller: invoicePayYear,
+                                      validator: currentRetention != null
+                                          ? (val) => val == null
+                                              ? "CAMPO REQUERIDO"
+                                              : null
+                                          : null,
+                                      inputFormatters: <TextInputFormatter>[
+                                        FilteringTextInputFormatter.digitsOnly
+                                      ],
                                       style: const TextStyle(fontSize: 18),
-                                      readOnly: true,
                                       decoration: const InputDecoration(
-                                          hintText: 'FECHA',
+                                          hintText: 'AÑO DE PAGO',
+                                          border: OutlineInputBorder()),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: TextFormField(
+                                      keyboardType: TextInputType.number,
+                                      controller: invoicePayMonth,
+                                      validator: currentRetention != null
+                                          ? (val) => val == null
+                                              ? "CAMPO REQUERIDO"
+                                              : null
+                                          : null,
+                                      inputFormatters: <TextInputFormatter>[
+                                        FilteringTextInputFormatter.digitsOnly
+                                      ],
+                                      style: const TextStyle(fontSize: 18),
+                                      decoration: const InputDecoration(
+                                          hintText: 'MES DE PAGO',
+                                          border: OutlineInputBorder()),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: TextFormField(
+                                      keyboardType: TextInputType.number,
+                                      controller: invoicePayDay,
+                                      validator: currentRetention != null
+                                          ? (val) => val == null
+                                              ? "CAMPO REQUERIDO"
+                                              : null
+                                          : null,
+                                      inputFormatters: <TextInputFormatter>[
+                                        FilteringTextInputFormatter.digitsOnly
+                                      ],
+                                      style: const TextStyle(fontSize: 18),
+                                      decoration: const InputDecoration(
+                                          hintText: 'DIA DE PAGO',
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
@@ -552,7 +641,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                       ],
                                       style: const TextStyle(fontSize: 18),
                                       decoration: const InputDecoration(
-                                          hintText: 'DIA',
+                                          hintText: 'DIA DE COMPROBANTE',
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
@@ -561,22 +650,15 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         vertical: 10),
                                     child: TextFormField(
                                       style: const TextStyle(fontSize: 18),
-                                      controller: totalServ,
-                                      enabled: !isBinCode,
-                                      validator: (val) {
-                                        if (isBinCode) return null;
-                                        if (val != null) {
-                                          return val.isEmpty
-                                              ? 'CAMPO REQUERIDO'
-                                              : null;
-                                        }
-                                        return null;
-                                      },
+                                      controller: total,
                                       inputFormatters: [
                                         ThousandsFormatter(allowFraction: true)
                                       ],
+                                      validator: (val) => val == null
+                                          ? 'CAMPO REQUERIDO'
+                                          : null,
                                       decoration: const InputDecoration(
-                                          hintText: 'TOTAL COMO SERVICIO',
+                                          hintText: 'TOTAL FACTURADO',
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
@@ -585,108 +667,18 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         vertical: 10),
                                     child: TextFormField(
                                       style: const TextStyle(fontSize: 18),
-                                      controller: totalBin,
-                                      enabled: isBinCode,
-                                      inputFormatters: [
-                                        ThousandsFormatter(allowFraction: true)
-                                      ],
-                                      validator: (val) {
-                                        if (val != null) {
-                                          if (isBinCode && val.isEmpty) {
-                                            return 'CAMPO REQUERIDO';
-                                          }
-                                        }
-                                        return null;
-                                      },
-                                      decoration: const InputDecoration(
-                                          hintText: 'TOTAL COMO BIEN',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      style: const TextStyle(fontSize: 18),
-                                      controller: itbis18,
-                                      validator: (val) {
-                                        if (val != null && val.isNotEmpty) {
-                                          var n1 = double.parse(
-                                              val.replaceAll(',', ''));
-
-                                          var n2 = double.tryParse(totalServ
-                                                  .text
-                                                  .replaceAll(',', '')) ??
-                                              0;
-                                          var n3 = double.tryParse(totalBin.text
-                                                  .replaceAll(',', '')) ??
-                                              0;
-                                          var tax1 = n2 * (18 / 100);
-                                          var tax2 = n3 * (18 / 100);
-
-                                          if (isBinCode) {
-                                            if (n1 > tax2) {
-                                              return 'ITBIS ES MAYOR QUE EL 18% DEL TOTAL - EL VALOR DESEADO DEBE SER IGUAL O MENOR QUE: $tax2';
-                                            }
-                                          } else {
-                                            if (n1 > tax1) {
-                                              return 'ITBIS ES MAYOR QUE EL 18% DEL TOTAL - EL VALOR DESEADO DEBE SER IGUAL O MENOR QUE: $tax1';
-                                            }
-                                          }
-                                        }
-                                        return null;
-                                      },
+                                      controller: tax,
+                                      validator: _validateTax,
                                       inputFormatters: [
                                         ThousandsFormatter(allowFraction: true)
                                       ],
                                       decoration: const InputDecoration(
-                                          hintText: 'ITBIS 18%',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      style: const TextStyle(fontSize: 18),
-                                      controller: itbis16,
-                                      inputFormatters: [
-                                        ThousandsFormatter(allowFraction: true)
-                                      ],
-                                      validator: (val) {
-                                        if (val != null && val.isNotEmpty) {
-                                          var n1 = double.parse(
-                                              val.replaceAll(',', ''));
-
-                                          var n2 = double.tryParse(totalServ
-                                                  .text
-                                                  .replaceAll(',', '')) ??
-                                              0;
-                                          var n3 = double.tryParse(totalBin.text
-                                                  .replaceAll(',', '')) ??
-                                              0;
-                                          var tax1 = n2 * (16 / 100);
-                                          var tax2 = n3 * (16 / 100);
-
-                                          if (isBinCode) {
-                                            if (n1 > tax2) {
-                                              return 'ITBIS ES MAYOR QUE EL 16% DEL TOTAL - EL VALOR DESEADO DEBE SER IGUAL O MENOR QUE: $tax2';
-                                            }
-                                          } else {
-                                            if (n1 > tax1) {
-                                              return 'ITBIS ES MAYOR QUE EL 16% DEL TOTAL - EL VALOR DESEADO DEBE SER IGUAL O MENOR QUE: $tax1';
-                                            }
-                                          }
-                                        }
-                                        return null;
-                                      },
-                                      decoration: const InputDecoration(
-                                          hintText: 'ITBIS 16%',
+                                          hintText: 'ITBIS FACTURADO',
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
-                                  widget.isEditing!
+                                  widget.isEditing
                                       ? Text.rich(TextSpan(children: [
                                           TextSpan(
                                               text: 'AUTOR: ',
@@ -695,8 +687,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                                   color: Theme.of(context)
                                                       .primaryColor)),
                                           TextSpan(
-                                              text: widget.invoice?['USUARIO']
-                                                  .toUpperCase())
+                                              text: widget.purchase?.author)
                                         ]))
                                       : Container(),
                                   const SizedBox(height: 10),
@@ -706,7 +697,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                           )),
                           Row(
                             children: [
-                              widget.isEditing!
+                              widget.isEditing
                                   ? Expanded(
                                       child: ElevatedButton(
                                       style: ButtonStyle(
@@ -715,20 +706,21 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           backgroundColor:
                                               MaterialStateProperty.all(
                                                   Theme.of(context)
-                                                      .errorColor)),
+                                                      .colorScheme
+                                                      .error)),
                                       onPressed: _deletePurchase,
                                       child: const Text('ELIMINAR COMPRA',
                                           style: TextStyle(fontSize: 19)),
                                     ))
                                   : Container(),
-                              SizedBox(width: widget.isEditing! ? 20 : 0),
+                              SizedBox(width: widget.isEditing ? 20 : 0),
                               Expanded(
                                   child: ElevatedButton(
                                 style: ButtonStyle(
                                   padding: MaterialStateProperty.all(
                                       const EdgeInsets.all(18)),
                                 ),
-                                onPressed: !isCorrectRnc ? null : _onSubmit,
+                                onPressed: _onSubmit,
                                 child: Text(_titleBtn,
                                     style: const TextStyle(fontSize: 19)),
                               )),

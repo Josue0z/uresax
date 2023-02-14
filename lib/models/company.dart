@@ -9,7 +9,7 @@ class Company {
   DateTime? createdAt;
   Company({this.id, this.name, this.rnc, this.updatedAt, this.createdAt});
 
-  static Future<List<Company>> getCompanies() async {
+  static Future<List<Company>> all() async {
     try{
      var results = await connection
       .mappedResultsQuery('''select * from public."CompanyDetails";''');
@@ -35,10 +35,12 @@ class Company {
 
    Future<void> delete()async{
      try{
-      await connection.query('''DELETE FROM public."Purchase" WHERE "invoice_companyId" = '$id';''');
-      await connection.query('''DELETE FROM public."Sheet" WHERE "companyId" = '$id';''');
-      await connection.query('''DELETE FROM public."Book" WHERE "companyId" = '$id';''');
-      await connection.query('''DELETE FROM public."Company" WHERE "id" = '$id';''');
+      await connection.runTx((c) async {
+      await c.query('''DELETE FROM public."Purchase" WHERE "invoice_companyId" = '$id';''');
+      await c.query('''DELETE FROM public."Sheet" WHERE "companyId" = '$id';''');
+      await c.query('''DELETE FROM public."Book" WHERE "companyId" = '$id';''');
+      await c.query('''DELETE FROM public."Company" WHERE "id" = '$id';''');
+      });
      }catch(e){
       rethrow;
      }

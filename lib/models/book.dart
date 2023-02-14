@@ -1,3 +1,4 @@
+import 'package:uresaxapp/models/sheet.dart';
 import 'package:uuid/uuid.dart';
 import 'package:uresaxapp/apis/connection.dart';
 
@@ -46,25 +47,26 @@ class Book {
     }
   }
 
-  Future<void> delete() async {
-    try {
-      await connection.query(
-          '''DELETE FROM public."Purchase" WHERE "invoice_bookId" = '$id';''');
-      await connection
-          .query('''DELETE FROM public."Sheet" WHERE "bookId" = '$id';''');
-      await connection
-          .query('''DELETE FROM public."Book" WHERE "id" = '$id';''');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  static Future<List<Book>> getBooks({String? companyId}) async {
+  static Future<List<Book>> all({String? companyId}) async {
     try {
       var results = await connection.mappedResultsQuery('''
       select * from public."BookDetails" where "companyId" = '$companyId' and "book_typeId" = 1 order by "book_year";
      ''');
       return results.map((row) => Book.fromJson(row['']!)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<Sheet>> getSheets() async {
+    try {
+      var results = await connection.mappedResultsQuery(
+          '''select * from public."SheetDetails" where "bookId" = '$id' order by "sheet_year","sheet_month";''');
+
+      return results
+          .map((row) => Sheet.fromJson(row['']!))
+          .toList()
+          .cast<Sheet>();
     } catch (e) {
       rethrow;
     }
@@ -97,6 +99,19 @@ class Book {
     try {
       await connection.query(
           '''UPDATE public."Book" SET in_use = $status WHERE "id" = '$id';''');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> delete() async {
+    try {
+      await connection.runTx((c) async {
+        await c.query(
+            '''DELETE FROM public."Purchase" WHERE "invoice_bookId" = '$id';''');
+        await c.query('''DELETE FROM public."Sheet" WHERE "bookId" = '$id';''');
+        await c.query('''DELETE FROM public."Book" WHERE "id" = '$id';''');
+      });
     } catch (e) {
       rethrow;
     }
