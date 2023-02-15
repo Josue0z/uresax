@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_html_to_pdf/flutter_html_to_pdf.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/purchase.dart';
-import 'package:pdf/pdf.dart' as pdf;
-import 'package:uresaxapp/utils/functions.dart';
 
-/*class DocumentModal extends StatefulWidget {
+class DocumentModal extends StatefulWidget {
   double start = 1;
   double end = 12;
-  Book book;
+  final Book book;
   DocumentModal(
       {super.key, required this.start, required this.end, required this.book});
 
@@ -19,7 +16,6 @@ import 'package:uresaxapp/utils/functions.dart';
 class _DocumentModalState extends State<DocumentModal> {
   int startIndex = -1;
   int endIndex = -1;
-
   late RangeLabels rangeLabels;
 
   late RangeValues rangeValues;
@@ -45,24 +41,6 @@ class _DocumentModalState extends State<DocumentModal> {
 
   bool isLoading = false;
 
-  Future<void> _infoData() async {
-    try {
-      headdata = await Purchase.headData(
-          id: widget.book.id!,
-          start: widget.start.toInt(),
-          end: widget.end.toInt());
-    } catch (_) {}
-  }
-
-  Future<void> _fetchData() async {
-    try {
-      data = await Purchase.data(
-          id: widget.book.id!,
-          start: widget.start.toInt(),
-          end: widget.end.toInt());
-    } catch (_) {}
-  }
-
   _onUpdate(v) async {
     setState(() {
       rangeValues = v;
@@ -71,8 +49,11 @@ class _DocumentModalState extends State<DocumentModal> {
       widget.start = v.start;
       widget.end = v.end;
     });
+    data = await Purchase.getReportViewForInvoiceType(
+        id: widget.book.id!,
+        start: widget.start.toInt(),
+        end: widget.end.toInt()) as dynamic;
 
-    await Future.wait([_infoData(), _fetchData()]);
     setState(() {});
   }
 
@@ -96,16 +77,20 @@ class _DocumentModalState extends State<DocumentModal> {
   List<TableRow> get _rows {
     return data.map((item) {
       return TableRow(
+          decoration: BoxDecoration(
+              border: Border(
+                  bottom: BorderSide(color: Colors.grey.withOpacity(0.2)))),
           children: item!.entries.map((entry) {
-        return TableCell(
-            child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Text(
-            entry.value,
-            style: const TextStyle(fontSize: 16),
-          ),
-        ));
-      }).toList());
+            return TableCell(
+                verticalAlignment: TableCellVerticalAlignment.middle,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Text(
+                    entry.value,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ));
+          }).toList());
     }).toList();
   }
 
@@ -117,7 +102,11 @@ class _DocumentModalState extends State<DocumentModal> {
       rangeValues = RangeValues(widget.start, widget.end);
       rangeLabels = RangeLabels(months[startIndex], months[endIndex]);
     });
-    await Future.wait([_infoData(), _fetchData()]);
+    data = await Purchase.getReportViewForInvoiceType(
+        id: widget.book.id!,
+        start: widget.start.toInt(),
+        end: widget.end.toInt()) as dynamic;
+
     setState(() {
       isLoading = false;
     });
@@ -147,7 +136,7 @@ class _DocumentModalState extends State<DocumentModal> {
 
   Widget get _viewEmpty {
     return SizedBox(
-      height: 400,
+      height: 325,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -199,8 +188,7 @@ class _DocumentModalState extends State<DocumentModal> {
     return !isLoading
         ? Dialog(
             child: SizedBox(
-                width: 1050,
-                height: 600,
+                width: 1200,
                 child: Padding(
                     padding: const EdgeInsets.all(10),
                     child: ListView(
@@ -230,11 +218,10 @@ class _DocumentModalState extends State<DocumentModal> {
                             values: rangeValues,
                             labels: rangeLabels,
                             onChanged: _onUpdate),
-                        data.isNotEmpty ? _viewData : _viewEmpty
+                        data.isNotEmpty ? _viewData : Container()
                       ],
                     ))),
           )
         : Container();
   }
 }
-*/

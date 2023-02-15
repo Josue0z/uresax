@@ -484,6 +484,30 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         }).toList(),
                                       )),
                                   Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 0),
+                                    child: TextFormField(
+                                      controller: day,
+                                      keyboardType: TextInputType.number,
+                                      maxLength: 2,
+                                      validator: (val) => val!.isEmpty
+                                          ? 'CAMPO REQUERIDO'
+                                          : !(int.parse(val) >= 1 &&
+                                                  int.parse(val) <= 31)
+                                              ? 'EL RANGO DEBE SER ENTRE 1 Y 31'
+                                              : null,
+                                      inputFormatters: <TextInputFormatter>[
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        FilteringTextInputFormatter.deny(
+                                            RegExp(r'^[0]'))
+                                      ],
+                                      style: const TextStyle(fontSize: 18),
+                                      decoration: const InputDecoration(
+                                          hintText: 'DIA DE COMPROBANTE',
+                                          border: OutlineInputBorder()),
+                                    ),
+                                  ),
+                                  Padding(
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 10),
                                       child: DropdownButtonFormField<int?>(
@@ -621,30 +645,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           border: OutlineInputBorder()),
                                     ),
                                   ),
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 0),
-                                    child: TextFormField(
-                                      controller: day,
-                                      keyboardType: TextInputType.number,
-                                      maxLength: 2,
-                                      validator: (val) => val!.isEmpty
-                                          ? 'CAMPO REQUERIDO'
-                                          : !(int.parse(val) >= 1 &&
-                                                  int.parse(val) <= 31)
-                                              ? 'EL RANGO DEBE SER ENTRE 1 Y 31'
-                                              : null,
-                                      inputFormatters: <TextInputFormatter>[
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        FilteringTextInputFormatter.deny(
-                                            RegExp(r'^[0]'))
-                                      ],
-                                      style: const TextStyle(fontSize: 18),
-                                      decoration: const InputDecoration(
-                                          hintText: 'DIA DE COMPROBANTE',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
+                                  
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10),
@@ -654,7 +655,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                       inputFormatters: [
                                         ThousandsFormatter(allowFraction: true)
                                       ],
-                                      validator: (val) => val == null
+                                      validator: (val) => val == null || val == ''
                                           ? 'CAMPO REQUERIDO'
                                           : null,
                                       decoration: const InputDecoration(

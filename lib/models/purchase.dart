@@ -89,6 +89,25 @@ class Purchase {
       this.invoiceTaxRetentionRate,
       this.invoiceNcfName});
 
+  static Future<List> getReportViewForInvoiceType(
+      {String id = '', int start = 1, int end = 12}) async {
+    try {
+      await connection.query('''SET lc_monetary = 'es_US';''');
+      var result = await connection.mappedResultsQuery('''
+        SELECT p.invoice_type_name AS "NOMBRE",
+        trunc(sum(p.invoice_total_as_service), 2)::money::text AS "TOTAL EN SERVICIOS",
+        trunc(sum(p.invoice_total_as_good), 2)::money::text AS "TOTAL EN BIENES",
+        trunc(sum(p.invoice_tax), 2)::money::text AS "TOTAL ITBIS FACTURADO"
+        FROM "PurchaseDetails" p
+        WHERE (p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and p."invoice_month" between $start and $end
+        GROUP BY p.invoice_type_name
+      ''');
+      return result.map((e) => e['']).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> checkIfExistsPurchase() async {
     try {
       var result = await connection.mappedResultsQuery(

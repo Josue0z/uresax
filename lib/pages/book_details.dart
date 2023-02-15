@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/modals/add-purchase-modal.dart';
 import 'package:uresaxapp/modals/add-sheet-modal.dart';
+import 'package:uresaxapp/modals/document-data-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
@@ -167,13 +168,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         ...rows
       ], fieldDelimiter: '|');
 
-      var file = File(path.join(
+      var filePath = path.join(
           Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
           'URESAX',
-          widget.book.companyName,
+          widget.book.companyName?.trim(),
           widget.book.year.toString(),
           '606',
-          'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}.TXT'));
+          'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}.TXT');
+
+      var file = File(filePath.trim());
 
       await file.create(recursive: true);
 
@@ -188,7 +191,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                 launchFile(dirPath);
               })));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     }
 
     return;
@@ -409,11 +413,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     columns = [invs.length.toString(), ...columns];
     var widgets = List.generate(columns.length, (index) {
       return Container(
-        width: index == 0 ? 80 : 225,
+        width: index == 0 ? 80 : 250,
         padding: const EdgeInsets.all(15),
-        alignment: Alignment.centerLeft,
         child: Text(columns[index],
-            style: const TextStyle(color: Colors.blue, fontSize: 17)),
+            style: const TextStyle(color: Colors.blue, fontSize: 17),
+            softWrap: false),
       );
     });
 
@@ -428,7 +432,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
               physics: const AlwaysScrollableScrollPhysics(),
               scrollDirection: Axis.horizontal,
               children: [
-                Row(children: [...widgets])
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [...widgets])
               ]),
         ),
         Expanded(
@@ -440,6 +447,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                       controller: _horizontalScrollController,
                       child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: List.generate(invs.length, (i) {
                             var invoice = invs[i];
                             var values = invoice.entries.toList();
@@ -451,7 +459,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                                 onTap: () => _selectInvoice(
                                     widget.purchases[invs.indexOf(invoice)]),
                                 child: Container(
-                                  width: j == 0 ? 80 : 225,
+                                  width: j == 0 ? 80 : 250,
                                   color: Colors.grey.withOpacity(0.09),
                                   padding: const EdgeInsets.all(15),
                                   child: Text(
@@ -549,7 +557,19 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
             FloatingActionButton(
                 heroTag: null,
                 tooltip: 'VER REPORTE DEL MES',
-                onPressed: null,
+                onPressed: () {
+                  if (widget.currentSheet != null) {
+                    showDialog(
+                        context: context,
+                        builder: (ctx) {
+                          return DocumentModal(
+                              start:
+                                  widget.currentSheet!.sheetMonth!.toDouble(),
+                              end: widget.currentSheet!.sheetMonth!.toDouble(),
+                              book: widget.book);
+                        });
+                  }
+                },
                 child: const Icon(Icons.document_scanner)),
             const SizedBox(width: 10),
             FloatingActionButton(
