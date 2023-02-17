@@ -5,6 +5,20 @@ import 'package:uresaxapp/apis/connection.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:simple_moment/simple_moment.dart';
 
+class ReportViewModel {
+  List<Map<String, dynamic>?> body;
+  Map<String, dynamic> taxServices;
+  Map<String, dynamic> taxGood;
+  String totalGeneral;
+  Map<String, dynamic> footer;
+  ReportViewModel(
+      {required this.body,
+      required this.footer,
+      required this.taxServices,
+      required this.totalGeneral,
+      required this.taxGood});
+}
+
 class Purchase {
   String? id;
   String? invoiceRnc;
@@ -89,20 +103,68 @@ class Purchase {
       this.invoiceTaxRetentionRate,
       this.invoiceNcfName});
 
-  static Future<List> getReportViewForInvoiceType(
+  static Future<ReportViewModel> getReportViewForInvoiceType(
       {String id = '', int start = 1, int end = 12}) async {
+    var st =
+        '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and p."invoice_month" between $start and $end''';
     try {
       await connection.query('''SET lc_monetary = 'es_US';''');
-      var result = await connection.mappedResultsQuery('''
+      await connection.query('''
+        CREATE OR REPLACE VIEW public."ReportView"
+        AS
         SELECT p.invoice_type_name AS "NOMBRE",
-        trunc(sum(p.invoice_total_as_service), 2)::money::text AS "TOTAL EN SERVICIOS",
-        trunc(sum(p.invoice_total_as_good), 2)::money::text AS "TOTAL EN BIENES",
-        trunc(sum(p.invoice_tax), 2)::money::text AS "TOTAL ITBIS FACTURADO"
+        trunc(sum(p.invoice_total_as_service), 2)::text AS "TOTAL EN SERVICIOS",
+        trunc(sum(p.invoice_total_as_good), 2)::text AS "TOTAL EN BIENES",
+        trunc(sum(p.invoice_tax), 2)::text AS "TOTAL ITBIS FACTURADO",
+        trunc(sum(p.invoice_tax * r.rate/100),2)::text AS "ITBIS RETENIDO",
+        trunc(sum(((p.invoice_total_as_good + p.invoice_total_as_service) - p.invoice_tax) * r2.rate/100),2)::text AS "ISR RETENIDO"
         FROM "PurchaseDetails" p
-        WHERE (p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and p."invoice_month" between $start and $end
+        LEFT JOIN public."RetentionTax" r ON r.id = p."invoice_tax_retentionId"
+        LEFT JOIN public."Retention" r2 ON r2.id = p."invoice_retentionId"
+        WHERE $st
         GROUP BY p.invoice_type_name
+        ORDER BY p."invoice_type_name"
+        
       ''');
-      return result.map((e) => e['']).toList();
+      var r1 = await connection.mappedResultsQuery('''
+           SELECT 
+          "NOMBRE",
+          "TOTAL EN SERVICIOS"::money::text, 
+          "TOTAL EN BIENES"::money::text,
+          "TOTAL ITBIS FACTURADO"::money::text,
+          "ITBIS RETENIDO"::money::text,
+          "ISR RETENIDO"::money::text
+           FROM public."ReportView";''');
+
+      var r2 = await connection.mappedResultsQuery('''
+          SELECT 
+          SUM("TOTAL EN SERVICIOS"::numeric)::money::text AS "TOTAL EN SERVICIOS", 
+          SUM("TOTAL EN BIENES"::numeric)::money::text AS "TOTAL EN BIENES",
+          SUM("TOTAL ITBIS FACTURADO"::numeric)::money::text AS "TOTAL ITBIS FACTURADO",
+          SUM("ITBIS RETENIDO"::numeric)::money::text AS "ITBIS RETENIDO",
+          SUM("ISR RETENIDO"::numeric)::money::text AS "ISR RETENIDO"
+          FROM public."ReportView";''');
+
+      var r3 = await connection.mappedResultsQuery('''
+           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
+      ''');
+
+      var r4 = await connection.mappedResultsQuery('''
+           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)      ''');
+
+      var r5 = await connection.mappedResultsQuery('''
+           SELECT trunc(sum(p.invoice_total_as_service + p.invoice_total_as_good),2)::money::text AS "TOTAL FACTURADO" FROM public."PurchaseDetails" p WHERE $st''');
+
+      var t = r5.first['']?['TOTAL FACTURADO'] ?? '\$0.00';
+
+      var body = r1.map((e) => e['']).toList();
+
+      return ReportViewModel(
+          body: body,
+          totalGeneral: t,
+          footer: r2.first['']!,
+          taxGood: r3.first['']!,
+          taxServices: r4.first['']!);
     } catch (e) {
       rethrow;
     }

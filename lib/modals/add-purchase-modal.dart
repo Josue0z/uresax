@@ -85,9 +85,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   }
 
   bool get isGoodCode =>
-      currentType == 8 ||
-      currentType == 9 ||
-      currentType == 10;
+      currentType == 8 || currentType == 9 || currentType == 10;
 
   @override
   void initState() {
@@ -137,7 +135,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         invoicePayDay.value = TextEditingValue(
             text: widget.purchase?.invoicePayDay?.toString() ?? '');
       }
-    } catch (_) {
+    } catch (e) {
+         print(e.toString());
     } finally {
       setState(() {
         isLoading = false;
@@ -231,505 +230,504 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-        child: !isLoading
-            ? SizedBox(
-                width: 600,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Text(_title,
-                                  style: TextStyle(
-                                      fontSize: 22,
-                                      color: Theme.of(context).primaryColor)),
-                              const Spacer(),
-                              IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close))
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Expanded(
-                              child: ListView(
-                            shrinkWrap: true,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      style: const TextStyle(fontSize: 18),
-                                      controller: company,
-                                      enabled: false,
-                                      decoration: const InputDecoration(
-                                          hintText: 'EMPRESA',
-                                          border: OutlineInputBorder()),
-                                    ),
+      child: !isLoading
+          ? SizedBox(
+              width: 600,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Text(_title,
+                                style: TextStyle(
+                                    fontSize: 22,
+                                    color: Theme.of(context).primaryColor)),
+                            const Spacer(),
+                            IconButton(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close))
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Expanded(
+                            child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: TextFormField(
+                                    style: const TextStyle(fontSize: 18),
+                                    controller: company,
+                                    enabled: false,
+                                    decoration: const InputDecoration(
+                                        hintText: 'EMPRESA',
+                                        border: OutlineInputBorder()),
                                   ),
-                                  Padding(
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: TextFormField(
+                                    controller: rnc,
+                                    maxLength: 11,
+                                    style: const TextStyle(fontSize: 18),
+                                    validator: (val) => val == null
+                                        ? 'CAMPO REQUERIDO'
+                                        : val.length != 9 && val.length != 11
+                                            ? 'LA CANTIDA DE CARACTERES NO ES VALIDA'
+                                            : null,
+                                    decoration: const InputDecoration(
+                                        hintText: 'RNC',
+                                        border: OutlineInputBorder()),
+                                  ),
+                                ),
+                                Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10),
-                                    child: TextFormField(
-                                      controller: rnc,
-                                      maxLength: 11,
-                                      style: const TextStyle(fontSize: 18),
+                                    child: DropdownButtonFormField<int?>(
+                                      value: currentConcept,
                                       validator: (val) => val == null
                                           ? 'CAMPO REQUERIDO'
-                                          : val.length != 9 && val.length != 11
-                                              ? 'LA CANTIDA DE CARACTERES NO ES VALIDA'
-                                              : null,
-                                      decoration: const InputDecoration(
-                                          hintText: 'RNC',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      child: DropdownButtonFormField<int?>(
-                                        value: currentConcept,
-                                        validator: (val) => val == null
-                                            ? 'CAMPO REQUERIDO'
-                                            : null,
-                                        decoration: InputDecoration(
-                                          enabledBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          focusedBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          errorBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .error)),
-                                        ),
-                                        hint: const Text('CONCEPTO'),
-                                        dropdownColor: Colors.white,
-                                        enableFeedback: false,
-                                        isExpanded: true,
-                                        focusColor: Colors.white,
-                                        onChanged: (val) {
-                                          currentConcept = val;
-                                        },
-                                        items: concepts.map((concept) {
-                                          return DropdownMenuItem(
-                                            value: concept.id,
-                                            child: Text(concept.name!),
-                                          );
-                                        }).toList(),
-                                      )),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      keyboardType: TextInputType.number,
-                                      controller: ck,
-                                      inputFormatters: <TextInputFormatter>[
-                                        FilteringTextInputFormatter.digitsOnly
-                                      ],
-                                      style: const TextStyle(fontSize: 18),
-                                      decoration: const InputDecoration(
-                                          hintText: 'NUMERO DE CHEQUE',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      child: DropdownButtonFormField<int?>(
-                                        value: currentBanking,
-                                        decoration: const InputDecoration(
-                                          enabledBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                        ),
-                                        hint: const Text('BANCO'),
-                                        dropdownColor: Colors.white,
-                                        enableFeedback: false,
-                                        isExpanded: true,
-                                        focusColor: Colors.white,
-                                        onChanged: (val) {
-                                          currentBanking = val;
-                                        },
-                                        items: bankings.map((banking) {
-                                          return DropdownMenuItem(
-                                            value: banking.id,
-                                            child: Text(banking.name),
-                                          );
-                                        }).toList(),
-                                      )),
-                                  NcfEditorWidget(
-                                    currentNcfTypeId: currentNcfTypeId,
-                                    controller: ncf,
-                                    hintText: 'NCF',
-                                    onChanged: (id) {
-                                      currentNcfTypeId = id;
-                                    },
-                                    ncfs: ncfs,
-                                    validator: (val) =>
-                                        val == null ? 'CAMPO REQUERIDO' : null,
-                                  ),
-                                  NcfEditorWidget(
-                                    currentNcfTypeId: currentNcfModifedTypeId,
-                                    isNcfModifed: true,
-                                    controller: ncfModifed,
-                                    hintText: 'NCF MODIFICADO',
-                                    onChanged: (id) {
-                                      currentNcfModifedTypeId = id;
-                                    },
-                                    ncfs: ncfs,
-                                    validator: (val) =>
-                                        val == null ? 'CAMPO REQUERIDO' : null,
-                                  ),
-                                  Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      child: DropdownButtonFormField<int?>(
-                                        value: currentType,
-                                        validator: (val) => val == null
-                                            ? "CAMPO REQUERIDO"
-                                            : null,
-                                        decoration: InputDecoration(
-                                          enabledBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          focusedBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          errorBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .error)),
-                                        ),
-                                        hint: const Text('TIPO DE FACTURA'),
-                                        dropdownColor: Colors.white,
-                                        enableFeedback: false,
-                                        isExpanded: true,
-                                        focusColor: Colors.white,
-                                        onChanged: (id) {
-                                          currentType = id;
-                                        },
-                                        items: invoiceTypes.map((invoiceType) {
-                                          return DropdownMenuItem(
-                                            value: invoiceType.id,
-                                            child: Text(invoiceType.name),
-                                          );
-                                        }).toList(),
-                                      )),
-                                  Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      child: DropdownButtonFormField<int?>(
-                                        value: currentPaymentMethod,
-                                        validator: (val) => val == null
-                                            ? 'CAMPO REQUERIDO'
-                                            : null,
-                                        decoration: InputDecoration(
-                                          enabledBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          focusedBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          errorBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .error)),
-                                        ),
-                                        hint: const Text('METODO DE PAGO'),
-                                        dropdownColor: Colors.white,
-                                        enableFeedback: false,
-                                        isExpanded: true,
-                                        focusColor: Colors.white,
-                                        onChanged: (val) {
-                                          currentPaymentMethod = val;
-                                        },
-                                        items: paymentMethods.map((item) {
-                                          return DropdownMenuItem(
-                                            value: item.id,
-                                            child: Text(item.name),
-                                          );
-                                        }).toList(),
-                                      )),
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 0),
-                                    child: TextFormField(
-                                      controller: day,
-                                      keyboardType: TextInputType.number,
-                                      maxLength: 2,
-                                      validator: (val) => val!.isEmpty
-                                          ? 'CAMPO REQUERIDO'
-                                          : !(int.parse(val) >= 1 &&
-                                                  int.parse(val) <= 31)
-                                              ? 'EL RANGO DEBE SER ENTRE 1 Y 31'
-                                              : null,
-                                      inputFormatters: <TextInputFormatter>[
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        FilteringTextInputFormatter.deny(
-                                            RegExp(r'^[0]'))
-                                      ],
-                                      style: const TextStyle(fontSize: 18),
-                                      decoration: const InputDecoration(
-                                          hintText: 'DIA DE COMPROBANTE',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      child: DropdownButtonFormField<int?>(
-                                        value: currentRetentionTaxId,
-                                        decoration: InputDecoration(
-                                          enabledBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          focusedBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          errorBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .error)),
-                                        ),
-                                        hint: const Text('RETENCION DE ITBIS'),
-                                        dropdownColor: Colors.white,
-                                        enableFeedback: false,
-                                        isExpanded: true,
-                                        focusColor: Colors.white,
-                                        onChanged: (val) {
-                                          currentRetentionTaxId = val;
-                                        },
-                                        items: retentionTaxes.map((retention) {
-                                          return DropdownMenuItem(
-                                            value: retention.id,
-                                            child: Text(retention.name!),
-                                          );
-                                        }).toList(),
-                                      )),
-                                  Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      child: DropdownButtonFormField<int?>(
-                                        value: currentRetention,
-                                        decoration: InputDecoration(
-                                          enabledBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          focusedBorder:
-                                              const OutlineInputBorder(
-                                            //<-- SEE HERE
-                                            borderSide: BorderSide(
-                                                color: Colors.grey, width: 1),
-                                          ),
-                                          errorBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .error)),
-                                        ),
-                                        hint: const Text('RETENCION ISR'),
-                                        dropdownColor: Colors.white,
-                                        enableFeedback: false,
-                                        isExpanded: true,
-                                        focusColor: Colors.white,
-                                        onChanged: (val) {
-                                          currentRetention = val;
-                                        },
-                                        items: retentions.map((retention) {
-                                          return DropdownMenuItem(
-                                            value: retention.id,
-                                            child: Text(retention.name!),
-                                          );
-                                        }).toList(),
-                                      )),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      keyboardType: TextInputType.number,
-                                      controller: invoicePayYear,
-                                      validator: currentRetention != null
-                                          ? (val) => val == null
-                                              ? "CAMPO REQUERIDO"
-                                              : null
                                           : null,
-                                      inputFormatters: <TextInputFormatter>[
-                                        FilteringTextInputFormatter.digitsOnly
-                                      ],
-                                      style: const TextStyle(fontSize: 18),
-                                      decoration: const InputDecoration(
-                                          hintText: 'AÑO DE PAGO',
-                                          border: OutlineInputBorder()),
-                                    ),
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        focusedBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        errorBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .error)),
+                                      ),
+                                      hint: const Text('CONCEPTO'),
+                                      dropdownColor: Colors.white,
+                                      enableFeedback: false,
+                                      isExpanded: true,
+                                      focusColor: Colors.white,
+                                      onChanged: (val) {
+                                        currentConcept = val;
+                                      },
+                                      items: concepts.map((concept) {
+                                        return DropdownMenuItem(
+                                          value: concept.id,
+                                          child: Text(concept.name!),
+                                        );
+                                      }).toList(),
+                                    )),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: TextFormField(
+                                    keyboardType: TextInputType.number,
+                                    controller: ck,
+                                    inputFormatters: <TextInputFormatter>[
+                                      FilteringTextInputFormatter.digitsOnly
+                                    ],
+                                    style: const TextStyle(fontSize: 18),
+                                    decoration: const InputDecoration(
+                                        hintText: 'NUMERO DE CHEQUE',
+                                        border: OutlineInputBorder()),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      keyboardType: TextInputType.number,
-                                      controller: invoicePayMonth,
-                                      validator: currentRetention != null
-                                          ? (val) => val == null
-                                              ? "CAMPO REQUERIDO"
-                                              : null
-                                          : null,
-                                      inputFormatters: <TextInputFormatter>[
-                                        FilteringTextInputFormatter.digitsOnly
-                                      ],
-                                      style: const TextStyle(fontSize: 18),
-                                      decoration: const InputDecoration(
-                                          hintText: 'MES DE PAGO',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      keyboardType: TextInputType.number,
-                                      controller: invoicePayDay,
-                                      validator: currentRetention != null
-                                          ? (val) => val == null
-                                              ? "CAMPO REQUERIDO"
-                                              : null
-                                          : null,
-                                      inputFormatters: <TextInputFormatter>[
-                                        FilteringTextInputFormatter.digitsOnly
-                                      ],
-                                      style: const TextStyle(fontSize: 18),
-                                      decoration: const InputDecoration(
-                                          hintText: 'DIA DE PAGO',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      style: const TextStyle(fontSize: 18),
-                                      controller: total,
-                                      inputFormatters: [
-                                        ThousandsFormatter(allowFraction: true)
-                                      ],
-                                      validator: (val) => val == null || val == ''
-                                          ? 'CAMPO REQUERIDO'
-                                          : null,
-                                      decoration: const InputDecoration(
-                                          hintText: 'TOTAL FACTURADO',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextFormField(
-                                      style: const TextStyle(fontSize: 18),
-                                      controller: tax,
-                                      validator: _validateTax,
-                                      inputFormatters: [
-                                        ThousandsFormatter(allowFraction: true)
-                                      ],
-                                      decoration: const InputDecoration(
-                                          hintText: 'ITBIS FACTURADO',
-                                          border: OutlineInputBorder()),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  widget.isEditing
-                                      ? Text.rich(TextSpan(children: [
-                                          TextSpan(
-                                              text: 'AUTOR: ',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                  color: Theme.of(context)
-                                                      .primaryColor)),
-                                          TextSpan(
-                                              text: widget.purchase?.author)
-                                        ]))
-                                      : Container(),
-                                  const SizedBox(height: 10),
-                                ],
-                              ),
-                            ],
-                          )),
-                          Row(
-                            children: [
-                              widget.isEditing
-                                  ? Expanded(
-                                      child: ElevatedButton(
-                                      style: ButtonStyle(
-                                          padding: MaterialStateProperty.all(
-                                              const EdgeInsets.all(18)),
-                                          backgroundColor:
-                                              MaterialStateProperty.all(
-                                                  Theme.of(context)
-                                                      .colorScheme
-                                                      .error)),
-                                      onPressed: _deletePurchase,
-                                      child: const Text('ELIMINAR COMPRA',
-                                          style: TextStyle(fontSize: 19)),
-                                    ))
-                                  : Container(),
-                              SizedBox(width: widget.isEditing ? 20 : 0),
-                              Expanded(
-                                  child: ElevatedButton(
-                                style: ButtonStyle(
-                                  padding: MaterialStateProperty.all(
-                                      const EdgeInsets.all(18)),
                                 ),
-                                onPressed: _onSubmit,
-                                child: Text(_titleBtn,
-                                    style: const TextStyle(fontSize: 19)),
-                              )),
-                            ],
-                          )
-                        ],
-                      )),
-                ))
-            : null);
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: DropdownButtonFormField<int?>(
+                                      value: currentBanking,
+                                      decoration: const InputDecoration(
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                      ),
+                                      hint: const Text('BANCO'),
+                                      dropdownColor: Colors.white,
+                                      enableFeedback: false,
+                                      isExpanded: true,
+                                      focusColor: Colors.white,
+                                      onChanged: (val) {
+                                        currentBanking = val;
+                                      },
+                                      items: bankings.map((banking) {
+                                        return DropdownMenuItem(
+                                          value: banking.id,
+                                          child: Text(banking.name),
+                                        );
+                                      }).toList(),
+                                    )),
+                                NcfEditorWidget(
+                                  currentNcfTypeId: currentNcfTypeId,
+                                  controller: ncf,
+                                  hintText: 'NCF',
+                                  onChanged: (id) {
+                                    currentNcfTypeId = id;
+                                  },
+                                  ncfs: ncfs,
+                                  validator: (val) =>
+                                      val == null ? 'CAMPO REQUERIDO' : null,
+                                ),
+                                NcfEditorWidget(
+                                  currentNcfTypeId: currentNcfModifedTypeId,
+                                  isNcfModifed: true,
+                                  controller: ncfModifed,
+                                  hintText: 'NCF MODIFICADO',
+                                  onChanged: (id) {
+                                    currentNcfModifedTypeId = id;
+                                  },
+                                  ncfs: ncfs,
+                                  validator: (val) =>
+                                      val == null ? 'CAMPO REQUERIDO' : null,
+                                ),
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: DropdownButtonFormField<int?>(
+                                      value: currentType,
+                                      validator: (val) => val == null
+                                          ? "CAMPO REQUERIDO"
+                                          : null,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        focusedBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        errorBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .error)),
+                                      ),
+                                      hint: const Text('TIPO DE FACTURA'),
+                                      dropdownColor: Colors.white,
+                                      enableFeedback: false,
+                                      isExpanded: true,
+                                      focusColor: Colors.white,
+                                      onChanged: (id) {
+                                        currentType = id;
+                                      },
+                                      items: invoiceTypes.map((invoiceType) {
+                                        return DropdownMenuItem(
+                                          value: invoiceType.id,
+                                          child: Text(invoiceType.name),
+                                        );
+                                      }).toList(),
+                                    )),
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: DropdownButtonFormField<int?>(
+                                      value: currentPaymentMethod,
+                                      validator: (val) => val == null
+                                          ? 'CAMPO REQUERIDO'
+                                          : null,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        focusedBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        errorBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .error)),
+                                      ),
+                                      hint: const Text('METODO DE PAGO'),
+                                      dropdownColor: Colors.white,
+                                      enableFeedback: false,
+                                      isExpanded: true,
+                                      focusColor: Colors.white,
+                                      onChanged: (val) {
+                                        currentPaymentMethod = val;
+                                      },
+                                      items: paymentMethods.map((item) {
+                                        return DropdownMenuItem(
+                                          value: item.id,
+                                          child: Text(item.name),
+                                        );
+                                      }).toList(),
+                                    )),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 0),
+                                  child: TextFormField(
+                                    controller: day,
+                                    keyboardType: TextInputType.number,
+                                    maxLength: 2,
+                                    validator: (val) => val!.isEmpty
+                                        ? 'CAMPO REQUERIDO'
+                                        : !(int.parse(val) >= 1 &&
+                                                int.parse(val) <= 31)
+                                            ? 'EL RANGO DEBE SER ENTRE 1 Y 31'
+                                            : null,
+                                    inputFormatters: <TextInputFormatter>[
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      FilteringTextInputFormatter.deny(
+                                          RegExp(r'^[0]'))
+                                    ],
+                                    style: const TextStyle(fontSize: 18),
+                                    decoration: const InputDecoration(
+                                        hintText: 'DIA DE COMPROBANTE',
+                                        border: OutlineInputBorder()),
+                                  ),
+                                ),
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: DropdownButtonFormField<int?>(
+                                      value: currentRetentionTaxId,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        focusedBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        errorBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .error)),
+                                      ),
+                                      hint: const Text('RETENCION DE ITBIS'),
+                                      dropdownColor: Colors.white,
+                                      enableFeedback: false,
+                                      isExpanded: true,
+                                      focusColor: Colors.white,
+                                      onChanged: (val) {
+                                        currentRetentionTaxId = val;
+                                      },
+                                      items: retentionTaxes.map((retention) {
+                                        return DropdownMenuItem(
+                                          value: retention.id,
+                                          child: Text(retention.name!),
+                                        );
+                                      }).toList(),
+                                    )),
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: DropdownButtonFormField<int?>(
+                                      value: currentRetention,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        focusedBorder: const OutlineInputBorder(
+                                          //<-- SEE HERE
+                                          borderSide: BorderSide(
+                                              color: Colors.grey, width: 1),
+                                        ),
+                                        errorBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .error)),
+                                      ),
+                                      hint: const Text('RETENCION ISR'),
+                                      dropdownColor: Colors.white,
+                                      enableFeedback: false,
+                                      isExpanded: true,
+                                      focusColor: Colors.white,
+                                      onChanged: (val) {
+                                        currentRetention = val;
+                                      },
+                                      items: retentions.map((retention) {
+                                        return DropdownMenuItem(
+                                          value: retention.id,
+                                          child: Text(retention.name!),
+                                        );
+                                      }).toList(),
+                                    )),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: TextFormField(
+                                    keyboardType: TextInputType.number,
+                                    controller: invoicePayYear,
+                                    validator: currentRetention != null
+                                        ? (val) => val == null
+                                            ? "CAMPO REQUERIDO"
+                                            : null
+                                        : null,
+                                    inputFormatters: <TextInputFormatter>[
+                                      FilteringTextInputFormatter.digitsOnly
+                                    ],
+                                    style: const TextStyle(fontSize: 18),
+                                    decoration: const InputDecoration(
+                                        hintText: 'AÑO DE PAGO',
+                                        border: OutlineInputBorder()),
+                                  ),
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: TextFormField(
+                                    keyboardType: TextInputType.number,
+                                    controller: invoicePayMonth,
+                                    validator: currentRetention != null
+                                        ? (val) => val == null
+                                            ? "CAMPO REQUERIDO"
+                                            : null
+                                        : null,
+                                    inputFormatters: <TextInputFormatter>[
+                                      FilteringTextInputFormatter.digitsOnly
+                                    ],
+                                    style: const TextStyle(fontSize: 18),
+                                    decoration: const InputDecoration(
+                                        hintText: 'MES DE PAGO',
+                                        border: OutlineInputBorder()),
+                                  ),
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: TextFormField(
+                                    keyboardType: TextInputType.number,
+                                    controller: invoicePayDay,
+                                    validator: currentRetention != null
+                                        ? (val) => val == null
+                                            ? "CAMPO REQUERIDO"
+                                            : null
+                                        : null,
+                                    inputFormatters: <TextInputFormatter>[
+                                      FilteringTextInputFormatter.digitsOnly
+                                    ],
+                                    style: const TextStyle(fontSize: 18),
+                                    decoration: const InputDecoration(
+                                        hintText: 'DIA DE PAGO',
+                                        border: OutlineInputBorder()),
+                                  ),
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: TextFormField(
+                                    style: const TextStyle(fontSize: 18),
+                                    controller: total,
+                                    inputFormatters: [
+                                      ThousandsFormatter(allowFraction: true)
+                                    ],
+                                    validator: (val) => val == null || val == ''
+                                        ? 'CAMPO REQUERIDO'
+                                        : null,
+                                    decoration: const InputDecoration(
+                                        hintText: 'TOTAL FACTURADO',
+                                        border: OutlineInputBorder()),
+                                  ),
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: TextFormField(
+                                    style: const TextStyle(fontSize: 18),
+                                    controller: tax,
+                                    validator: _validateTax,
+                                    inputFormatters: [
+                                      ThousandsFormatter(allowFraction: true)
+                                    ],
+                                    decoration: const InputDecoration(
+                                        hintText: 'ITBIS FACTURADO',
+                                        border: OutlineInputBorder()),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                widget.isEditing
+                                    ? Text.rich(TextSpan(children: [
+                                        TextSpan(
+                                            text: 'AUTOR: ',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                color: Theme.of(context)
+                                                    .primaryColor)),
+                                        TextSpan(text: widget.purchase?.author)
+                                      ]))
+                                    : Container(),
+                                const SizedBox(height: 10),
+                              ],
+                            ),
+                          ],
+                        )),
+                        Row(
+                          children: [
+                            widget.isEditing
+                                ? Expanded(
+                                    child: ElevatedButton(
+                                    style: ButtonStyle(
+                                        padding: MaterialStateProperty.all(
+                                            const EdgeInsets.all(18)),
+                                        backgroundColor:
+                                            MaterialStateProperty.all(
+                                                Theme.of(context)
+                                                    .colorScheme
+                                                    .error)),
+                                    onPressed: _deletePurchase,
+                                    child: const Text('ELIMINAR COMPRA',
+                                        style: TextStyle(fontSize: 19)),
+                                  ))
+                                : Container(),
+                            SizedBox(width: widget.isEditing ? 20 : 0),
+                            Expanded(
+                                child: ElevatedButton(
+                              style: ButtonStyle(
+                                padding: MaterialStateProperty.all(
+                                    const EdgeInsets.all(18)),
+                              ),
+                              onPressed: _onSubmit,
+                              child: Text(_titleBtn,
+                                  style: const TextStyle(fontSize: 19)),
+                            )),
+                          ],
+                        )
+                      ],
+                    )),
+              ))
+          : Container(
+              color: Colors.transparent,
+              width: 200,
+              height: 200,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [CircularProgressIndicator()],
+                ),
+              ),
+            ),
+    );
   }
 }
