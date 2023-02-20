@@ -1,4 +1,4 @@
-import 'dart:io';
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
@@ -6,13 +6,19 @@ import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:uresaxapp/utils/modals-actions.dart';
 
 class DocumentModal extends StatefulWidget {
   double start = 1;
   double end = 12;
+  BuildContext context;
   final Book book;
   DocumentModal(
-      {super.key, required this.start, required this.end, required this.book});
+      {super.key,
+      required this.context,
+      required this.start,
+      required this.end,
+      required this.book});
 
   @override
   State<DocumentModal> createState() => _DocumentModalState();
@@ -27,13 +33,19 @@ class _DocumentModalState extends State<DocumentModal> {
 
   List<Map<String, dynamic>?> body = [];
 
-  Map<String, dynamic> taxServices = {};
+  String taxServices = '';
 
-  Map<String, dynamic> taxGoods = {};
+  String taxGoods = '';
 
   Map<String, dynamic> footer = {};
 
   String totalGeneral = '';
+
+  String totalTax = '';
+
+  dynamic r;
+
+  List<String?> values = [];
 
   List<String> months = [
     'ENERO',
@@ -61,9 +73,10 @@ class _DocumentModalState extends State<DocumentModal> {
           children: [
             pw.Text(
               key,
-              style: const pw.TextStyle(
+              style: pw.TextStyle(
                 fontSize: 8,
-                color: PdfColor.fromInt(0x0000000),
+                fontWeight: pw.FontWeight.bold,
+                color: const PdfColor.fromInt(0x0000000),
               ),
             ),
           ]);
@@ -79,7 +92,7 @@ class _DocumentModalState extends State<DocumentModal> {
             mainAxisAlignment: pw.MainAxisAlignment.start,
             children: [
               pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(vertical: 10),
+                padding: const pw.EdgeInsets.only(top: 10),
                 child: pw.Text(entry.value ?? '\$0.00',
                     style: const pw.TextStyle(fontSize: 8)),
               )
@@ -98,33 +111,73 @@ class _DocumentModalState extends State<DocumentModal> {
           mainAxisAlignment: pw.MainAxisAlignment.start,
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(_title,
-                style: const pw.TextStyle(
-                    fontSize: 14, color: PdfColor.fromInt(0x000000))),
+            pw.Text(_title, style: const pw.TextStyle(fontSize: 13)),
             pw.SizedBox(height: 20),
             pw.Table(
+              columnWidths: {
+                0: const pw.IntrinsicColumnWidth(),
+                1: const pw.FixedColumnWidth(100),
+                2: const pw.FixedColumnWidth(100),
+                3: const pw.FixedColumnWidth(100),
+                4: const pw.FixedColumnWidth(100),
+                5: const pw.FixedColumnWidth(100)
+              },
               children: [
                 _dhead,
                 ..._drows,
                 pw.TableRow(
-                    children: ['TOTAL GENERAL', ...footer.values.toList()]
+                    children: values
                         .map((e) => pw.Container(
+                            padding: const pw.EdgeInsets.only(top: 10),
                             child: pw.Text(e ?? '\$0.00',
-                                style: const pw.TextStyle(fontSize: 8))))
+                                style: pw.TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: values.indexOf(e) == 0
+                                        ? pw.FontWeight.bold
+                                        : null))))
                         .toList())
               ],
             ),
             pw.SizedBox(height: 20),
-            pw.Text(
-                'ITBIS FACTURADO EN SERVICIOS: ${taxServices['ITBIS FACTURADO EN SERVICIOS'] ?? '\$0.00'}',
-                style: const pw.TextStyle(fontSize: 9)),
+            pw.RichText(
+                text: pw.TextSpan(
+                    style: const pw.TextStyle(fontSize: 9),
+                    children: [
+                  pw.TextSpan(
+                      text: 'ITBIS FACTURADO EN SERVICIOS: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.TextSpan(text: taxServices)
+                ])),
             pw.SizedBox(height: 10),
-            pw.Text(
-                'ITBIS FACTURADO EN BIENES: ${taxGoods['ITBIS FACTURADO EN BIENES'] ?? '\$0.00'}',
-                style: const pw.TextStyle(fontSize: 9)),
+            pw.RichText(
+                text: pw.TextSpan(
+                    style: const pw.TextStyle(fontSize: 9),
+                    children: [
+                  pw.TextSpan(
+                      text: 'ITBIS FACTURADO EN BIENES: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.TextSpan(text: taxGoods)
+                ])),
             pw.SizedBox(height: 10),
-            pw.Text('TOTAL FACTURADO: $totalGeneral',
-                style: const pw.TextStyle(fontSize: 9))
+            pw.RichText(
+                text: pw.TextSpan(
+                    style: const pw.TextStyle(fontSize: 9),
+                    children: [
+                  pw.TextSpan(
+                      text: 'TOTAL ITBIS FACTURADO: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.TextSpan(text: totalTax)
+                ])),
+            pw.SizedBox(height: 10),
+            pw.RichText(
+                text: pw.TextSpan(
+                    style: const pw.TextStyle(fontSize: 9),
+                    children: [
+                  pw.TextSpan(
+                      text: 'TOTAL FACTURADO: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.TextSpan(text: totalGeneral)
+                ])),
           ],
         )); // Center
       })); // Page
@@ -132,8 +185,11 @@ class _DocumentModalState extends State<DocumentModal> {
       await Printing.layoutPdf(
           format: PdfPageFormat.standard,
           onLayout: (PdfPageFormat format) async => await pdf.save());
+
+      ScaffoldMessenger.of(widget.context).showSnackBar(
+          const SnackBar(content: Text('COMENZO LA IMPRESION DEL REPORTE')));
     } catch (e) {
-      print(e);
+      showAlert(context, message: e.toString());
     }
   }
 
@@ -145,7 +201,7 @@ class _DocumentModalState extends State<DocumentModal> {
       widget.start = v.start;
       widget.end = v.end;
     });
-    var r = await Purchase.getReportViewForInvoiceType(
+    r = await Purchase.getReportViewForInvoiceType(
         id: widget.book.id!,
         start: widget.start.toInt(),
         end: widget.end.toInt());
@@ -154,7 +210,18 @@ class _DocumentModalState extends State<DocumentModal> {
     taxGoods = r.taxGood;
     taxServices = r.taxServices;
     totalGeneral = r.totalGeneral;
+    totalTax = r.totalTax;
     footer = r.footer;
+    values = ['TOTAL GENERAL', ...r.footer.values.toList()];
+    footer = {};
+    footer.addAll({'ITBIS EN SERVICIOS': taxServices});
+    footer.addAll({'ITBIS EN BIENES': taxGoods});
+    footer.addAll({'ITBIS RETENIDO': r.footer['ITBIS RETENIDO']});
+    footer.addAll({'ISR RETENIDO': r.footer['ISR RETENIDO']});
+    footer.addAll({'TOTAL ITBIS FACTURADO': r.footer['TOTAL ITBIS FACTURADO']});
+    footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
+    footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
+    footer.addAll({'TOTAL GENERAL': totalGeneral});
     setState(() {});
   }
 
@@ -203,16 +270,27 @@ class _DocumentModalState extends State<DocumentModal> {
       rangeValues = RangeValues(widget.start, widget.end);
       rangeLabels = RangeLabels(months[startIndex], months[endIndex]);
     });
-    var r = await Purchase.getReportViewForInvoiceType(
+    r = await Purchase.getReportViewForInvoiceType(
         id: widget.book.id!,
         start: widget.start.toInt(),
         end: widget.end.toInt());
 
     body = r.body;
-    footer = r.footer;
     taxGoods = r.taxGood;
+    totalTax = r.totalTax;
     taxServices = r.taxServices;
     totalGeneral = r.totalGeneral;
+    values = ['TOTAL GENERAL', ...r.footer.values.toList()];
+    footer = {};
+    footer.addAll({'ITBIS EN SERVICIOS': taxServices});
+    footer.addAll({'ITBIS EN BIENES': taxGoods});
+    footer.addAll({'ITBIS RETENIDO': r.footer['ITBIS RETENIDO']});
+    footer.addAll({'ISR RETENIDO': r.footer['ISR RETENIDO']});
+    footer.addAll({'TOTAL ITBIS FACTURADO': r.footer['TOTAL ITBIS FACTURADO']});
+    footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
+    footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
+    footer.addAll({'TOTAL GENERAL': totalGeneral});
+
     setState(() {
       isLoading = false;
     });
@@ -227,36 +305,36 @@ class _DocumentModalState extends State<DocumentModal> {
   }
 
   Widget get _viewData {
-    var entries = [...footer.entries];
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       children: [
-        // const SizedBox(height: 15),
         Table(
           children: [_head, ..._rows],
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: footer.entries
-              .map((e) => Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(e.key,
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).primaryColor)),
-                      const SizedBox(height: 20),
-                      Text(e.value ?? '\$0.00',
-                          style: const TextStyle(
-                              fontSize: 16, color: Colors.black87))
-                    ],
-                  )))
-              .toList(),
-        )
+        SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: footer.entries
+                  .map((e) => Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(e.key,
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context).primaryColor)),
+                          const SizedBox(height: 20),
+                          Text(e.value ?? '\$0.00',
+                              style: const TextStyle(
+                                  fontSize: 16, color: Colors.black87))
+                        ],
+                      )))
+                  .toList(),
+            ))
       ],
     );
   }
@@ -289,44 +367,56 @@ class _DocumentModalState extends State<DocumentModal> {
   @override
   Widget build(BuildContext context) {
     return !isLoading
-        ? Dialog(
-            child: SizedBox(
-                width: 1200,
-                child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Row(
-                            children: [
-                              Text(_title,
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(context).primaryColor)),
-                              const Spacer(),
-                              IconButton(
-                                  onPressed: _print,
-                                  icon: const Icon(Icons.print)),
-                              IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close))
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        RangeSlider(
-                            min: 1,
-                            max: 12,
-                            divisions: 11,
-                            values: rangeValues,
-                            labels: rangeLabels,
-                            onChanged: _onUpdate),
-                        body.isNotEmpty ? _viewData : Container()
-                      ],
-                    ))),
+        ? GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: GestureDetector(
+                  onTap: (){},
+                  child: Dialog(
+                      child: SizedBox(
+                          width: 1300,
+                          child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: ListView(
+                                shrinkWrap: true,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
+                                    child: Row(
+                                      children: [
+                                        Text(_title,
+                                            style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w500,
+                                                color: Theme.of(context)
+                                                    .primaryColor)),
+                                        const Spacer(),
+                                        IconButton(
+                                            onPressed: _print,
+                                            color:
+                                                Theme.of(context).primaryColor,
+                                            icon: const Icon(Icons.print)),
+                                        IconButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            icon: const Icon(Icons.close))
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  RangeSlider(
+                                      min: 1,
+                                      max: 12,
+                                      divisions: 11,
+                                      values: rangeValues,
+                                      labels: rangeLabels,
+                                      onChanged: _onUpdate),
+                                  body.isNotEmpty ? _viewData : Container()
+                                ],
+                              )))),
+                )),
           )
         : Container();
   }

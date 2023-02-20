@@ -7,8 +7,9 @@ import 'package:simple_moment/simple_moment.dart';
 
 class ReportViewModel {
   List<Map<String, dynamic>?> body;
-  Map<String, dynamic> taxServices;
-  Map<String, dynamic> taxGood;
+  String taxServices;
+  String taxGood;
+  String totalTax;
   String totalGeneral;
   Map<String, dynamic> footer;
   ReportViewModel(
@@ -16,6 +17,7 @@ class ReportViewModel {
       required this.footer,
       required this.taxServices,
       required this.totalGeneral,
+      required this.totalTax,
       required this.taxGood});
 }
 
@@ -122,8 +124,8 @@ class Purchase {
         LEFT JOIN public."RetentionTax" r ON r.id = p."invoice_tax_retentionId"
         LEFT JOIN public."Retention" r2 ON r2.id = p."invoice_retentionId"
         WHERE $st
-        GROUP BY p.invoice_type_name
-        ORDER BY p."invoice_type_name"
+        GROUP BY p."invoice_typeId",p.invoice_type_name
+        ORDER BY p."invoice_typeId", p."invoice_type_name"
         
       ''');
       var r1 = await connection.mappedResultsQuery('''
@@ -145,17 +147,28 @@ class Purchase {
           SUM("ISR RETENIDO"::numeric)::money::text AS "ISR RETENIDO"
           FROM public."ReportView";''');
 
+
       var r3 = await connection.mappedResultsQuery('''
            SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
       ''');
 
       var r4 = await connection.mappedResultsQuery('''
-           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)      ''');
+           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
 
       var r5 = await connection.mappedResultsQuery('''
            SELECT trunc(sum(p.invoice_total_as_service + p.invoice_total_as_good),2)::money::text AS "TOTAL FACTURADO" FROM public."PurchaseDetails" p WHERE $st''');
 
+      var r6 = await connection.mappedResultsQuery('''
+           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "TOTAL ITBIS FACTURADO" FROM public."PurchaseDetails" p WHERE $st''');
+     
+
       var t = r5.first['']?['TOTAL FACTURADO'] ?? '\$0.00';
+
+      var t2 = r6.first['']?['TOTAL ITBIS FACTURADO'] ?? '\$0.00';
+
+      var t3 = r3.first['']?['ITBIS FACTURADO EN BIENES'] ?? '\$0.00';
+
+      var t4 = r4.first['']?['ITBIS FACTURADO EN SERVICIOS'] ?? '\$0.00';
 
       var body = r1.map((e) => e['']).toList();
 
@@ -163,8 +176,9 @@ class Purchase {
           body: body,
           totalGeneral: t,
           footer: r2.first['']!,
-          taxGood: r3.first['']!,
-          taxServices: r4.first['']!);
+          taxGood: t3,
+          totalTax: t2,
+          taxServices:t4);
     } catch (e) {
       rethrow;
     }
@@ -173,7 +187,7 @@ class Purchase {
   Future<void> checkIfExistsPurchase() async {
     try {
       var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM "Purchase" WHERE "invoice_sheetId" = '$invoiceSheetId' and "invoice_rnc" = '$invoiceRnc' and "invoice_ncf_typeId" = $invoiceNcfTypeId and "invoice_ncf" = '$invoiceNcf';''');
+          '''SELECT * FROM "Purchase" WHERE "invoice_sheetId" = '$invoiceSheetId' and "invoice_rnc" = '$invoiceRnc' and "invoice_ncf_typeId" = $invoiceNcfTypeId and "invoice_ncf" = '$invoiceNcf' and "invoice_ncfModifed_typeId" = $invoiceNcfModifedTypeId and "invoice_ncf_modifed" = '$invoiceNcfModifed';''');
       if (result.isNotEmpty) {
         throw 'YA EXISTE ESTA COMPRA EN ESTA HOJA';
       }
@@ -392,7 +406,7 @@ class Purchase {
         invoiceConceptId: map['invoice_conceptId'],
         invoiceRetentionId: map['invoice_retentionId'],
         invoiceNcfTypeId: map['invoice_ncf_typeId'],
-        invoiceNcfModifedTypeId: map['invoice_ncf_modifed_typeId'],
+        invoiceNcfModifedTypeId: map['invoice_ncfModifed_typeId'],
         invoiceYear: map['invoice_year'],
         invoiceMonth: map['invoice_month'],
         invoiceNcfDay: map['invoice_ncf_day'],
@@ -417,6 +431,7 @@ class Purchase {
         invoiceFullNcf: map['invoice_full_ncf'],
         invoiceFullNcfModifed: map['invoice_full_ncf_modifed'],
         invoiceNcfName: map['invoice_ncf_name'],
+      
         invoiceRate: map['invoice_rate'] == null
             ? null
             : int.tryParse(map['invoice_rate']),

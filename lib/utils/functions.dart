@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/apis/connection.dart';
 
+final  GlobalKey<ScaffoldState> bookDetailsScaffoldKey = GlobalKey<ScaffoldState>();
 
 Future<dynamic> verifyTaxPayer(String rnc) async {
   var results = await connection.mappedResultsQuery(

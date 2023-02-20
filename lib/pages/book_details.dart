@@ -562,11 +562,16 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                     showDialog(
                         context: context,
                         builder: (ctx) {
-                          return DocumentModal(
-                              start:
-                                  widget.currentSheet!.sheetMonth!.toDouble(),
-                              end: widget.currentSheet!.sheetMonth!.toDouble(),
-                              book: widget.book);
+                          return ScaffoldMessenger(
+                              child: Builder(builder: (ctx) {
+                            return DocumentModal(
+                                context: ctx,
+                                start:
+                                    widget.currentSheet!.sheetMonth!.toDouble(),
+                                end:
+                                    widget.currentSheet!.sheetMonth!.toDouble(),
+                                book: widget.book);
+                          }));
                         });
                   }
                 },
