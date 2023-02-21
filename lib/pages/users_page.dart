@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uresaxapp/modals/add-user-modal.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:uresaxapp/widgets/custom-appbar.dart';
 
 class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
@@ -62,8 +63,9 @@ class _UsersPageState extends State<UsersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('USUARIOS'),
+      appBar:PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: CustomAppBar(title: 'USUARIOS'),
       ),
       body: ListView.separated(
           separatorBuilder: (ctx, i) => const Divider(),
@@ -74,6 +76,7 @@ class _UsersPageState extends State<UsersPage> {
               leading: Icon(Icons.account_circle_outlined,
                   size: 50, color: Theme.of(context).primaryColor),
               minVerticalPadding: 15,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 80),
               title: Text(
                 user.name!,
                 style: const TextStyle(fontSize: 26),
@@ -105,7 +108,7 @@ class _UsersPageState extends State<UsersPage> {
                   index  > 0 ?
                   IconButton(
                       onPressed: () => _deleteUser(user, index),
-                      color: Theme.of(context).errorColor,
+                      color: Theme.of(context).colorScheme.error,
                       icon: const Icon(Icons.delete)):const SizedBox(),
                   IconButton(
                       onPressed: () => _showModalForEdit(user, index),

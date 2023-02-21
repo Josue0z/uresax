@@ -182,12 +182,14 @@ class _DocumentModalState extends State<DocumentModal> {
         )); // Center
       })); // Page
 
-      await Printing.layoutPdf(
+      var result = await Printing.layoutPdf(
           format: PdfPageFormat.standard,
           onLayout: (PdfPageFormat format) async => await pdf.save());
 
-      ScaffoldMessenger.of(widget.context).showSnackBar(
-          const SnackBar(content: Text('COMENZO LA IMPRESION DEL REPORTE')));
+      if (result) {
+        ScaffoldMessenger.of(widget.context).showSnackBar(
+            const SnackBar(content: Text('COMENZO LA IMPRESION DEL REPORTE')));
+      }
     } catch (e) {
       showAlert(context, message: e.toString());
     }
@@ -372,7 +374,7 @@ class _DocumentModalState extends State<DocumentModal> {
             child: Scaffold(
                 backgroundColor: Colors.transparent,
                 body: GestureDetector(
-                  onTap: (){},
+                  onTap: () {},
                   child: Dialog(
                       child: SizedBox(
                           width: 1300,
@@ -418,6 +420,16 @@ class _DocumentModalState extends State<DocumentModal> {
                               )))),
                 )),
           )
-        : Container();
+        : Container(
+            color: Colors.transparent,
+            width: 200,
+            height: 200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [CircularProgressIndicator()],
+              ),
+            ),
+          );
   }
 }

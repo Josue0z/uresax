@@ -136,9 +136,19 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     _verticalScrollController.jumpTo(_verticalScrollController.offset + 50);
   }
 
+  _moveRight() {
+    var maxOffset = _scrollController.position.maxScrollExtent;
+    var currentOffset = _scrollController.offset;
+
+    if (currentOffset <= maxOffset) {
+      _scrollController.jumpTo(_scrollController.offset + 50);
+    }
+  }
+
   _generate606() async {
     try {
       var purchases = [...widget.purchases];
+
       purchases.removeWhere((element) =>
           element.invoiceNcfTypeId == 2 || element.invoiceNcfTypeId == 32);
 
@@ -238,15 +248,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         setState(() {});
       }
     } catch (_) {}
-  }
-
-  _moveRight() {
-    var maxOffset = _scrollController.position.maxScrollExtent;
-    var currentOffset = _scrollController.offset;
-
-    if (currentOffset <= maxOffset) {
-      _scrollController.jumpTo(_scrollController.offset + 50);
-    }
   }
 
   Future<void> _onSheetChanged(String? sheetId) async {
@@ -366,17 +367,19 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     }
   }
 
+  _init() async {
+    try {
+      windowManager.addListener(this);
+      RawKeyboard.instance.addListener(_handlerKeys);
+      stream.stream.listen(_onSheetChanged);
+      _scrollController.addListener(_setupScrollViews);
+      await widget.book.updateBookUseStatus(true);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
-    try {
-      if (mounted) {
-        windowManager.addListener(this);
-        RawKeyboard.instance.addListener(_handlerKeys);
-        stream.stream.listen(_onSheetChanged);
-        _scrollController.addListener(_setupScrollViews);
-        widget.book.updateBookUseStatus(true);
-      }
-    } catch (_) {}
+    _init();
     super.initState();
   }
 
@@ -539,6 +542,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     return Scaffold(
         appBar: AppBar(
           title: Text(_title),
+          elevation: 0,
           actions: [
             IconButton(onPressed: _goHome, icon: const Icon(Icons.home)),
             User.current?.isAdmin && widget.sheets.isNotEmpty

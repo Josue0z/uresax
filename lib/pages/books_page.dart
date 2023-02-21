@@ -11,6 +11,7 @@ import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/book_details.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:uresaxapp/widgets/custom-appbar.dart';
 
 class BooksPage extends StatefulWidget {
   Company company;
@@ -67,8 +68,11 @@ class _BooksPageState extends State<BooksPage> {
       sheets = await book.getSheets();
 
       if (sheets.isNotEmpty) {
-        currentSheet = sheets.firstWhere((element) => element.id == book.latestSheetVisited,orElse: ()=> Sheet());
-        currentSheetIndex = sheets.indexWhere((element) => element.id == currentSheet?.id);
+        currentSheet = sheets.firstWhere(
+            (element) => element.id == book.latestSheetVisited,
+            orElse: () => Sheet());
+        currentSheetIndex =
+            sheets.indexWhere((element) => element.id == currentSheet?.id);
       }
 
       purchases = await currentSheet?.getPurchases() ?? [];
@@ -122,6 +126,7 @@ class _BooksPageState extends State<BooksPage> {
         itemBuilder: (ctx, index) {
           Book book = books[index];
           return ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 80),
             leading: CircleAvatar(
               radius: 30,
               backgroundColor: Theme.of(context).primaryColor,
@@ -129,7 +134,7 @@ class _BooksPageState extends State<BooksPage> {
             ),
             title:
                 Text(book.name!, style: Theme.of(context).textTheme.headline5),
-            minVerticalPadding: 15,
+            minVerticalPadding: 20,
             subtitle: Text(
               'RNC ${book.companyRnc} ${book.createdAt?.format("DD/MM/y")} / ${book.bookTypeName}',
               style: const TextStyle(fontSize: 18),
@@ -169,7 +174,10 @@ class _BooksPageState extends State<BooksPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('LIBROS: ${widget.company.name}')),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: CustomAppBar(title: widget.company.name!),
+      ),
       body: books.isNotEmpty ? _bookView : _emptyView,
       floatingActionButton: FloatingActionButton(
         tooltip: 'AÑADIR LIBRO',

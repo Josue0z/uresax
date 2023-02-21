@@ -8,6 +8,7 @@ import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/books_page.dart';
 import 'package:uresaxapp/pages/users_page.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:uresaxapp/widgets/custom-appbar.dart';
 
 class CompaniesPage extends StatefulWidget {
   const CompaniesPage({super.key});
@@ -99,8 +100,9 @@ class _CompaniesPageState extends State<CompaniesPage> {
                     const Icon(Icons.apartment, size: 25, color: Colors.white),
               ),
               title: Text(company.name!,
-                  style: Theme.of(context).textTheme.headline5),
+                  style: Theme.of(context).textTheme.headlineSmall),
               minVerticalPadding: 15,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 80),
               subtitle: Text(
                 'RNC ${company.rnc} ${company.createdAt?.format("DD/MM/y")}',
                 style: const TextStyle(fontSize: 18),
@@ -151,27 +153,33 @@ class _CompaniesPageState extends State<CompaniesPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('EMPRESAS, HOLA ${User.current!.name!.toUpperCase()}'),
-        actions: [
-          PopupMenuButton(onSelected: (option) async {
-            switch (option) {
-              case PageOptionType.users:
-                _viewUsers();
-                break;
-              case PageOptionType.loggout:
-                var isConfirm =
-                    await showConfirm(context, title: 'Cerrar Sesion?');
-                if (isConfirm!) {
-                  _logout();
-                }
-                break;
-              default:
-            }
-          }, itemBuilder: (ctx) {
-            return _createOptions();
-          })
-        ],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: CustomAppBar(
+          title: 'EMPRESAS, HOLA ${User.current!.name!.toUpperCase()}',
+          actions: [
+            PopupMenuButton(
+              color: Colors.white,
+              onSelected: (option) async {
+              switch (option) {
+                case PageOptionType.users:
+                  _viewUsers();
+                  break;
+                case PageOptionType.loggout:
+                  var isConfirm =
+                      await showConfirm(context, title: 'Cerrar Sesion?');
+                  if (isConfirm!) {
+                    _logout();
+                  }
+                  break;
+                default:
+              }
+            }, itemBuilder: (ctx) {
+              return _createOptions();
+            }),
+           
+          ],
+        ),
       ),
       body: _viewCompanies,
       floatingActionButton: FloatingActionButton(

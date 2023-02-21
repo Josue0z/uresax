@@ -150,12 +150,14 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       var data = await verifyTaxPayer(rnc.value.text);
       company.value = TextEditingValue(text: data['tax_payer_company_name']);
       isCorrectRnc = true;
+      setState(() {});
+      return;
     } catch (e) {
       company.value = const TextEditingValue(text: '');
       isCorrectRnc = false;
-    } finally {
       setState(() {});
-    }
+      return;
+    } 
   }
 
   String? _validateTax(val) {
