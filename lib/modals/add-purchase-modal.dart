@@ -111,7 +111,6 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         currentNcfTypeId = widget.purchase?.invoiceNcfTypeId;
         ncf.value = TextEditingValue(text: widget.purchase!.invoiceNcf!);
         currentNcfModifedTypeId = widget.purchase?.invoiceNcfModifedTypeId;
-    
         ncfModifed.value =
             TextEditingValue(text: widget.purchase?.invoiceNcfModifed ?? '');
         currentType = widget.purchase?.invoiceTypeId;

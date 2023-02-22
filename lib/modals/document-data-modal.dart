@@ -11,11 +11,13 @@ import 'package:uresaxapp/utils/modals-actions.dart';
 class DocumentModal extends StatefulWidget {
   double start = 1;
   double end = 12;
-  BuildContext context;
+  final BuildContext context;
   final Book book;
+  List<Purchase> purchases;
   DocumentModal(
       {super.key,
       required this.context,
+      this.purchases = const [],
       required this.start,
       required this.end,
       required this.book});
@@ -103,6 +105,12 @@ class _DocumentModalState extends State<DocumentModal> {
 
   _print() async {
     try {
+      if (body.isEmpty) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('NO TIENES FACTURAS')));
+            return;
+      }
+
       final pdf = pw.Document();
 
       pdf.addPage(pw.Page(build: (pw.Context context) {
