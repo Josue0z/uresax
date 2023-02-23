@@ -126,8 +126,12 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             text: widget.purchase?.invoiceNcfDay?.trim() ?? '');
         total.value = formatter.formatEditUpdate(TextEditingValue.empty,
             TextEditingValue(text: widget.purchase!.invoiceTotal.toString()));
-        tax.value = formatter.formatEditUpdate(TextEditingValue.empty,
-            TextEditingValue(text: widget.purchase!.invoiceTax.toString()));
+        tax.value = formatter.formatEditUpdate(
+            TextEditingValue.empty,
+            TextEditingValue(
+                text: widget.purchase!.invoiceTax == 0
+                    ? ''
+                    : widget.purchase!.invoiceTax.toString()));
         invoicePayYear.value = TextEditingValue(
             text: widget.purchase?.invoicePayYear?.toString() ?? '');
         invoicePayMonth.value = TextEditingValue(
@@ -136,7 +140,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             text: widget.purchase?.invoicePayDay?.toString() ?? '');
       }
     } catch (e) {
-         print(e.toString());
+      print(e.toString());
     } finally {
       setState(() {
         isLoading = false;
@@ -156,7 +160,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       isCorrectRnc = false;
       setState(() {});
       return;
-    } 
+    }
   }
 
   String? _validateTax(val) {

@@ -1,18 +1,23 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:uresaxapp/models/sheet.dart';
+import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:path/path.dart' as path;
 
 class DocumentModal extends StatefulWidget {
   double start = 1;
   double end = 12;
   final BuildContext context;
   final Book book;
+  final Sheet? currentSheet;
   List<Purchase> purchases;
   DocumentModal(
       {super.key,
@@ -20,6 +25,7 @@ class DocumentModal extends StatefulWidget {
       this.purchases = const [],
       required this.start,
       required this.end,
+      required this.currentSheet,
       required this.book});
 
   @override
@@ -66,6 +72,8 @@ class _DocumentModalState extends State<DocumentModal> {
 
   bool isLoading = false;
 
+  late pw.Document pdf;
+
   get _dhead {
     return pw.TableRow(
         children: body[0]!.keys.map((key) {
@@ -108,87 +116,8 @@ class _DocumentModalState extends State<DocumentModal> {
       if (body.isEmpty) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('NO TIENES FACTURAS')));
-            return;
+        return;
       }
-
-      final pdf = pw.Document();
-
-      pdf.addPage(pw.Page(build: (pw.Context context) {
-        return pw.Center(
-            child: pw.Column(
-          mainAxisAlignment: pw.MainAxisAlignment.start,
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(_title, style: const pw.TextStyle(fontSize: 13)),
-            pw.SizedBox(height: 20),
-            pw.Table(
-              columnWidths: {
-                0: const pw.IntrinsicColumnWidth(),
-                1: const pw.FixedColumnWidth(100),
-                2: const pw.FixedColumnWidth(100),
-                3: const pw.FixedColumnWidth(100),
-                4: const pw.FixedColumnWidth(100),
-                5: const pw.FixedColumnWidth(100)
-              },
-              children: [
-                _dhead,
-                ..._drows,
-                pw.TableRow(
-                    children: values
-                        .map((e) => pw.Container(
-                            padding: const pw.EdgeInsets.only(top: 10),
-                            child: pw.Text(e ?? '\$0.00',
-                                style: pw.TextStyle(
-                                    fontSize: 8,
-                                    fontWeight: values.indexOf(e) == 0
-                                        ? pw.FontWeight.bold
-                                        : null))))
-                        .toList())
-              ],
-            ),
-            pw.SizedBox(height: 20),
-            pw.RichText(
-                text: pw.TextSpan(
-                    style: const pw.TextStyle(fontSize: 9),
-                    children: [
-                  pw.TextSpan(
-                      text: 'ITBIS FACTURADO EN SERVICIOS: ',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.TextSpan(text: taxServices)
-                ])),
-            pw.SizedBox(height: 10),
-            pw.RichText(
-                text: pw.TextSpan(
-                    style: const pw.TextStyle(fontSize: 9),
-                    children: [
-                  pw.TextSpan(
-                      text: 'ITBIS FACTURADO EN BIENES: ',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.TextSpan(text: taxGoods)
-                ])),
-            pw.SizedBox(height: 10),
-            pw.RichText(
-                text: pw.TextSpan(
-                    style: const pw.TextStyle(fontSize: 9),
-                    children: [
-                  pw.TextSpan(
-                      text: 'TOTAL ITBIS FACTURADO: ',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.TextSpan(text: totalTax)
-                ])),
-            pw.SizedBox(height: 10),
-            pw.RichText(
-                text: pw.TextSpan(
-                    style: const pw.TextStyle(fontSize: 9),
-                    children: [
-                  pw.TextSpan(
-                      text: 'TOTAL FACTURADO: ',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.TextSpan(text: totalGeneral)
-                ])),
-          ],
-        )); // Center
-      })); // Page
 
       var result = await Printing.layoutPdf(
           format: PdfPageFormat.standard,
@@ -200,6 +129,30 @@ class _DocumentModalState extends State<DocumentModal> {
       }
     } catch (e) {
       showAlert(context, message: e.toString());
+    }
+  }
+
+  _save() async {
+    try {
+      if (widget.currentSheet != null) {
+        var filePath = path.join(
+            Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
+            'URESAX',
+            widget.book.companyName?.trim(),
+            widget.book.year.toString(),
+            '606',
+            'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}.PDF');
+        var file = File(filePath);
+        file.writeAsBytes(await pdf.save());
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('SE CREO EL REPORTE PDF'),
+            action: SnackBarAction(label: 'ABRIR ARCHIVO', onPressed: () async{
+               await launchFile(path.dirname(filePath));
+            })));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -300,6 +253,85 @@ class _DocumentModalState extends State<DocumentModal> {
     footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
     footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
     footer.addAll({'TOTAL GENERAL': totalGeneral});
+
+    pdf = pw.Document();
+
+    pdf.addPage(pw.Page(build: (pw.Context context) {
+      return pw.Center(
+          child: pw.Column(
+        mainAxisAlignment: pw.MainAxisAlignment.start,
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(_title, style: const pw.TextStyle(fontSize: 13)),
+          pw.SizedBox(height: 20),
+          pw.Table(
+            columnWidths: {
+              0: const pw.IntrinsicColumnWidth(),
+              1: const pw.FixedColumnWidth(100),
+              2: const pw.FixedColumnWidth(100),
+              3: const pw.FixedColumnWidth(100),
+              4: const pw.FixedColumnWidth(100),
+              5: const pw.FixedColumnWidth(100)
+            },
+            children: [
+              _dhead,
+              ..._drows,
+              pw.TableRow(
+                  children: values
+                      .map((e) => pw.Container(
+                          padding: const pw.EdgeInsets.only(top: 10),
+                          child: pw.Text(e ?? '\$0.00',
+                              style: pw.TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: values.indexOf(e) == 0
+                                      ? pw.FontWeight.bold
+                                      : null))))
+                      .toList())
+            ],
+          ),
+          pw.SizedBox(height: 20),
+          pw.RichText(
+              text: pw.TextSpan(
+                  style: const pw.TextStyle(fontSize: 9),
+                  children: [
+                pw.TextSpan(
+                    text: 'ITBIS FACTURADO EN SERVICIOS: ',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.TextSpan(text: taxServices)
+              ])),
+          pw.SizedBox(height: 10),
+          pw.RichText(
+              text: pw.TextSpan(
+                  style: const pw.TextStyle(fontSize: 9),
+                  children: [
+                pw.TextSpan(
+                    text: 'ITBIS FACTURADO EN BIENES: ',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.TextSpan(text: taxGoods)
+              ])),
+          pw.SizedBox(height: 10),
+          pw.RichText(
+              text: pw.TextSpan(
+                  style: const pw.TextStyle(fontSize: 9),
+                  children: [
+                pw.TextSpan(
+                    text: 'TOTAL ITBIS FACTURADO: ',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.TextSpan(text: totalTax)
+              ])),
+          pw.SizedBox(height: 10),
+          pw.RichText(
+              text: pw.TextSpan(
+                  style: const pw.TextStyle(fontSize: 9),
+                  children: [
+                pw.TextSpan(
+                    text: 'TOTAL FACTURADO: ',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.TextSpan(text: totalGeneral)
+              ])),
+        ],
+      )); // Center
+    }));
 
     setState(() {
       isLoading = false;
@@ -408,6 +440,11 @@ class _DocumentModalState extends State<DocumentModal> {
                                             color:
                                                 Theme.of(context).primaryColor,
                                             icon: const Icon(Icons.print)),
+                                        IconButton(
+                                            onPressed: _save,
+                                            color:
+                                                Theme.of(context).primaryColor,
+                                            icon: const Icon(Icons.download)),
                                         IconButton(
                                             onPressed: () =>
                                                 Navigator.pop(context),

@@ -574,7 +574,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                                     widget.currentSheet!.sheetMonth!.toDouble(),
                                 end:
                                     widget.currentSheet!.sheetMonth!.toDouble(),
-                                book: widget.book);
+                                book: widget.book,
+                                currentSheet: widget.currentSheet);
                           }));
                         });
                   }
