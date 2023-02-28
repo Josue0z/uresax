@@ -54,6 +54,7 @@ dependencies:
   pdf: ^3.9.0
   simple_moment: ^1.1.1
   printing: ^5.10.1
+  number_text_input_formatter: ^1.0.0+1
 
 
 dev_dependencies:

@@ -414,6 +414,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     var columns = invs[0].keys.toList();
 
     columns = [invs.length.toString(), ...columns];
+
     var widgets = List.generate(columns.length, (index) {
       return Container(
         width: index == 0 ? 80 : 250,

@@ -15,6 +15,7 @@ import 'package:uresaxapp/utils/functions.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/ncf-editor-widget.dart';
+import 'package:number_text_input_formatter/number_text_input_formatter.dart';
 
 class AddPurchaseModal extends StatefulWidget {
   final Purchase? purchase;
@@ -54,6 +55,19 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   int? currentRetentionTaxId;
 
   bool isCorrectRnc = false;
+
+  var myformatter = NumberTextInputFormatter(
+    integerDigits: 10,
+    decimalDigits: 2,
+    maxValue: '1000000000.00',
+    decimalSeparator: '.',
+    groupDigits: 3,
+    groupSeparator: ',',
+    allowNegative: false,
+    overrideDecimalPoint: true,
+    insertDecimalPoint: false,
+    insertDecimalDigits: true,
+  );
 
   TextEditingController rnc = TextEditingController();
   TextEditingController ck = TextEditingController();
@@ -96,7 +110,6 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
   Future<void> _initElements() async {
     try {
-      var formatter = ThousandsFormatter(allowFraction: true);
       concepts.addAll(await Concept.getConcepts());
       bankings.addAll(await Banking.getBankings());
       invoiceTypes.addAll(await InvoiceType.getInvoiceTypes());
@@ -124,9 +137,9 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                 : widget.purchase!.invoiceCk.toString());
         day.value = TextEditingValue(
             text: widget.purchase?.invoiceNcfDay?.trim() ?? '');
-        total.value = formatter.formatEditUpdate(TextEditingValue.empty,
+        total.value = myformatter.formatEditUpdate(TextEditingValue.empty,
             TextEditingValue(text: widget.purchase!.invoiceTotal.toString()));
-        tax.value = formatter.formatEditUpdate(
+        tax.value = myformatter.formatEditUpdate(
             TextEditingValue.empty,
             TextEditingValue(
                 text: widget.purchase!.invoiceTax == 0
@@ -646,9 +659,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                   child: TextFormField(
                                     style: const TextStyle(fontSize: 18),
                                     controller: total,
-                                    inputFormatters: [
-                                      ThousandsFormatter(allowFraction: true)
-                                    ],
+                                    inputFormatters: [myformatter],
                                     validator: (val) => val == null || val == ''
                                         ? 'CAMPO REQUERIDO'
                                         : null,
@@ -664,9 +675,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                     style: const TextStyle(fontSize: 18),
                                     controller: tax,
                                     validator: _validateTax,
-                                    inputFormatters: [
-                                      ThousandsFormatter(allowFraction: true)
-                                    ],
+                                    inputFormatters: [myformatter],
                                     decoration: const InputDecoration(
                                         hintText: 'ITBIS FACTURADO',
                                         border: OutlineInputBorder()),
@@ -684,6 +693,13 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         TextSpan(text: widget.purchase?.author)
                                       ]))
                                     : Container(),
+                                
+                               widget.purchase?.createdAt != null ? Column(
+                                  children: [
+                                    const SizedBox(height: 10),
+                                    Text(widget.purchase!.createdAt.toString()),
+                                  ],
+                                ):Container(),
                                 const SizedBox(height: 10),
                               ],
                             ),

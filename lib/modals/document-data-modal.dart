@@ -141,14 +141,16 @@ class _DocumentModalState extends State<DocumentModal> {
             widget.book.companyName?.trim(),
             widget.book.year.toString(),
             '606',
-            'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}.PDF');
+            '$_title.PDF');
         var file = File(filePath);
         file.writeAsBytes(await pdf.save());
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: const Text('SE CREO EL REPORTE PDF'),
-            action: SnackBarAction(label: 'ABRIR ARCHIVO', onPressed: () async{
-               await launchFile(path.dirname(filePath));
-            })));
+            action: SnackBarAction(
+                label: 'ABRIR ARCHIVO',
+                onPressed: () async {
+                  await launchFile(path.dirname(filePath));
+                })));
       }
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -164,28 +166,38 @@ class _DocumentModalState extends State<DocumentModal> {
       widget.start = v.start;
       widget.end = v.end;
     });
-    r = await Purchase.getReportViewForInvoiceType(
-        id: widget.book.id!,
-        start: widget.start.toInt(),
-        end: widget.end.toInt());
+    try {
+      r = await Purchase.getReportViewForInvoiceType(
+          id: widget.book.id!,
+          start: widget.start.toInt(),
+          end: widget.end.toInt());
 
-    body = r.body;
-    taxGoods = r.taxGood;
-    taxServices = r.taxServices;
-    totalGeneral = r.totalGeneral;
-    totalTax = r.totalTax;
-    footer = r.footer;
-    values = ['TOTAL GENERAL', ...r.footer.values.toList()];
-    footer = {};
-    footer.addAll({'ITBIS EN SERVICIOS': taxServices});
-    footer.addAll({'ITBIS EN BIENES': taxGoods});
-    footer.addAll({'ITBIS RETENIDO': r.footer['ITBIS RETENIDO']});
-    footer.addAll({'ISR RETENIDO': r.footer['ISR RETENIDO']});
-    footer.addAll({'TOTAL ITBIS FACTURADO': r.footer['TOTAL ITBIS FACTURADO']});
-    footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
-    footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
-    footer.addAll({'TOTAL GENERAL': totalGeneral});
-    setState(() {});
+      body = r.body;
+      taxGoods = r.taxGood;
+      taxServices = r.taxServices;
+      totalGeneral = r.totalGeneral;
+      totalTax = r.totalTax;
+      footer = r.footer;
+      values = ['TOTAL GENERAL', ...r.footer.values.toList()];
+      footer = {};
+      footer.addAll({'ITBIS EN SERVICIOS': taxServices});
+      footer.addAll({'ITBIS EN BIENES': taxGoods});
+      footer.addAll({'ITBIS RETENIDO': r.footer['ITBIS RETENIDO']});
+      footer.addAll({'ISR RETENIDO': r.footer['ISR RETENIDO']});
+      footer
+          .addAll({'TOTAL ITBIS FACTURADO': r.footer['TOTAL ITBIS FACTURADO']});
+      footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
+      footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
+      footer.addAll({'TOTAL GENERAL': totalGeneral});
+
+      pdf = pw.Document();
+
+      pdf.addPage(_page());
+
+      setState(() {});
+    } catch (e) {
+      print(e);
+    }
   }
 
   TableRow get _head {
@@ -225,38 +237,8 @@ class _DocumentModalState extends State<DocumentModal> {
     }).toList();
   }
 
-  _init() async {
-    setState(() {
-      isLoading = true;
-      startIndex = widget.start.toInt() - 1;
-      endIndex = widget.end.toInt() - 1;
-      rangeValues = RangeValues(widget.start, widget.end);
-      rangeLabels = RangeLabels(months[startIndex], months[endIndex]);
-    });
-    r = await Purchase.getReportViewForInvoiceType(
-        id: widget.book.id!,
-        start: widget.start.toInt(),
-        end: widget.end.toInt());
-
-    body = r.body;
-    taxGoods = r.taxGood;
-    totalTax = r.totalTax;
-    taxServices = r.taxServices;
-    totalGeneral = r.totalGeneral;
-    values = ['TOTAL GENERAL', ...r.footer.values.toList()];
-    footer = {};
-    footer.addAll({'ITBIS EN SERVICIOS': taxServices});
-    footer.addAll({'ITBIS EN BIENES': taxGoods});
-    footer.addAll({'ITBIS RETENIDO': r.footer['ITBIS RETENIDO']});
-    footer.addAll({'ISR RETENIDO': r.footer['ISR RETENIDO']});
-    footer.addAll({'TOTAL ITBIS FACTURADO': r.footer['TOTAL ITBIS FACTURADO']});
-    footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
-    footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
-    footer.addAll({'TOTAL GENERAL': totalGeneral});
-
-    pdf = pw.Document();
-
-    pdf.addPage(pw.Page(build: (pw.Context context) {
+  pw.Page _page() {
+    return pw.Page(build: (pw.Context context) {
       return pw.Center(
           child: pw.Column(
         mainAxisAlignment: pw.MainAxisAlignment.start,
@@ -331,11 +313,50 @@ class _DocumentModalState extends State<DocumentModal> {
               ])),
         ],
       )); // Center
-    }));
-
-    setState(() {
-      isLoading = false;
     });
+  }
+
+  _init() async {
+    setState(() {
+      isLoading = true;
+      startIndex = widget.start.toInt() - 1;
+      endIndex = widget.end.toInt() - 1;
+      rangeValues = RangeValues(widget.start, widget.end);
+      rangeLabels = RangeLabels(months[startIndex], months[endIndex]);
+    });
+    try {
+      r = await Purchase.getReportViewForInvoiceType(
+          id: widget.book.id!,
+          start: widget.start.toInt(),
+          end: widget.end.toInt());
+
+      body = r.body;
+      taxGoods = r.taxGood;
+      totalTax = r.totalTax;
+      taxServices = r.taxServices;
+      totalGeneral = r.totalGeneral;
+      values = ['TOTAL GENERAL', ...r.footer.values.toList()];
+      footer = {};
+      footer.addAll({'ITBIS EN SERVICIOS': taxServices});
+      footer.addAll({'ITBIS EN BIENES': taxGoods});
+      footer.addAll({'ITBIS RETENIDO': r.footer['ITBIS RETENIDO']});
+      footer.addAll({'ISR RETENIDO': r.footer['ISR RETENIDO']});
+      footer
+          .addAll({'TOTAL ITBIS FACTURADO': r.footer['TOTAL ITBIS FACTURADO']});
+      footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
+      footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
+      footer.addAll({'TOTAL GENERAL': totalGeneral});
+
+      pdf = pw.Document();
+
+      pdf.addPage(_page());
+
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -465,16 +486,8 @@ class _DocumentModalState extends State<DocumentModal> {
                               )))),
                 )),
           )
-        : Container(
-            color: Colors.transparent,
-            width: 200,
-            height: 200,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [CircularProgressIndicator()],
-              ),
-            ),
+        : const Center(
+            child: CircularProgressIndicator(),
           );
   }
 }

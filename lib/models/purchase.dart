@@ -62,6 +62,7 @@ class Purchase {
   String? invoiceFullNcfModifed;
   String? invoiceNcfName;
   String? invoiceNcfModifedName;
+  DateTime? createdAt;
 
   Purchase(
       {this.id,
@@ -103,7 +104,8 @@ class Purchase {
       this.invoicePayDay,
       this.invoiceTaxRetentionId,
       this.invoiceTaxRetentionRate,
-      this.invoiceNcfName});
+      this.invoiceNcfName,
+      this.createdAt});
 
   static Future<ReportViewModel> getReportViewForInvoiceType(
       {String id = '', int start = 1, int end = 12}) async {
@@ -111,6 +113,7 @@ class Purchase {
         '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and p."invoice_month" between $start and $end''';
     try {
       await connection.query('''SET lc_monetary = 'es_US';''');
+
       await connection.query('''
         CREATE OR REPLACE VIEW public."ReportView"
         AS
@@ -126,7 +129,6 @@ class Purchase {
         WHERE $st
         GROUP BY p."invoice_typeId",p.invoice_type_name
         ORDER BY p."invoice_typeId", p."invoice_type_name"
-        
       ''');
       var r1 = await connection.mappedResultsQuery('''
            SELECT 
@@ -147,7 +149,6 @@ class Purchase {
           SUM("ISR RETENIDO"::numeric)::money::text AS "ISR RETENIDO"
           FROM public."ReportView";''');
 
-
       var r3 = await connection.mappedResultsQuery('''
            SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
       ''');
@@ -160,25 +161,26 @@ class Purchase {
 
       var r6 = await connection.mappedResultsQuery('''
            SELECT trunc(sum(p.invoice_tax),2)::money::text AS "TOTAL ITBIS FACTURADO" FROM public."PurchaseDetails" p WHERE $st''');
-     
+
+      var body = r1.map((e) => e['']).toList();
 
       var t = r5.first['']?['TOTAL FACTURADO'] ?? '\$0.00';
 
-      var t2 = r6.first['']?['TOTAL ITBIS FACTURADO'] ?? '\$0.00';
+      var t2 = r2.first[''] ?? {};
 
       var t3 = r3.first['']?['ITBIS FACTURADO EN BIENES'] ?? '\$0.00';
 
       var t4 = r4.first['']?['ITBIS FACTURADO EN SERVICIOS'] ?? '\$0.00';
 
-      var body = r1.map((e) => e['']).toList();
+      var t5 = r6.first['']?['TOTAL ITBIS FACTURADO'] ?? '\$0.00';
 
       return ReportViewModel(
           body: body,
           totalGeneral: t,
-          footer: r2.first['']!,
+          footer: t2,
           taxGood: t3,
-          totalTax: t2,
-          taxServices:t4);
+          totalTax: t4,
+          taxServices: t5);
     } catch (e) {
       rethrow;
     }
@@ -431,7 +433,6 @@ class Purchase {
         invoiceFullNcf: map['invoice_full_ncf'],
         invoiceFullNcfModifed: map['invoice_full_ncf_modifed'],
         invoiceNcfName: map['invoice_ncf_name'],
-      
         invoiceRate: map['invoice_rate'] == null
             ? null
             : int.tryParse(map['invoice_rate']),
@@ -440,7 +441,8 @@ class Purchase {
         invoicePayMonth: map['invoice_pay_month'],
         invoicePayDay: map['invoice_pay_day'],
         invoiceTaxRetentionId: map['invoice_tax_retentionId'],
-        invoiceTaxRetentionRate: map['invoice_tax_retention_rate']);
+        invoiceTaxRetentionRate: map['invoice_tax_retention_rate'],
+        createdAt: map['created_at']);
   }
 
   bool get checkedType {
