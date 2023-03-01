@@ -179,8 +179,8 @@ class Purchase {
           totalGeneral: t,
           footer: t2,
           taxGood: t3,
-          totalTax: t4,
-          taxServices: t5);
+          totalTax: t5,
+          taxServices: t4);
     } catch (e) {
       rethrow;
     }
