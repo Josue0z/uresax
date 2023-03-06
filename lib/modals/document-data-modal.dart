@@ -8,23 +8,27 @@ import 'package:uresaxapp/models/purchase.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:uresaxapp/models/sheet.dart';
+import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:path/path.dart' as path;
 
 class DocumentModal extends StatefulWidget {
-  double start = 1;
-  double end = 12;
   final BuildContext context;
+
   final Book book;
+
   final Sheet? currentSheet;
+
+  ReportViewModel reportViewModel;
+
   List<Purchase> purchases;
+
   DocumentModal(
       {super.key,
       required this.context,
       this.purchases = const [],
-      required this.start,
-      required this.end,
+      required this.reportViewModel,
       required this.currentSheet,
       required this.book});
 
@@ -33,87 +37,9 @@ class DocumentModal extends StatefulWidget {
 }
 
 class _DocumentModalState extends State<DocumentModal> {
-  int startIndex = -1;
-  int endIndex = -1;
-  late RangeLabels rangeLabels;
-
-  late RangeValues rangeValues;
-
-  List<Map<String, dynamic>?> body = [];
-
-  String taxServices = '';
-
-  String taxGoods = '';
-
-  Map<String, dynamic> footer = {};
-
-  String totalGeneral = '';
-
-  String totalTax = '';
-
-  dynamic r;
-
-  List<String?> values = [];
-
-  List<String> months = [
-    'ENERO',
-    'FEBRERO',
-    'MARZO',
-    'ABRIL',
-    'MAYO',
-    'JUNIO',
-    'JULIO',
-    'AGOSTO',
-    'SEPTIEMBRE',
-    'OCTUBRE',
-    'NOVIEMBRE',
-    'DICIEMBRE'
-  ];
-
-  bool isLoading = false;
-
-  late pw.Document pdf;
-
-  get _dhead {
-    return pw.TableRow(
-        children: body[0]!.keys.map((key) {
-      return pw.Column(
-          mainAxisAlignment: pw.MainAxisAlignment.start,
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              key,
-              style: pw.TextStyle(
-                fontSize: 8,
-                fontWeight: pw.FontWeight.bold,
-                color: const PdfColor.fromInt(0x0000000),
-              ),
-            ),
-          ]);
-    }).toList());
-  }
-
-  get _drows {
-    return body.map((item) {
-      return pw.TableRow(
-          children: item!.entries.map((entry) {
-        return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            mainAxisAlignment: pw.MainAxisAlignment.start,
-            children: [
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 10),
-                child: pw.Text(entry.value ?? '\$0.00',
-                    style: const pw.TextStyle(fontSize: 8)),
-              )
-            ]);
-      }).toList());
-    }).toList();
-  }
-
   _print() async {
     try {
-      if (body.isEmpty) {
+      if (widget.reportViewModel.body.isEmpty) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('NO TIENES FACTURAS')));
         return;
@@ -121,7 +47,8 @@ class _DocumentModalState extends State<DocumentModal> {
 
       var result = await Printing.layoutPdf(
           format: PdfPageFormat.standard,
-          onLayout: (PdfPageFormat format) async => await pdf.save());
+          onLayout: (PdfPageFormat format) async =>
+              await widget.reportViewModel.pdf!.save());
 
       if (result) {
         ScaffoldMessenger.of(widget.context).showSnackBar(
@@ -132,9 +59,16 @@ class _DocumentModalState extends State<DocumentModal> {
     }
   }
 
+  String get _title {
+    return buildReportTitle(
+        widget.reportViewModel.rangeValues!.start.toInt() - 1,
+        widget.reportViewModel.rangeValues!.end.toInt() - 1,
+        widget.book);
+  }
+
   _save() async {
     try {
-      if (widget.currentSheet != null) {
+      if (widget.reportViewModel.body.isNotEmpty) {
         var filePath = path.join(
             Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
             'URESAX',
@@ -143,7 +77,7 @@ class _DocumentModalState extends State<DocumentModal> {
             '606',
             '$_title.PDF');
         var file = File(filePath);
-        file.writeAsBytes(await pdf.save());
+        file.writeAsBytes(await widget.reportViewModel.pdf!.save());
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: const Text('SE CREO EL REPORTE PDF'),
             action: SnackBarAction(
@@ -158,43 +92,56 @@ class _DocumentModalState extends State<DocumentModal> {
     }
   }
 
-  _onUpdate(v) async {
-    setState(() {
-      rangeValues = v;
-      rangeLabels =
-          RangeLabels(months[v.start.toInt() - 1], months[v.end.toInt() - 1]);
-      widget.start = v.start;
-      widget.end = v.end;
-    });
+  _onUpdate(RangeValues v) async {
     try {
-      r = await Purchase.getReportViewForInvoiceType(
-          id: widget.book.id!,
-          start: widget.start.toInt(),
-          end: widget.end.toInt());
+      widget.reportViewModel = await Purchase.getReportViewForInvoiceType(
+          id: widget.book.id!, start: v.start.toInt(), end: v.end.toInt());
 
-      body = r.body;
-      taxGoods = r.taxGood;
-      taxServices = r.taxServices;
-      totalGeneral = r.totalGeneral;
-      totalTax = r.totalTax;
-      footer = r.footer;
-      values = ['TOTAL GENERAL', ...r.footer.values.toList()];
-      footer = {};
-      footer.addAll({'ITBIS EN SERVICIOS': taxServices});
-      footer.addAll({'ITBIS EN BIENES': taxGoods});
-      footer.addAll({'ITBIS RETENIDO': r.footer['ITBIS RETENIDO']});
-      footer.addAll({'ISR RETENIDO': r.footer['ISR RETENIDO']});
-      footer
-          .addAll({'TOTAL ITBIS FACTURADO': r.footer['TOTAL ITBIS FACTURADO']});
-      footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
-      footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
-      footer.addAll({'TOTAL GENERAL': totalGeneral});
+      setState(() {
+        widget.reportViewModel.rangeValues = v;
+        widget.reportViewModel.rangeLabels =
+            RangeLabels(months[v.start.toInt() - 1], months[v.end.toInt() - 1]);
+      });
 
-      pdf = pw.Document();
+      widget.reportViewModel.book = widget.book;
 
-      pdf.addPage(_page());
+      widget.reportViewModel.start = v.start.toInt() - 1;
+      widget.reportViewModel.end = v.end.toInt() - 1;
 
-      setState(() {});
+      widget.reportViewModel.values = [
+        'TOTAL GENERAL',
+        ...widget.reportViewModel.footer.values.toList()
+      ];
+
+      var footer = {...widget.reportViewModel.footer};
+
+      widget.reportViewModel.footer = {};
+      widget.reportViewModel.footer
+          .addAll({'ITBIS EN SERVICIOS': widget.reportViewModel.taxServices});
+      widget.reportViewModel.footer
+          .addAll({'ITBIS EN BIENES': widget.reportViewModel.taxGood});
+      widget.reportViewModel.footer.addAll(
+          {'ITBIS RETENIDO': footer['ITBIS RETENIDO']});
+      widget.reportViewModel.footer.addAll(
+          {'ISR RETENIDO':footer['ISR RETENIDO']});
+      widget.reportViewModel.footer.addAll({
+        'TOTAL ITBIS FACTURADO':
+            footer['TOTAL ITBIS FACTURADO']
+      });
+      widget.reportViewModel.footer.addAll({
+        'TOTAL EN SERVICIOS':
+            footer['TOTAL EN SERVICIOS']
+      });
+      widget.reportViewModel.footer.addAll({
+        'TOTAL EN BIENES': footer['TOTAL EN BIENES']
+      });
+      widget.reportViewModel.footer
+          .addAll({'TOTAL GENERAL': widget.reportViewModel.totalGeneral});
+
+      widget.reportViewModel.pdf = pw.Document();
+
+      widget.reportViewModel.pdf
+          ?.addPage(buildReportViewModel(widget.reportViewModel));
     } catch (e) {
       print(e);
     }
@@ -202,7 +149,7 @@ class _DocumentModalState extends State<DocumentModal> {
 
   TableRow get _head {
     return TableRow(
-        children: body[0]!.keys.map((key) {
+        children: widget.reportViewModel.body[0]?.keys.map((key) {
       return TableCell(
           child: Padding(
         padding: const EdgeInsets.all(10),
@@ -218,7 +165,7 @@ class _DocumentModalState extends State<DocumentModal> {
   }
 
   List<TableRow> get _rows {
-    return body.map((item) {
+    return widget.reportViewModel.body.map((item) {
       return TableRow(
           decoration: BoxDecoration(
               border: Border(
@@ -237,133 +184,8 @@ class _DocumentModalState extends State<DocumentModal> {
     }).toList();
   }
 
-  pw.Page _page() {
-    return pw.Page(build: (pw.Context context) {
-      return pw.Center(
-          child: pw.Column(
-        mainAxisAlignment: pw.MainAxisAlignment.start,
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(_title, style: const pw.TextStyle(fontSize: 13)),
-          pw.SizedBox(height: 20),
-          pw.Table(
-            columnWidths: {
-              0: const pw.IntrinsicColumnWidth(),
-              1: const pw.FixedColumnWidth(100),
-              2: const pw.FixedColumnWidth(100),
-              3: const pw.FixedColumnWidth(100),
-              4: const pw.FixedColumnWidth(100),
-              5: const pw.FixedColumnWidth(100)
-            },
-            children: [
-              _dhead,
-              ..._drows,
-              pw.TableRow(
-                  children: values
-                      .map((e) => pw.Container(
-                          padding: const pw.EdgeInsets.only(top: 10),
-                          child: pw.Text(e ?? '\$0.00',
-                              style: pw.TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: values.indexOf(e) == 0
-                                      ? pw.FontWeight.bold
-                                      : null))))
-                      .toList())
-            ],
-          ),
-          pw.SizedBox(height: 20),
-          pw.RichText(
-              text: pw.TextSpan(
-                  style: const pw.TextStyle(fontSize: 9),
-                  children: [
-                pw.TextSpan(
-                    text: 'ITBIS FACTURADO EN SERVICIOS: ',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.TextSpan(text: taxServices)
-              ])),
-          pw.SizedBox(height: 10),
-          pw.RichText(
-              text: pw.TextSpan(
-                  style: const pw.TextStyle(fontSize: 9),
-                  children: [
-                pw.TextSpan(
-                    text: 'ITBIS FACTURADO EN BIENES: ',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.TextSpan(text: taxGoods)
-              ])),
-          pw.SizedBox(height: 10),
-          pw.RichText(
-              text: pw.TextSpan(
-                  style: const pw.TextStyle(fontSize: 9),
-                  children: [
-                pw.TextSpan(
-                    text: 'TOTAL ITBIS FACTURADO: ',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.TextSpan(text: totalTax)
-              ])),
-          pw.SizedBox(height: 10),
-          pw.RichText(
-              text: pw.TextSpan(
-                  style: const pw.TextStyle(fontSize: 9),
-                  children: [
-                pw.TextSpan(
-                    text: 'TOTAL FACTURADO: ',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.TextSpan(text: totalGeneral)
-              ])),
-        ],
-      )); // Center
-    });
-  }
-
-  _init() async {
-    setState(() {
-      isLoading = true;
-      startIndex = widget.start.toInt() - 1;
-      endIndex = widget.end.toInt() - 1;
-      rangeValues = RangeValues(widget.start, widget.end);
-      rangeLabels = RangeLabels(months[startIndex], months[endIndex]);
-    });
-    try {
-      r = await Purchase.getReportViewForInvoiceType(
-          id: widget.book.id!,
-          start: widget.start.toInt(),
-          end: widget.end.toInt());
-
-      body = r.body;
-      taxGoods = r.taxGood;
-      totalTax = r.totalTax;
-      taxServices = r.taxServices;
-      totalGeneral = r.totalGeneral;
-      values = ['TOTAL GENERAL', ...r.footer.values.toList()];
-      footer = {};
-      footer.addAll({'ITBIS EN SERVICIOS': taxServices});
-      footer.addAll({'ITBIS EN BIENES': taxGoods});
-      footer.addAll({'ITBIS RETENIDO': r.footer['ITBIS RETENIDO']});
-      footer.addAll({'ISR RETENIDO': r.footer['ISR RETENIDO']});
-      footer
-          .addAll({'TOTAL ITBIS FACTURADO': r.footer['TOTAL ITBIS FACTURADO']});
-      footer.addAll({'TOTAL EN SERVICIOS': r.footer['TOTAL EN SERVICIOS']});
-      footer.addAll({'TOTAL EN BIENES': r.footer['TOTAL EN BIENES']});
-      footer.addAll({'TOTAL GENERAL': totalGeneral});
-
-      pdf = pw.Document();
-
-      pdf.addPage(_page());
-
-      setState(() {
-        isLoading = false;
-      });
-    } catch (e) {
-      print(e);
-    }
-  }
-
   @override
   void initState() {
-    if (mounted) {
-      _init();
-    }
     super.initState();
   }
 
@@ -379,7 +201,7 @@ class _DocumentModalState extends State<DocumentModal> {
             scrollDirection: Axis.horizontal,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
-              children: footer.entries
+              children: widget.reportViewModel.footer.entries
                   .map((e) => Padding(
                       padding: const EdgeInsets.all(10),
                       child: Column(
@@ -402,92 +224,65 @@ class _DocumentModalState extends State<DocumentModal> {
     );
   }
 
-  Widget get _viewEmpty {
-    return SizedBox(
-      height: 325,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.document_scanner,
-                size: 100, color: Theme.of(context).primaryColor)
-          ],
-        ),
-      ),
+  Widget get _content {
+    return Dialog(
+      child: SizedBox(
+          width: 1300,
+          child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Text(_title,
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).primaryColor)),
+                        const Spacer(),
+                        IconButton(
+                            onPressed: _print,
+                            color: Theme.of(context).primaryColor,
+                            icon: const Icon(Icons.print)),
+                        IconButton(
+                            onPressed: _save,
+                            color: Theme.of(context).primaryColor,
+                            icon: const Icon(Icons.picture_as_pdf)),
+                        IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close))
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  RangeSlider(
+                      min: 1,
+                      max: 12,
+                      divisions: 11,
+                      values: widget.reportViewModel.rangeValues!,
+                      labels: widget.reportViewModel.rangeLabels,
+                      onChanged: _onUpdate),
+                  widget.reportViewModel.body.isNotEmpty
+                      ? _viewData
+                      : Container()
+                ],
+              ))),
     );
-  }
-
-  String get _title {
-    var a = months[widget.start.toInt() - 1];
-    var b = months[widget.end.toInt() - 1];
-    var c = '${widget.book.companyName}';
-    String t = '$c $a ${widget.book.year}';
-    if (a == b) return t;
-    t = '$a - $b ${widget.book.year}';
-    return '$c $t';
   }
 
   @override
   Widget build(BuildContext context) {
-    return !isLoading
-        ? GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Scaffold(
-                backgroundColor: Colors.transparent,
-                body: GestureDetector(
-                  onTap: () {},
-                  child: Dialog(
-                      child: SizedBox(
-                          width: 1300,
-                          child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: ListView(
-                                shrinkWrap: true,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20),
-                                    child: Row(
-                                      children: [
-                                        Text(_title,
-                                            style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                color: Theme.of(context)
-                                                    .primaryColor)),
-                                        const Spacer(),
-                                        IconButton(
-                                            onPressed: _print,
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                            icon: const Icon(Icons.print)),
-                                        IconButton(
-                                            onPressed: _save,
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                            icon: const Icon(Icons.download)),
-                                        IconButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                            icon: const Icon(Icons.close))
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  RangeSlider(
-                                      min: 1,
-                                      max: 12,
-                                      divisions: 11,
-                                      values: rangeValues,
-                                      labels: rangeLabels,
-                                      onChanged: _onUpdate),
-                                  body.isNotEmpty ? _viewData : Container()
-                                ],
-                              )))),
-                )),
-          )
-        : const Center(
-            child: CircularProgressIndicator(),
-          );
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: GestureDetector(
+            onTap: () {},
+            child: _content,
+          )),
+    );
   }
 }

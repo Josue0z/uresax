@@ -13,30 +13,18 @@ import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
+import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:path/path.dart' as path;
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class ShowPurchaseModalIntent extends Intent {
   final String name;
   const ShowPurchaseModalIntent({required this.name});
 }
 
-List<String> months = [
-  'ENERO',
-  'FEBRERO',
-  'MARZO',
-  'ABRIL',
-  'MAYO',
-  'JUNIO',
-  'JULIO',
-  'AGOSTO',
-  'SEPTIEMBRE',
-  'OCTUBRE',
-  'NOVIEMBRE',
-  'DICIEMBRE'
-];
 String _formatNumber(String value, String pattern) {
   int i = 0;
   var result = pattern.replaceAllMapped(RegExp('X'), (match) => value[i++]);
@@ -69,9 +57,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   final ScrollController _scrollController = ScrollController();
 
   final ScrollController _horizontalScrollController = ScrollController();
+
   final ScrollController _verticalScrollController = ScrollController();
 
   Sheet? oldSheet;
+
+  late pw.Document pdf;
+
+  late ReportViewModel r;
 
   Map<String, dynamic> invoicesLogs = {};
 
@@ -204,8 +197,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
     }
-
-    return;
   }
 
   _showModalPurchase() async {
@@ -370,10 +361,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   _init() async {
     try {
       windowManager.addListener(this);
+      await windowManager.setPreventClose(true);
+      await widget.book.updateBookUseStatus(true);
       RawKeyboard.instance.addListener(_handlerKeys);
       stream.stream.listen(_onSheetChanged);
       _scrollController.addListener(_setupScrollViews);
-      await widget.book.updateBookUseStatus(true);
     } catch (_) {}
   }
 
@@ -385,7 +377,130 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   @override
   void onWindowClose() async {
-    await widget.book.updateBookUseStatus(false);
+    bool isPreventClose = await windowManager.isPreventClose();
+    if (isPreventClose) {
+      showDialog(
+        context: context,
+        builder: (_) {
+          return Dialog(
+            child: SizedBox(
+                width: 400,
+                child: ListView(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                  shrinkWrap: true,
+                  children: [
+                    Text('ESTAS SEGURO QUE DESEAS SALIR?',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w400,
+                                color: Theme.of(context).primaryColor)),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Row(
+                      children: [
+                        const Spacer(),
+                        ElevatedButton(
+                          style: ButtonStyle(
+                              backgroundColor:
+                                  MaterialStateProperty.all(Colors.grey)),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('NO'),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(
+                                  Theme.of(context).primaryColor)),
+                          child: const Text('OK'),
+                          onPressed: () async {
+                            try {
+                              widget.book.updateBookUseStatus(false);
+                              Navigator.of(context).pop();
+                              await windowManager.destroy();
+                            } catch (e) {
+                              showAlert(context, message: e.toString());
+                            }
+                          },
+                        ),
+                      ],
+                    )
+                  ],
+                )),
+          );
+        },
+      );
+    }
+  }
+
+  Future<bool> _onBeforeClose() async {
+    try {
+      await widget.book.updateBookUseStatus(false);
+      await windowManager.setPreventClose(false);
+      return true;
+    } catch (e) {
+      showAlert(context, message: e.toString());
+      return false;
+    }
+  }
+
+  Future<void> _preloadReportData() async {
+    showLoader(context);
+
+    if (widget.currentSheet != null) {
+      try {
+        r = await Purchase.getReportViewForInvoiceType(
+            id: widget.book.id!,
+            start: widget.currentSheet!.sheetMonth!,
+            end: widget.currentSheet!.sheetMonth!);
+
+        r.book = widget.book;
+        r.start = widget.currentSheet!.sheetMonth! - 1;
+        r.end = widget.currentSheet!.sheetMonth! - 1;
+        r.rangeValues = RangeValues(widget.currentSheet!.sheetMonth!.toDouble(),
+            widget.currentSheet!.sheetMonth!.toDouble());
+        r.rangeLabels = RangeLabels(months[r.start!], months[r.end!]);
+        r.values = ['TOTAL GENERAL', ...r.footer.values.toList()];
+        var footer = {...r.footer};
+        r.footer = {};
+        r.footer.addAll({'ITBIS EN SERVICIOS': r.taxServices});
+        r.footer.addAll({'ITBIS EN BIENES': r.taxGood});
+        r.footer.addAll({'ITBIS RETENIDO': footer['ITBIS RETENIDO']});
+        r.footer.addAll({'ISR RETENIDO': footer['ISR RETENIDO']});
+        r.footer
+            .addAll({'TOTAL ITBIS FACTURADO': footer['TOTAL ITBIS FACTURADO']});
+        r.footer.addAll({'TOTAL EN SERVICIOS': footer['TOTAL EN SERVICIOS']});
+        r.footer.addAll({'TOTAL EN BIENES': footer['TOTAL EN BIENES']});
+        r.footer.addAll({'TOTAL GENERAL': r.totalGeneral});
+
+        r.pdf = pw.Document();
+
+        r.pdf?.addPage(buildReportViewModel(r));
+
+        Navigator.pop(context);
+
+        showDialog(
+            context: context,
+            builder: (ctx) {
+              return ScaffoldMessenger(child: Builder(builder: (ctx) {
+                return DocumentModal(
+                    context: ctx,
+                    reportViewModel: r,
+                    book: widget.book,
+                    currentSheet: widget.currentSheet);
+              }));
+            });
+      } catch (e) {
+        Navigator.pop(context);
+        await showAlert(context, message: e.toString());
+      }
+    }
   }
 
   @override
@@ -398,15 +513,21 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     _scrollController.dispose();
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
-    widget.book.updateBookUseStatus(false);
+    windowManager.removeListener(this);
     super.dispose();
   }
 
-  _goHome() {
-    Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (ctx) => const CompaniesPage()),
-        (route) => false);
+  _goHome() async {
+    try {
+      await widget.book.updateBookUseStatus(false);
+      await windowManager.setPreventClose(false);
+      Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (ctx) => const CompaniesPage()),
+          (route) => false);
+    } catch (e) {
+      showAlert(context, message: e.toString());
+    }
   }
 
   Widget get _invoicesView {
@@ -540,66 +661,52 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text(_title),
-          elevation: 0,
-          actions: [
-            IconButton(onPressed: _goHome, icon: const Icon(Icons.home)),
-            User.current?.isAdmin && widget.sheets.isNotEmpty
-                ? IconButton(
-                    onPressed: _deleteSheet,
-                    icon: const Icon(Icons.delete),
-                    tooltip: 'ELIMINAR ESTA HOJA')
-                : const SizedBox(),
-            IconButton(onPressed: _generate606, icon: const Icon(Icons.save)),
-          ],
-        ),
-        body: widget.purchases.isNotEmpty ? _invoicesView : _emptyContainer,
-        floatingActionButton: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            FloatingActionButton(
-                heroTag: null,
-                tooltip: 'VER REPORTE DEL MES',
-                onPressed: () {
-                  if (widget.currentSheet != null) {
-                    showDialog(
-                        context: context,
-                        builder: (ctx) {
-                          return ScaffoldMessenger(
-                              child: Builder(builder: (ctx) {
-                            return DocumentModal(
-                                context: ctx,
-                                start:
-                                    widget.currentSheet!.sheetMonth!.toDouble(),
-                                end:
-                                    widget.currentSheet!.sheetMonth!.toDouble(),
-                                book: widget.book,
-                                currentSheet: widget.currentSheet);
-                          }));
-                        });
-                  }
-                },
-                child: const Icon(Icons.document_scanner)),
-            const SizedBox(width: 10),
-            FloatingActionButton(
-                heroTag: null,
-                tooltip: widget.sheets.isEmpty
-                    ? 'AÑADE UNA HOJA PRIMERO'
-                    : 'AÑADIR FACTURA DE ${widget.book.bookTypeName}',
-                onPressed: widget.sheets.isNotEmpty ? _showModalPurchase : null,
-                child: const Icon(Icons.insert_drive_file_outlined)),
-            const SizedBox(width: 10),
-            FloatingActionButton(
-                heroTag: null,
-                tooltip: _checkSheetLimit
-                    ? 'AÑADIR HOJA'
-                    : 'YA NO SE PUEDE AÑADIR MAS MESES PARA ESTE LIBRO',
-                onPressed: _checkSheetLimit ? _showModalSheet : null,
-                child: const Icon(Icons.add))
-          ],
-        ),
-        bottomNavigationBar: _bottomBar);
+    return WillPopScope(
+      onWillPop: _onBeforeClose,
+      child: Scaffold(
+          appBar: AppBar(
+            title: Text(_title),
+            elevation: 0,
+            actions: [
+              IconButton(onPressed: _goHome, icon: const Icon(Icons.home)),
+              User.current?.isAdmin && widget.sheets.isNotEmpty
+                  ? IconButton(
+                      onPressed: _deleteSheet,
+                      icon: const Icon(Icons.delete),
+                      tooltip: 'ELIMINAR ESTA HOJA')
+                  : const SizedBox(),
+              IconButton(onPressed: _generate606, icon: const Icon(Icons.save)),
+            ],
+          ),
+          body: widget.purchases.isNotEmpty ? _invoicesView : _emptyContainer,
+          floatingActionButton: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FloatingActionButton(
+                  heroTag: null,
+                  tooltip: 'VER REPORTE DEL MES',
+                  onPressed: _preloadReportData,
+                  child: const Icon(Icons.document_scanner)),
+              const SizedBox(width: 10),
+              FloatingActionButton(
+                  heroTag: null,
+                  tooltip: widget.sheets.isEmpty
+                      ? 'AÑADE UNA HOJA PRIMERO'
+                      : 'AÑADIR FACTURA DE ${widget.book.bookTypeName}',
+                  onPressed:
+                      widget.sheets.isNotEmpty ? _showModalPurchase : null,
+                  child: const Icon(Icons.insert_drive_file_outlined)),
+              const SizedBox(width: 10),
+              FloatingActionButton(
+                  heroTag: null,
+                  tooltip: _checkSheetLimit
+                      ? 'AÑADIR HOJA'
+                      : 'YA NO SE PUEDE AÑADIR MAS MESES PARA ESTE LIBRO',
+                  onPressed: _checkSheetLimit ? _showModalSheet : null,
+                  child: const Icon(Icons.add))
+            ],
+          ),
+          bottomNavigationBar: _bottomBar),
+    );
   }
 }

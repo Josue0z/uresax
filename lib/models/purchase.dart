@@ -1,24 +1,56 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+import 'package:uresaxapp/models/book.dart';
 import 'package:uuid/uuid.dart';
 import 'package:uresaxapp/apis/connection.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:simple_moment/simple_moment.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class ReportViewModel {
+
   List<Map<String, dynamic>?> body;
+
   String taxServices;
+
   String taxGood;
+
   String totalTax;
+
   String totalGeneral;
+
   Map<String, dynamic> footer;
+
+  List<String?> values;
+
+  RangeLabels? rangeLabels;
+
+  RangeValues? rangeValues;
+
+  pw.Document? pdf;
+
+  Book? book;
+
+  int? start = 1;
+
+  int? end = 12;
+
   ReportViewModel(
       {required this.body,
       required this.footer,
-      required this.taxServices,
-      required this.totalGeneral,
-      required this.totalTax,
-      required this.taxGood});
+      this.rangeLabels,
+      this.rangeValues,
+      this.book,
+      this.start,
+      this.end,
+      this.pdf,
+      this.values = const [],
+      this.taxServices = '\$0.00',
+      this.totalGeneral = '\$0.00',
+      this.totalTax = '\$0.00',
+      this.taxGood = '\$0.00'});
 }
 
 class Purchase {
@@ -176,6 +208,8 @@ class Purchase {
 
       return ReportViewModel(
           body: body,
+          start: start,
+          end: end,
           totalGeneral: t,
           footer: t2,
           taxGood: t3,
@@ -508,14 +542,14 @@ class Purchase {
       'NCF MODIFICADO': invoiceFullNcfModifed ?? '',
       'FECHA DE COMPROBANTE': fullNcfDate,
       'FECHA DE PAGO': fullPayDate,
-      'TOTAL COMO SERVICIOS': invoiceTotalAsService?.toStringAsFixed(2),
-      'TOTAL COMO BIENES': invoiceTotalAsGood?.toStringAsFixed(2),
-      'TOTAL FACTURADO': invoiceTotal.toStringAsFixed(2),
-      'ITBIS FACTURADO': invoiceTax?.toStringAsFixed(2),
+      'TOTAL COMO SERVICIOS': invoiceTotalAsService?.abs().toStringAsFixed(2),
+      'TOTAL COMO BIENES': invoiceTotalAsGood?.abs().toStringAsFixed(2),
+      'TOTAL FACTURADO': invoiceTotal.abs().toStringAsFixed(2),
+      'ITBIS FACTURADO': invoiceTax?.abs().toStringAsFixed(2),
       'ITBIS RETENIDO': taxWithRate.toStringAsFixed(2),
       'y': '',
       'a': '',
-      'ITBIS POR ADELANTAR': invoiceTax?.toStringAsFixed(2),
+      'ITBIS POR ADELANTAR': invoiceTax?.abs().toStringAsFixed(2),
       '1': '',
       'TIPO DE RETENCION ISR': invoiceRetentionId == null
           ? ''

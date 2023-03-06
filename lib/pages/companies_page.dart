@@ -123,7 +123,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
                       ? IconButton(
                           onPressed: () => _deleteCompany(company, index),
                           icon: const Icon(Icons.delete),
-                          color: Theme.of(context).errorColor,
+                          color: Theme.of(context).colorScheme.error,
                           tooltip: 'ELIMINAR')
                       : const SizedBox(),
                 ],
@@ -156,7 +156,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: CustomAppBar(
-          title: 'EMPRESAS, HOLA ${User.current!.name!.toUpperCase()}',
+          title: 'EMPRESAS',
           actions: [
             PopupMenuButton(
               color: Colors.white,

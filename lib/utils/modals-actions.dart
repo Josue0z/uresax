@@ -3,8 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 
-void showAlert(BuildContext context, {String message = '', String? title}) {
-  showDialog(
+Future<T> showAlert<T>(BuildContext context, {String message = '', String? title}) async{
+  return await showDialog(
       context: context,
       builder: (ctx) => Dialog(
           child: SizedBox(

@@ -193,6 +193,9 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
   Future<void> _onSubmit() async {
     try {
+
+      var factor = currentNcfTypeId == 4 || currentNcfTypeId == 34 ? -1 : 1;
+
       if (isAllCorrect) {
         var purchase = Purchase(
           id: widget.purchase?.id,
@@ -217,20 +220,22 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
           invoiceCk: int.tryParse(ck.text.trim()),
           invoiceRetentionId: currentRetention,
           invoiceTaxRetentionId: currentRetentionTaxId,
-          invoiceTax: double.tryParse(tax.text.trim().replaceAll(',', '')) ?? 0,
-          invoiceTotalAsService: !isGoodCode
-              ? double.tryParse(total.text.trim().replaceAll(',', ''))
+          invoiceTax:tax.text.isEmpty ? 0 : double.tryParse(tax.text.trim().replaceAll(',', ''))! * factor,
+          invoiceTotalAsService:total.text.isEmpty ? 0 : !isGoodCode
+              ? double.tryParse(total.text.trim().replaceAll(',', ''))! * factor
               : 0,
-          invoiceTotalAsGood: isGoodCode
-              ? double.tryParse(total.text.trim().replaceAll(',', ''))
+          invoiceTotalAsGood:total.text.isEmpty ? 0:isGoodCode
+              ? double.tryParse(total.text.trim().replaceAll(',', ''))! * factor
               : 0,
         );
 
         if (!widget.isEditing) {
           var newPurchase = await purchase.create();
+       
           Navigator.pop(context, {'method': 'INSERT', 'data': newPurchase});
         } else {
           var purchaseUpdated = await purchase.update();
+      
           Navigator.pop(context, {'method': 'UPDATE', 'data': purchaseUpdated});
         }
       }
@@ -416,6 +421,30 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                       val == null ? 'CAMPO REQUERIDO' : null,
                                 ),
                                 Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 0),
+                                  child: TextFormField(
+                                    controller: day,
+                                    keyboardType: TextInputType.number,
+                                    maxLength: 2,
+                                    validator: (val) => val!.isEmpty
+                                        ? 'CAMPO REQUERIDO'
+                                        : !(int.parse(val) >= 1 &&
+                                                int.parse(val) <= 31)
+                                            ? 'EL RANGO DEBE SER ENTRE 1 Y 31'
+                                            : null,
+                                    inputFormatters: <TextInputFormatter>[
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      FilteringTextInputFormatter.deny(
+                                          RegExp(r'^[0]'))
+                                    ],
+                                    style: const TextStyle(fontSize: 18),
+                                    decoration: const InputDecoration(
+                                        hintText: 'DIA DE COMPROBANTE',
+                                        border: OutlineInputBorder()),
+                                  ),
+                                ),
+                                Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10),
                                     child: DropdownButtonFormField<int?>(
@@ -495,30 +524,6 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         );
                                       }).toList(),
                                     )),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 0),
-                                  child: TextFormField(
-                                    controller: day,
-                                    keyboardType: TextInputType.number,
-                                    maxLength: 2,
-                                    validator: (val) => val!.isEmpty
-                                        ? 'CAMPO REQUERIDO'
-                                        : !(int.parse(val) >= 1 &&
-                                                int.parse(val) <= 31)
-                                            ? 'EL RANGO DEBE SER ENTRE 1 Y 31'
-                                            : null,
-                                    inputFormatters: <TextInputFormatter>[
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      FilteringTextInputFormatter.deny(
-                                          RegExp(r'^[0]'))
-                                    ],
-                                    style: const TextStyle(fontSize: 18),
-                                    decoration: const InputDecoration(
-                                        hintText: 'DIA DE COMPROBANTE',
-                                        border: OutlineInputBorder()),
-                                  ),
-                                ),
                                 Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 10),
@@ -693,13 +698,15 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         TextSpan(text: widget.purchase?.author)
                                       ]))
                                     : Container(),
-                                
-                               widget.purchase?.createdAt != null ? Column(
-                                  children: [
-                                    const SizedBox(height: 10),
-                                    Text(widget.purchase!.createdAt.toString()),
-                                  ],
-                                ):Container(),
+                                widget.purchase?.createdAt != null
+                                    ? Column(
+                                        children: [
+                                          const SizedBox(height: 10),
+                                          Text(widget.purchase!.createdAt
+                                              .toString()),
+                                        ],
+                                      )
+                                    : Container(),
                                 const SizedBox(height: 10),
                               ],
                             ),
