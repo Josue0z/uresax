@@ -223,7 +223,7 @@ class Purchase {
   Future<void> checkIfExistsPurchase() async {
     try {
       var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM "Purchase" WHERE "invoice_sheetId" = '$invoiceSheetId' and "invoice_rnc" = '$invoiceRnc' and ("invoice_ncf_typeId" = $invoiceNcfTypeId and "invoice_ncf" = '$invoiceNcf' and "invoice_ncfModifed_typeId" = $invoiceNcfModifedTypeId and "invoice_ncf_modifed" = '$invoiceNcfModifed');''');
+          '''SELECT * FROM "Purchase" WHERE "invoice_sheetId" = '$invoiceSheetId' and "invoice_rnc" = '$invoiceRnc' and ( ("invoice_ncf_typeId" = $invoiceNcfTypeId and "invoice_ncf" = '$invoiceNcf') OR ("invoice_ncfModifed_typeId" = $invoiceNcfModifedTypeId and "invoice_ncf_modifed" = '$invoiceNcfModifed'));''');
       if (result.isNotEmpty) {
         throw 'YA EXISTE ESTA COMPRA EN ESTA HOJA';
       }
@@ -234,8 +234,7 @@ class Purchase {
 
   Future<Purchase> create() async {
     try {
-      await checkIfExistsPurchase();
-
+      
       id = const Uuid().v4();
 
       invoiceCreatedBy = User.current!.id;
@@ -508,6 +507,7 @@ class Purchase {
   }
 
   String get fullNcfDate {
+
     return Moment.fromDate(
             DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!)))
         .format('yyyyMMdd');

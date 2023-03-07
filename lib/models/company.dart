@@ -12,7 +12,7 @@ class Company {
   static Future<List<Company>> all() async {
     try{
      var results = await connection
-      .mappedResultsQuery('''select * from public."CompanyDetails";''');
+      .mappedResultsQuery('''select * from public."CompanyDetails" order by "company_name";''');
       return results.map((row) => Company.fromJson(row['']!)).toList();
     }catch(e){
        rethrow;

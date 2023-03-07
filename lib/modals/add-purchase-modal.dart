@@ -193,7 +193,6 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
   Future<void> _onSubmit() async {
     try {
-
       var factor = currentNcfTypeId == 4 || currentNcfTypeId == 34 ? -1 : 1;
 
       if (isAllCorrect) {
@@ -209,7 +208,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
           invoiceNcfModifedTypeId: currentNcfModifedTypeId,
           invoiceYear: widget.book.year,
           invoiceMonth: widget.sheet.sheetMonth,
-          invoiceNcfDay: day.text.trim(),
+          invoiceNcfDay: day.text,
           invoiceSheetId: widget.sheet.id,
           invoiceBookId: widget.book.id,
           invoiceCompanyId: widget.book.companyId,
@@ -220,22 +219,31 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
           invoiceCk: int.tryParse(ck.text.trim()),
           invoiceRetentionId: currentRetention,
           invoiceTaxRetentionId: currentRetentionTaxId,
-          invoiceTax:tax.text.isEmpty ? 0 : double.tryParse(tax.text.trim().replaceAll(',', ''))! * factor,
-          invoiceTotalAsService:total.text.isEmpty ? 0 : !isGoodCode
-              ? double.tryParse(total.text.trim().replaceAll(',', ''))! * factor
-              : 0,
-          invoiceTotalAsGood:total.text.isEmpty ? 0:isGoodCode
-              ? double.tryParse(total.text.trim().replaceAll(',', ''))! * factor
-              : 0,
+          invoiceTax: tax.text.isEmpty
+              ? 0
+              : double.tryParse(tax.text.trim().replaceAll(',', ''))! * factor,
+          invoiceTotalAsService: total.text.isEmpty
+              ? 0
+              : !isGoodCode
+                  ? double.tryParse(total.text.trim().replaceAll(',', ''))! *
+                      factor
+                  : 0,
+          invoiceTotalAsGood: total.text.isEmpty
+              ? 0
+              : isGoodCode
+                  ? double.tryParse(total.text.trim().replaceAll(',', ''))! *
+                      factor
+                  : 0,
         );
 
         if (!widget.isEditing) {
+          await purchase.checkIfExistsPurchase();
           var newPurchase = await purchase.create();
-       
+
           Navigator.pop(context, {'method': 'INSERT', 'data': newPurchase});
         } else {
           var purchaseUpdated = await purchase.update();
-      
+
           Navigator.pop(context, {'method': 'UPDATE', 'data': purchaseUpdated});
         }
       }

@@ -366,6 +366,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
       RawKeyboard.instance.addListener(_handlerKeys);
       stream.stream.listen(_onSheetChanged);
       _scrollController.addListener(_setupScrollViews);
+
     } catch (_) {}
   }
 
@@ -659,6 +660,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     );
   }
 
+  String get _count01{
+    return widget.purchases.where((element) => element.invoiceNcfTypeId != 2 && element.invoiceNcfTypeId != 32).toList().length.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -668,6 +673,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
             title: Text(_title),
             elevation: 0,
             actions: [
+              Padding(
+                padding:const EdgeInsets.symmetric(vertical: 16),
+                child:Text(_count01,style: const TextStyle(fontSize: 18,fontWeight: FontWeight.w500)),
+              ),
+              const SizedBox(width:10),
               IconButton(onPressed: _goHome, icon: const Icon(Icons.home)),
               User.current?.isAdmin && widget.sheets.isNotEmpty
                   ? IconButton(
