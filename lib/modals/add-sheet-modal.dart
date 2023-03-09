@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/sheet.dart';
+import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 
 class AddSheetModal extends StatefulWidget {
@@ -25,7 +26,7 @@ class _AddSheetModalState extends State<AddSheetModal> {
     try {
       if (_formKey.currentState!.validate()) {
         var y = int.parse(_bookYear!.text);
-        var m = int.parse(_monthYear!.text);
+        var m =  _month;
 
         var newSheet = await Sheet(
                 bookId: widget.book.id,
@@ -95,18 +96,15 @@ class _AddSheetModalState extends State<AddSheetModal> {
                           hintText: 'AÑO', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 10),
-                    TextFormField(
-                      controller: _monthYear,
-                      onFieldSubmitted: (_) => _addSheet(),
-                      style: const TextStyle(fontSize: 19),
-                      validator: (val) => int.tryParse(val!) == null
-                          ? 'EL VALOR DEBE SER UN NUMERO'
-                          : !(int.parse(val) >= 1 && int.parse(val) <= 12)
-                              ? 'EL VALOR DEBE SER UN NUMERO ENTRE 1 Y 12'
-                              : null,
-                      decoration: const InputDecoration(
-                          hintText: 'MES', border: OutlineInputBorder()),
-                    ),
+                    DropdownButtonFormField(
+                        value: _month,
+                        items: months
+                            .map((e) => DropdownMenuItem(
+                                value: months.indexOf(e) + 1, child: Text(e)))
+                            .toList(),
+                        onChanged: (n) {
+                          _month = n!;
+                        }),
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.maxFinite,
