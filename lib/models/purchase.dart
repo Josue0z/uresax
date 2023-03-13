@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/book.dart';
@@ -10,7 +9,6 @@ import 'package:simple_moment/simple_moment.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class ReportViewModel {
-
   List<Map<String, dynamic>?> body;
 
   String taxServices;
@@ -22,8 +20,6 @@ class ReportViewModel {
   String totalGeneral;
 
   Map<String, dynamic> footer;
-
-  List<String?> values;
 
   RangeLabels? rangeLabels;
 
@@ -39,14 +35,14 @@ class ReportViewModel {
 
   ReportViewModel(
       {required this.body,
-      required this.footer,
+      this.footer = const {},
       this.rangeLabels,
       this.rangeValues,
       this.book,
       this.start,
       this.end,
       this.pdf,
-      this.values = const [],
+
       this.taxServices = '\$0.00',
       this.totalGeneral = '\$0.00',
       this.totalTax = '\$0.00',
@@ -147,9 +143,11 @@ class Purchase {
       await connection.query('''SET lc_monetary = 'es_US';''');
 
       await connection.query('''
-        CREATE OR REPLACE VIEW public."ReportView"
+        CREATE OR REPLACE VIEW public."ReportViewForInvoiceType"
         AS
-        SELECT p.invoice_type_name AS "NOMBRE",
+        SELECT 
+        p."invoice_typeId" AS "TIPO",
+        p.invoice_type_name AS "NOMBRE",
         trunc(sum(p.invoice_total_as_service), 2)::text AS "TOTAL EN SERVICIOS",
         trunc(sum(p.invoice_total_as_good), 2)::text AS "TOTAL EN BIENES",
         trunc(sum(p.invoice_tax), 2)::text AS "TOTAL ITBIS FACTURADO",
@@ -163,23 +161,18 @@ class Purchase {
         ORDER BY p."invoice_typeId", p."invoice_type_name"
       ''');
       var r1 = await connection.mappedResultsQuery('''
-           SELECT 
-          "NOMBRE",
-          "TOTAL EN SERVICIOS"::money::text, 
-          "TOTAL EN BIENES"::money::text,
-          "TOTAL ITBIS FACTURADO"::money::text,
-          "ITBIS RETENIDO"::money::text,
-          "ISR RETENIDO"::money::text
-           FROM public."ReportView";''');
-
-      var r2 = await connection.mappedResultsQuery('''
-          SELECT 
-          SUM("TOTAL EN SERVICIOS"::numeric)::money::text AS "TOTAL EN SERVICIOS", 
-          SUM("TOTAL EN BIENES"::numeric)::money::text AS "TOTAL EN BIENES",
-          SUM("TOTAL ITBIS FACTURADO"::numeric)::money::text AS "TOTAL ITBIS FACTURADO",
-          SUM("ITBIS RETENIDO"::numeric)::money::text AS "ITBIS RETENIDO",
-          SUM("ISR RETENIDO"::numeric)::money::text AS "ISR RETENIDO"
-          FROM public."ReportView";''');
+          SELECT
+          COALESCE("NOMBRE", 'TOTAL GENERAL') AS "NOMBRE",
+          SUM("TOTAL EN SERVICIOS"::numeric(10,2))::money::text AS "TOTAL EN SERVICIOS",
+          SUM("TOTAL EN BIENES"::numeric(10,2))::money::text AS "TOTAL EN BIENES",
+          SUM("TOTAL EN BIENES"::numeric(10,2) + "TOTAL EN SERVICIOS"::numeric(10,2))::money::text AS "TOTAL FACTURADO",
+          SUM("TOTAL ITBIS FACTURADO"::numeric(10,2))::money::text AS "TOTAL ITBIS FACTURADO",
+          SUM("ITBIS RETENIDO"::numeric(10,2))::money::text AS "ITBIS RETENIDO",
+          SUM("ISR RETENIDO"::numeric(10,2))::money::text AS "ISR RETENIDO"
+          FROM public."ReportViewForInvoiceType"
+          GROUP BY GROUPING SETS (("TIPO","NOMBRE"), ())
+          ORDER BY "TIPO"
+          ''');
 
       var r3 = await connection.mappedResultsQuery('''
            SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
@@ -188,32 +181,19 @@ class Purchase {
       var r4 = await connection.mappedResultsQuery('''
            SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
 
-      var r5 = await connection.mappedResultsQuery('''
-           SELECT trunc(sum(p.invoice_total_as_service + p.invoice_total_as_good),2)::money::text AS "TOTAL FACTURADO" FROM public."PurchaseDetails" p WHERE $st''');
-
-      var r6 = await connection.mappedResultsQuery('''
-           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "TOTAL ITBIS FACTURADO" FROM public."PurchaseDetails" p WHERE $st''');
-
       var body = r1.map((e) => e['']).toList();
 
-      var t = r5.first['']?['TOTAL FACTURADO'] ?? '\$0.00';
-
-      var t2 = r2.first[''] ?? {};
 
       var t3 = r3.first['']?['ITBIS FACTURADO EN BIENES'] ?? '\$0.00';
 
       var t4 = r4.first['']?['ITBIS FACTURADO EN SERVICIOS'] ?? '\$0.00';
 
-      var t5 = r6.first['']?['TOTAL ITBIS FACTURADO'] ?? '\$0.00';
-
       return ReportViewModel(
           body: body,
           start: start,
           end: end,
-          totalGeneral: t,
-          footer: t2,
+          footer: {},
           taxGood: t3,
-          totalTax: t5,
           taxServices: t4);
     } catch (e) {
       rethrow;
@@ -234,7 +214,6 @@ class Purchase {
 
   Future<Purchase> create() async {
     try {
-      
       id = const Uuid().v4();
 
       invoiceCreatedBy = User.current!.id;
@@ -507,7 +486,6 @@ class Purchase {
   }
 
   String get fullNcfDate {
-
     return Moment.fromDate(
             DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!)))
         .format('yyyyMMdd');
@@ -538,8 +516,8 @@ class Purchase {
       'RNC': invoiceRnc,
       'TYPEID': checkedType ? 1 : 2,
       'TYPE FACT': Moment.fromDate(DateTime(0, invoiceTypeId!)).format('MM'),
-      'NCF': invoiceFullNcf,
-      'NCF MODIFICADO': invoiceFullNcfModifed ?? '',
+      'NCF': invoiceNcf,
+      'NCF MODIFICADO': invoiceNcfModifed ?? '',
       'FECHA DE COMPROBANTE': fullNcfDate,
       'FECHA DE PAGO': fullPayDate,
       'TOTAL COMO SERVICIOS': invoiceTotalAsService?.abs().toStringAsFixed(2),
@@ -575,8 +553,8 @@ class Purchase {
       'EMPRESA': invoiceCompanyName ?? 'DESCONOCIDA',
       'CONCEPTO': invoiceConceptName,
       'TIPO DE FACTURA': invoiceTypeName,
-      'NCF': invoiceFullNcf,
-      'NCF MODIFICADO': invoiceFullNcfModifed ?? 'NINGUNO',
+      'NCF': invoiceNcf,
+      'NCF MODIFICADO': invoiceNcfModifed ?? 'NINGUNO',
       'FECHA DE COMPROBANTE': dfullNcfDate,
       'FECHA DE PAGO': dfullPayDate ?? 'NINGUNO',
       'BANCO': invoiceBankingName ?? 'NINGUNO',

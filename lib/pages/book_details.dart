@@ -5,10 +5,12 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:uresaxapp/modals/add-concept-modal.dart';
 import 'package:uresaxapp/modals/add-purchase-modal.dart';
 import 'package:uresaxapp/modals/add-sheet-modal.dart';
 import 'package:uresaxapp/modals/document-data-modal.dart';
 import 'package:uresaxapp/models/book.dart';
+import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/models/user.dart';
@@ -85,18 +87,23 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     return '${widget.book.bookTypeName!.toUpperCase()} ${_formatNumber(widget.currentSheet!.sheetDate!, 'XXXX-XX')}';
   }
 
+  Future<void> _showConceptModal() async {
+    try {
+      var concepts = await Concept.getConcepts();
+      await showLoader(context);
+      Navigator.pop(context);
+      await showDialog(
+          context: context,
+          builder: (ctx) => AddConceptModal(concepts: concepts));
+    } catch (e) {
+      Navigator.pop(context);
+      showAlert(context, message: e.toString());
+    }
+  }
+
   void _handlerKeys(RawKeyEvent value) {
     try {
       var key = value.logicalKey.keyId;
-
-      if (value.isControlPressed) {
-        if (key == LogicalKeyboardKey.keyN.keyId) {
-          _showModalPurchase();
-        }
-        if (key == LogicalKeyboardKey.keyS.keyId) {
-          _generate606();
-        }
-      }
 
       if (key == LogicalKeyboardKey.arrowLeft.keyId) {
         _moveLeft();
@@ -213,7 +220,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                'SE INSERTO LA FACTURA CON EL RNC: ${purchase.invoiceRnc} Y EL NCF: ${purchase.invoiceFullNcf}')));
+                'SE INSERTO LA FACTURA CON EL RNC: ${purchase.invoiceRnc} Y EL NCF: ${purchase.invoiceNcf}')));
         setState(() {});
       }
     } catch (_) {}
@@ -366,7 +373,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
       RawKeyboard.instance.addListener(_handlerKeys);
       stream.stream.listen(_onSheetChanged);
       _scrollController.addListener(_setupScrollViews);
-
     } catch (_) {}
   }
 
@@ -452,7 +458,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   }
 
   Future<void> _preloadReportData() async {
-    showLoader(context);
+    await showLoader(context);
 
     if (widget.currentSheet != null) {
       try {
@@ -467,19 +473,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         r.rangeValues = RangeValues(widget.currentSheet!.sheetMonth!.toDouble(),
             widget.currentSheet!.sheetMonth!.toDouble());
         r.rangeLabels = RangeLabels(months[r.start!], months[r.end!]);
-        r.values = ['TOTAL GENERAL', ...r.footer.values.toList()];
         var footer = {...r.footer};
         r.footer = {};
         r.footer.addAll({'ITBIS EN SERVICIOS': r.taxServices});
         r.footer.addAll({'ITBIS EN BIENES': r.taxGood});
-        r.footer.addAll({'ITBIS RETENIDO': footer['ITBIS RETENIDO']});
-        r.footer.addAll({'ISR RETENIDO': footer['ISR RETENIDO']});
-        r.footer
-            .addAll({'TOTAL ITBIS FACTURADO': footer['TOTAL ITBIS FACTURADO']});
-        r.footer.addAll({'TOTAL EN SERVICIOS': footer['TOTAL EN SERVICIOS']});
-        r.footer.addAll({'TOTAL EN BIENES': footer['TOTAL EN BIENES']});
-        r.footer.addAll({'TOTAL GENERAL': r.totalGeneral});
-
+  
         r.pdf = pw.Document();
 
         r.pdf?.addPage(buildReportViewModel(r));
@@ -660,8 +658,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     );
   }
 
-  String get _count01{
-    return widget.purchases.where((element) => element.invoiceNcfTypeId != 2 && element.invoiceNcfTypeId != 32).toList().length.toString();
+  String get _count01 {
+    return widget.purchases
+        .where((element) =>
+            element.invoiceNcfTypeId != 2 && element.invoiceNcfTypeId != 32)
+        .toList()
+        .length
+        .toString();
   }
 
   @override
@@ -673,19 +676,58 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
             title: Text(_title),
             elevation: 0,
             actions: [
-              Padding(
-                padding:const EdgeInsets.symmetric(vertical: 16),
-                child:Text(_count01,style: const TextStyle(fontSize: 18,fontWeight: FontWeight.w500)),
-              ),
-              const SizedBox(width:10),
-              IconButton(onPressed: _goHome, icon: const Icon(Icons.home)),
-              User.current?.isAdmin && widget.sheets.isNotEmpty
-                  ? IconButton(
-                      onPressed: _deleteSheet,
-                      icon: const Icon(Icons.delete),
-                      tooltip: 'ELIMINAR ESTA HOJA')
-                  : const SizedBox(),
-              IconButton(onPressed: _generate606, icon: const Icon(Icons.save)),
+              Row(
+                children: [
+                  SizedBox(
+                      height: kToolbarHeight,
+                      width: 50,
+                      child: Tooltip(
+                        message: 'CANTIDAD DE NCFS QUE SERAN REPORTADOS A LA DGII',
+                        child: Center(
+                        child: Text(_count01,
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.w500)),
+                      ),
+                      )),
+                  SizedBox(
+                      height: kToolbarHeight,
+                      child: Tooltip(
+                        message: 'IR A INICIO',
+                        child: ElevatedButton(
+                          onPressed: _goHome,
+                          child: const Icon(Icons.home),
+                        ),
+                      )),
+                  SizedBox(
+                    width: kToolbarHeight,
+                    height: 50,
+                    child: Tooltip(
+                      message: 'ABRIR CATALOGO DE CATEGORIAS',
+                      child: ElevatedButton(
+                        onPressed: _showConceptModal,
+                        child: const Icon(Icons.category)),
+                    ),
+                  ),
+                  SizedBox(
+                      height: kToolbarHeight,
+                      child: Tooltip(
+                        message: 'GENERAR 606',
+                        child: ElevatedButton(
+                          onPressed: _generate606,
+                          child: const Icon(Icons.save),
+                        ),
+                      )),
+                  SizedBox(
+                      height: kToolbarHeight,
+                      child: Tooltip(
+                        message: 'ELIMINAR ESTA HOJA',
+                        child: ElevatedButton(
+                          onPressed: _deleteSheet,
+                          child: const Icon(Icons.delete),
+                        ),
+                      )),
+                ],
+              )
             ],
           ),
           body: widget.purchases.isNotEmpty ? _invoicesView : _emptyContainer,

@@ -5,9 +5,10 @@ import 'package:uresaxapp/models/ncftype.dart';
 class NcfEditorWidget extends StatefulWidget {
   List<NcfType> ncfs = [NcfType(name: 'TIPO DE COMPROBANTE')];
   TextEditingController controller;
-  Function(int?) onChanged;
+  Function(NcfType?) onChanged;
   String? hintText;
   String? Function(int?)? validator;
+
   int? currentNcfTypeId;
   bool isNcfModifed;
   NcfEditorWidget(
@@ -44,6 +45,9 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
     setState(() {
       currentNcfType = widget.ncfs
           .firstWhere((element) => element.id == widget.currentNcfTypeId);
+      if(widget.controller.text.isNotEmpty){
+         widget.controller.value = TextEditingValue(text: widget.controller.value.text.substring(3));
+      }
     });
     super.initState();
   }
@@ -81,7 +85,7 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
               onChanged: (id) {
                 currentNcfType =  widget.ncfs.firstWhere((element) => element.id == id);
                 widget.currentNcfTypeId = id;
-                widget.onChanged(id);
+                widget.onChanged(currentNcfType);
                 setState(() {});
               },
               items: widget.ncfs.map((ncf) {

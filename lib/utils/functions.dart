@@ -91,6 +91,7 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
 
   drows() {
     return reportViewModel.body.map((item) {
+      
       return pw.TableRow(
           children: item!.entries.map((entry) {
         return pw.Column(
@@ -121,27 +122,16 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
         pw.Table(
           columnWidths: {
             0: const pw.IntrinsicColumnWidth(),
-            1: const pw.FixedColumnWidth(100),
-            2: const pw.FixedColumnWidth(100),
-            3: const pw.FixedColumnWidth(100),
-            4: const pw.FixedColumnWidth(100),
-            5: const pw.FixedColumnWidth(100)
+            1: const pw.FixedColumnWidth(130),
+            2: const pw.FixedColumnWidth(130),
+            3: const pw.FixedColumnWidth(130),
+            4: const pw.FixedColumnWidth(130),
+            5: const pw.FixedColumnWidth(130),
+            6: const pw.FixedColumnWidth(130)
           },
           children: [
             dhead(),
             ...drows(),
-            pw.TableRow(
-                children: reportViewModel.values
-                    .map((e) => pw.Container(
-                        padding: const pw.EdgeInsets.only(top: 10),
-                        child: pw.Text(e ?? '\$0.00',
-                            style: pw.TextStyle(
-                                fontSize: 8,
-                                fontWeight:
-                                    reportViewModel.values.indexOf(e) == 0
-                                        ? pw.FontWeight.bold
-                                        : null))))
-                    .toList())
           ],
         ),
         pw.SizedBox(height: 20),
@@ -162,24 +152,7 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.TextSpan(text: reportViewModel.taxGood)
         ])),
-        pw.SizedBox(height: 10),
-        pw.RichText(
-            text:
-                pw.TextSpan(style: const pw.TextStyle(fontSize: 9), children: [
-          pw.TextSpan(
-              text: 'TOTAL ITBIS FACTURADO: ',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.TextSpan(text: reportViewModel.totalTax)
-        ])),
-        pw.SizedBox(height: 10),
-        pw.RichText(
-            text:
-                pw.TextSpan(style: const pw.TextStyle(fontSize: 9), children: [
-          pw.TextSpan(
-              text: 'TOTAL FACTURADO: ',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.TextSpan(text: reportViewModel.totalGeneral)
-        ])),
+    
       ],
     )); // Center
   });

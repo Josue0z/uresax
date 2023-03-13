@@ -12,10 +12,10 @@ import 'package:uresaxapp/models/retention.dart';
 import 'package:uresaxapp/models/retention.tax.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
-import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/ncf-editor-widget.dart';
 import 'package:number_text_input_formatter/number_text_input_formatter.dart';
+import 'package:simple_moment/simple_moment.dart';
 
 class AddPurchaseModal extends StatefulWidget {
   final Purchase? purchase;
@@ -51,7 +51,9 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   int? currentPaymentMethod;
   int? currentRetention;
   int? currentNcfTypeId;
+  NcfType? currentNcfType;
   int? currentNcfModifedTypeId;
+  NcfType? currentNcfModifedType;
   int? currentRetentionTaxId;
 
   bool isCorrectRnc = false;
@@ -151,6 +153,12 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             text: widget.purchase?.invoicePayMonth?.toString() ?? '');
         invoicePayDay.value = TextEditingValue(
             text: widget.purchase?.invoicePayDay?.toString() ?? '');
+        currentNcfType =
+            ncfs.where((element) => element.id == currentNcfTypeId).first;
+        currentNcfModifedType = ncfs
+            .where((element) => element.id == currentNcfModifedTypeId)
+            .first;
+    
       }
     } catch (e) {
       print(e.toString());
@@ -166,12 +174,14 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
       var data = await verifyTaxPayer(rnc.value.text);
       company.value = TextEditingValue(text: data['tax_payer_company_name']);
       isCorrectRnc = true;
-      setState(() {});
       return;
     } catch (e) {
-      company.value = const TextEditingValue(text: '');
+      if (rnc.value.text.characters.length == 11) {
+        company.value = const TextEditingValue(text: 'PERSONAL');
+      } else {
+        company.value = const TextEditingValue(text: '');
+      }
       isCorrectRnc = false;
-      setState(() {});
       return;
     }
   }
@@ -202,10 +212,12 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
           invoiceConceptId: currentConcept,
           invoiceTypeId: currentType,
           invoicePaymentMethodId: currentPaymentMethod,
-          invoiceNcf: ncf.text,
-          invoiceNcfTypeId: currentNcfTypeId,
-          invoiceNcfModifed: ncfModifed.text,
-          invoiceNcfModifedTypeId: currentNcfModifedTypeId,
+          invoiceNcf: '${currentNcfType?.ncfTag}${ncf.text}',
+          invoiceNcfTypeId: currentNcfType?.id,
+          invoiceNcfModifed: currentNcfModifedType == null
+              ? ''
+              : '${currentNcfModifedType?.ncfTag}${ncfModifed.text}',
+          invoiceNcfModifedTypeId: currentNcfModifedType?.id,
           invoiceYear: widget.book.year,
           invoiceMonth: widget.sheet.sheetMonth,
           invoiceNcfDay: day.text,
@@ -239,7 +251,6 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
         if (!widget.isEditing) {
           await purchase.checkIfExistsPurchase();
           var newPurchase = await purchase.create();
-
           Navigator.pop(context, {'method': 'INSERT', 'data': newPurchase});
         } else {
           var purchaseUpdated = await purchase.update();
@@ -291,25 +302,26 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  child: TextFormField(
-                                    style: const TextStyle(fontSize: 18),
-                                    controller: company,
-                                    enabled: false,
-                                    decoration: const InputDecoration(
-                                        hintText: 'EMPRESA',
-                                        border: OutlineInputBorder()),
-                                  ),
+                                TextFormField(
+                                  style: const TextStyle(fontSize: 18),
+                                  controller: company,
+                                  enabled: false,
+                                  decoration: const InputDecoration(
+                                      hintText: 'EMPRESA',
+                                      border: OutlineInputBorder()),
                                 ),
+                                const SizedBox(height: 10),
                                 Padding(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 10),
                                   child: TextFormField(
                                     controller: rnc,
                                     maxLength: 11,
+                                    keyboardType: TextInputType.number,
                                     style: const TextStyle(fontSize: 18),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly
+                                    ],
                                     validator: (val) => val == null
                                         ? 'CAMPO REQUERIDO'
                                         : val.length != 9 && val.length != 11
@@ -409,8 +421,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                   currentNcfTypeId: currentNcfTypeId,
                                   controller: ncf,
                                   hintText: 'NCF',
-                                  onChanged: (id) {
-                                    currentNcfTypeId = id;
+                                  onChanged: (type) {
+                                    currentNcfType = type;
                                   },
                                   ncfs: ncfs,
                                   validator: (val) =>
@@ -421,8 +433,8 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                   isNcfModifed: true,
                                   controller: ncfModifed,
                                   hintText: 'NCF MODIFICADO',
-                                  onChanged: (id) {
-                                    currentNcfModifedTypeId = id;
+                                  onChanged: (type) {
+                                    currentNcfModifedType = type;
                                   },
                                   ncfs: ncfs,
                                   validator: (val) =>
@@ -698,7 +710,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                 widget.isEditing
                                     ? Text.rich(TextSpan(children: [
                                         TextSpan(
-                                            text: 'AUTOR: ',
+                                            text: 'EDITADO POR ULTIMA VEZ POR ',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w500,
                                                 color: Theme.of(context)
@@ -710,8 +722,19 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                     ? Column(
                                         children: [
                                           const SizedBox(height: 10),
-                                          Text(widget.purchase!.createdAt
-                                              .toString()),
+                                          Text.rich(TextSpan(children: [
+                                            TextSpan(
+                                                text: 'CREADO EL',
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Theme.of(context)
+                                                        .primaryColor)),
+                                            TextSpan(
+                                                text: Moment.fromDate(widget
+                                                        .purchase!.createdAt!)
+                                                    .format(
+                                                        'dd/MM/yyyy HH:mm:ss'))
+                                          ])),
                                         ],
                                       )
                                     : Container(),

@@ -9,7 +9,7 @@ class Banking {
 
   static Future<List<Banking>> getBankings() async {
     var results = await connection
-        .mappedResultsQuery('''select * from public."Banking";''');
+        .mappedResultsQuery('''select * from public."Banking" ORDER BY name;''');
     return results.map((row) => Banking.fromJson(row['Banking']!)).toList();
   }
 

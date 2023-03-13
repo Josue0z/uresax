@@ -8,10 +8,10 @@ class NcfType {
 
   static Future<List<NcfType>> getNcfs() async {
     var response = await connection
-        .mappedResultsQuery('''select * from public."NcfType";''');
+        .mappedResultsQuery('''select * from public."NcfTypeView" ORDER BY id;''');
 
     var results =
-        response.map((row) => NcfType.fromJson(row['NcfType']!)).toList();
+        response.map((row) => NcfType.fromJson(row['']!)).toList();
     return results;
   }
 

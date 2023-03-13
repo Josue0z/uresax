@@ -16,7 +16,6 @@ class AddSheetModal extends StatefulWidget {
 
 class _AddSheetModalState extends State<AddSheetModal> {
   TextEditingController? _bookYear;
-  TextEditingController? _monthYear;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -26,7 +25,7 @@ class _AddSheetModalState extends State<AddSheetModal> {
     try {
       if (_formKey.currentState!.validate()) {
         var y = int.parse(_bookYear!.text);
-        var m =  _month;
+        var m = _month;
 
         var newSheet = await Sheet(
                 bookId: widget.book.id,
@@ -44,19 +43,16 @@ class _AddSheetModalState extends State<AddSheetModal> {
   @override
   void initState() {
     _bookYear = TextEditingController();
-    _monthYear = TextEditingController();
     int year = widget.book.year ?? DateTime.now().year;
     _month = widget.latestSheetInserted?.sheetMonth ?? 0;
     _month = _month == 12 ? _month : _month + 1;
     _bookYear!.value = TextEditingValue(text: (year).toString());
-    _monthYear!.value = TextEditingValue(text: (_month).toString());
     super.initState();
   }
 
   @override
   void dispose() {
     _bookYear?.dispose();
-    _monthYear?.dispose();
     super.dispose();
   }
 
@@ -75,10 +71,10 @@ class _AddSheetModalState extends State<AddSheetModal> {
                   children: [
                     Row(
                       children: [
-                        Text('Añadiendo  Nueva Hoja...',
+                        Text('AÑADIENDO NUEVO MES...',
                             style: Theme.of(context)
                                 .textTheme
-                                .headline5
+                                .headlineSmall
                                 ?.copyWith(
                                     color: Theme.of(context).primaryColor)),
                         const Spacer(),
@@ -87,17 +83,24 @@ class _AddSheetModalState extends State<AddSheetModal> {
                             icon: const Icon(Icons.close))
                       ],
                     ),
-                    const SizedBox(height: 25),
-                    TextField(
-                      controller: _bookYear,
-                      style: const TextStyle(fontSize: 19),
-                      enabled: false,
-                      decoration: const InputDecoration(
-                          hintText: 'AÑO', border: OutlineInputBorder()),
-                    ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField(
                         value: _month,
+                        decoration: InputDecoration(
+                          enabledBorder: const OutlineInputBorder(
+                            //<-- SEE HERE
+                            borderSide:
+                                BorderSide(color: Colors.grey, width: 1),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            //<-- SEE HERE
+                            borderSide:
+                                BorderSide(color: Colors.grey, width: 1),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.error)),
+                        ),
                         items: months
                             .map((e) => DropdownMenuItem(
                                 value: months.indexOf(e) + 1, child: Text(e)))
@@ -105,6 +108,14 @@ class _AddSheetModalState extends State<AddSheetModal> {
                         onChanged: (n) {
                           _month = n!;
                         }),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _bookYear,
+                      style: const TextStyle(fontSize: 19),
+                      enabled: false,
+                      decoration: const InputDecoration(
+                          hintText: 'AÑO', border: OutlineInputBorder()),
+                    ),
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.maxFinite,

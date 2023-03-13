@@ -33,7 +33,7 @@ class Sheet {
   Future<List<Purchase>> getPurchases() async {
     try {
       var results = await connection.mappedResultsQuery(
-          '''SELECT * FROM public."PurchaseDetails" WHERE "invoice_sheetId" = '$id' order by "invoice_company_name","invoice_full_ncf";''');
+          '''SELECT * FROM public."PurchaseDetails" WHERE "invoice_sheetId" = '$id' order by "invoice_company_name","invoice_ncf";''');
  
       return results.map((row) => Purchase.fromMap(row['']!)).toList();
     } catch (e) {
