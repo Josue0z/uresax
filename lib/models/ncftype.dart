@@ -4,7 +4,8 @@ class NcfType {
   int? id;
   String name;
   String? ncfTag;
-  NcfType({this.id, required this.name, this.ncfTag});
+  int? prefixId;
+  NcfType({this.id, required this.name, this.ncfTag,this.prefixId});
 
   static Future<List<NcfType>> getNcfs() async {
     var response = await connection
@@ -16,7 +17,7 @@ class NcfType {
   }
 
   factory NcfType.fromJson(Map<String, dynamic> json) {
-    return NcfType(id: json['id'], name: json['name'], ncfTag: json['ncf_tag']);
+    return NcfType(id: json['id'], name: json['name'], ncfTag: json['ncf_tag'],prefixId: json['prefixId']);
   }
 
   toMap() {

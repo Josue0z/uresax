@@ -87,6 +87,20 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     return '${widget.book.bookTypeName!.toUpperCase()} ${_formatNumber(widget.currentSheet!.sheetDate!, 'XXXX-XX')}';
   }
 
+  String get _filePath {
+    return path.join(
+        Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
+        'URESAX',
+        widget.book.companyName?.trim(),
+        widget.book.year.toString(),
+        '606',
+        'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}.TXT');
+  }
+
+  String get _dirPath {
+    return path.dirname(_filePath);
+  }
+
   Future<void> _showConceptModal() async {
     try {
       var concepts = await Concept.getConcepts();
@@ -122,27 +136,25 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   }
 
   _moveLeft() {
-    var currentOffset = _scrollController.offset;
-    if (currentOffset >= 0) {
-      _scrollController.jumpTo(_scrollController.offset - 50);
-    }
+    if (_scrollController.offset == 0) return;
+    _scrollController.jumpTo(_scrollController.offset - 50);
+  }
+
+  _moveRight() {
+    if (_scrollController.offset >= _scrollController.position.maxScrollExtent)
+      return;
+    _scrollController.jumpTo(_scrollController.offset + 50);
   }
 
   _moveUp() {
+    if (_verticalScrollController.offset == 0) return;
     _verticalScrollController.jumpTo(_verticalScrollController.offset - 50);
   }
 
   _moveDown() {
+    if (_verticalScrollController.offset ==
+        _verticalScrollController.position.maxScrollExtent) return;
     _verticalScrollController.jumpTo(_verticalScrollController.offset + 50);
-  }
-
-  _moveRight() {
-    var maxOffset = _scrollController.position.maxScrollExtent;
-    var currentOffset = _scrollController.offset;
-
-    if (currentOffset <= maxOffset) {
-      _scrollController.jumpTo(_scrollController.offset + 50);
-    }
   }
 
   _generate606() async {
@@ -178,15 +190,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         ...rows
       ], fieldDelimiter: '|');
 
-      var filePath = path.join(
-          Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
-          'URESAX',
-          widget.book.companyName?.trim(),
-          widget.book.year.toString(),
-          '606',
-          'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}.TXT');
-
-      var file = File(filePath.trim());
+      var file = File(_filePath.trim());
 
       await file.create(recursive: true);
 
@@ -197,12 +201,19 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
           action: SnackBarAction(
               label: 'ABRIR ARCHIVO',
               onPressed: () {
-                var dirPath = path.dirname(file.path);
-                launchFile(dirPath);
+                launchFile(_dirPath);
               })));
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  _openFolder() async {
+    try {
+      await launchFile(_dirPath);
+    } catch (e) {
+      showAlert(context, message: e.toString());
     }
   }
 
@@ -477,7 +488,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         r.footer = {};
         r.footer.addAll({'ITBIS EN SERVICIOS': r.taxServices});
         r.footer.addAll({'ITBIS EN BIENES': r.taxGood});
-  
+
         r.pdf = pw.Document();
 
         r.pdf?.addPage(buildReportViewModel(r));
@@ -682,12 +693,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                       height: kToolbarHeight,
                       width: 50,
                       child: Tooltip(
-                        message: 'CANTIDAD DE NCFS QUE SERAN REPORTADOS A LA DGII',
+                        message:
+                            'CANTIDAD DE NCFS QUE SERAN REPORTADOS A LA DGII',
                         child: Center(
-                        child: Text(_count01,
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w500)),
-                      ),
+                          child: Text(_count01,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w500)),
+                        ),
                       )),
                   SizedBox(
                       height: kToolbarHeight,
@@ -704,10 +716,19 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                     child: Tooltip(
                       message: 'ABRIR CATALOGO DE CATEGORIAS',
                       child: ElevatedButton(
-                        onPressed: _showConceptModal,
-                        child: const Icon(Icons.category)),
+                          onPressed: _showConceptModal,
+                          child: const Icon(Icons.category)),
                     ),
                   ),
+                  SizedBox(
+                      height: kToolbarHeight,
+                      child: Tooltip(
+                        message: 'ABRIR CARPETA DE ${widget.book.companyName}',
+                        child: ElevatedButton(
+                          onPressed: _openFolder,
+                          child: const Icon(Icons.folder),
+                        ),
+                      )),
                   SizedBox(
                       height: kToolbarHeight,
                       child: Tooltip(

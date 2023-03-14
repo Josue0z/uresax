@@ -214,7 +214,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
           invoicePaymentMethodId: currentPaymentMethod,
           invoiceNcf: '${currentNcfType?.ncfTag}${ncf.text}',
           invoiceNcfTypeId: currentNcfType?.id,
-          invoiceNcfModifed: currentNcfModifedType == null
+          invoiceNcfModifed: currentNcfModifedTypeId == null
               ? ''
               : '${currentNcfModifedType?.ncfTag}${ncfModifed.text}',
           invoiceNcfModifedTypeId: currentNcfModifedType?.id,
@@ -423,6 +423,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                   hintText: 'NCF',
                                   onChanged: (type) {
                                     currentNcfType = type;
+                                    currentNcfTypeId = type?.id;
                                   },
                                   ncfs: ncfs,
                                   validator: (val) =>
@@ -435,6 +436,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                   hintText: 'NCF MODIFICADO',
                                   onChanged: (type) {
                                     currentNcfModifedType = type;
+                                    currentNcfModifedTypeId = type?.id;
                                   },
                                   ncfs: ncfs,
                                   validator: (val) =>

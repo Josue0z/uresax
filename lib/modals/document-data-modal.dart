@@ -71,7 +71,10 @@ class _DocumentModalState extends State<DocumentModal> {
 
   _save() async {
     try {
-      if (widget.reportViewModel.body.isNotEmpty) {
+
+      if(widget.reportViewModel.body.length == 1) throw 'NO TIENES DATOS QUE GENERAR';
+
+      if (widget.reportViewModel.body.length > 1) {
         var filePath = path.join(
             Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
             'URESAX',

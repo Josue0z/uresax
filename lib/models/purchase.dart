@@ -148,11 +148,11 @@ class Purchase {
         SELECT 
         p."invoice_typeId" AS "TIPO",
         p.invoice_type_name AS "NOMBRE",
-        trunc(sum(p.invoice_total_as_service), 2)::text AS "TOTAL EN SERVICIOS",
-        trunc(sum(p.invoice_total_as_good), 2)::text AS "TOTAL EN BIENES",
-        trunc(sum(p.invoice_tax), 2)::text AS "TOTAL ITBIS FACTURADO",
-        trunc(sum(p.invoice_tax * r.rate/100),2)::text AS "ITBIS RETENIDO",
-        trunc(sum(((p.invoice_total_as_good + p.invoice_total_as_service) - p.invoice_tax) * r2.rate/100),2)::text AS "ISR RETENIDO"
+        sum(p.invoice_total_as_service)::text AS "TOTAL EN SERVICIOS",
+        sum(p.invoice_total_as_good)::text AS "TOTAL EN BIENES",
+        sum(p.invoice_tax)::text AS "TOTAL ITBIS FACTURADO",
+        sum(p.invoice_tax * r.rate/100)::text AS "ITBIS RETENIDO",
+        sum(((p.invoice_total_as_good + p.invoice_total_as_service) - p.invoice_tax) * r2.rate/100)::text AS "ISR RETENIDO"
         FROM "PurchaseDetails" p
         LEFT JOIN public."RetentionTax" r ON r.id = p."invoice_tax_retentionId"
         LEFT JOIN public."Retention" r2 ON r2.id = p."invoice_retentionId"
@@ -203,7 +203,7 @@ class Purchase {
   Future<void> checkIfExistsPurchase() async {
     try {
       var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM "Purchase" WHERE "invoice_sheetId" = '$invoiceSheetId' and "invoice_rnc" = '$invoiceRnc' and ( ("invoice_ncf_typeId" = $invoiceNcfTypeId and "invoice_ncf" = '$invoiceNcf') OR ("invoice_ncfModifed_typeId" = $invoiceNcfModifedTypeId and "invoice_ncf_modifed" = '$invoiceNcfModifed'));''');
+          '''SELECT * FROM "Purchase" WHERE "invoice_sheetId" = '$invoiceSheetId' and "invoice_rnc" = '$invoiceRnc' and ("invoice_ncf" = '$invoiceNcf' AND "invoice_ncf_modifed" = '$invoiceNcfModifed');''');
       if (result.isNotEmpty) {
         throw 'YA EXISTE ESTA COMPRA EN ESTA HOJA';
       }

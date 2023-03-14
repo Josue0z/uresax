@@ -36,7 +36,7 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
 
   bool get isElectronic{
      if(!isReady)return false;
-     return currentNcfType!.ncfTag!.startsWith('E') == true;
+     return currentNcfType!.prefixId == 2;
   }
 
   @override
@@ -83,6 +83,9 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
               isExpanded: true,
               focusColor: Colors.white,
               onChanged: (id) {
+                if(id == null){
+                    widget.controller.value = TextEditingValue.empty;
+                }
                 currentNcfType =  widget.ncfs.firstWhere((element) => element.id == id);
                 widget.currentNcfTypeId = id;
                 widget.onChanged(currentNcfType);
