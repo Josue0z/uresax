@@ -71,8 +71,8 @@ class _DocumentModalState extends State<DocumentModal> {
 
   _save() async {
     try {
-
-      if(widget.reportViewModel.body.length == 1) throw 'NO TIENES DATOS QUE GENERAR';
+      if (widget.reportViewModel.body.length == 1)
+        throw 'NO TIENES DATOS QUE GENERAR';
 
       if (widget.reportViewModel.body.length > 1) {
         var filePath = path.join(
@@ -116,16 +116,12 @@ class _DocumentModalState extends State<DocumentModal> {
       widget.reportViewModel.start = v.start.toInt() - 1;
       widget.reportViewModel.end = v.end.toInt() - 1;
 
-
-      var footer = {...widget.reportViewModel.footer};
-
       widget.reportViewModel.footer = {};
       widget.reportViewModel.footer
           .addAll({'ITBIS EN SERVICIOS': widget.reportViewModel.taxServices});
 
       widget.reportViewModel.footer
           .addAll({'ITBIS EN BIENES': widget.reportViewModel.taxGood});
-   
 
       widget.reportViewModel.pdf = pw.Document();
 
@@ -156,18 +152,25 @@ class _DocumentModalState extends State<DocumentModal> {
 
   List<TableRow> get _rows {
     return widget.reportViewModel.body.map((item) {
+      var index = widget.reportViewModel.body.indexOf(item);
       return TableRow(
           decoration: BoxDecoration(
               border: Border(
                   bottom: BorderSide(color: Colors.grey.withOpacity(0.2)))),
           children: item!.entries.map((entry) {
+            var j = item.values.toList().indexOf(entry.value);
+
+            bool isTotal = j == 0 && index == widget.reportViewModel.body.length - 1;
             return TableCell(
                 verticalAlignment: TableCellVerticalAlignment.middle,
                 child: Padding(
                   padding: const EdgeInsets.all(10),
                   child: Text(
                     entry.value ?? '\$0.00',
-                    style: const TextStyle(fontSize: 16),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: isTotal ? FontWeight.w500 : null,
+                        color: isTotal ? Theme.of(context).primaryColor : null),
                   ),
                 ));
           }).toList());
@@ -189,6 +192,7 @@ class _DocumentModalState extends State<DocumentModal> {
       padding: const EdgeInsets.symmetric(horizontal: 10),
       children: [
         Table(
+          columnWidths: {0: const IntrinsicColumnWidth()},
           children: [_head, ..._rows],
         ),
         SingleChildScrollView(

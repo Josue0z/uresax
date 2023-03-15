@@ -91,26 +91,35 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
 
   drows() {
     return reportViewModel.body.map((item) {
-      
+      var index = reportViewModel.body.indexOf(item);
+
       return pw.TableRow(
           children: item!.entries.map((entry) {
+        var j = item.values.toList().indexOf(entry.value);
+
+        bool isTotal = j == 0 && index == reportViewModel.body.length - 1;
+
         return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             mainAxisAlignment: pw.MainAxisAlignment.start,
             children: [
               pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 10),
+                padding: const pw.EdgeInsets.only(top: 5),
                 child: pw.Text(entry.value ?? '\$0.00',
-                    style: const pw.TextStyle(fontSize: 8)),
+                    style: pw.TextStyle(
+                        fontSize: 8,
+                        fontWeight: isTotal ? pw.FontWeight.bold : null)),
               )
             ]);
       }).toList());
     }).toList();
   }
 
-  return pw.Page(build: (pw.Context context) {
-    return pw.Center(
-        child: pw.Column(
+  return pw.Page(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.only(top: 25,left: 15,right: 15),
+    build: (pw.Context context) {
+    return  pw.Column(
       mainAxisAlignment: pw.MainAxisAlignment.start,
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -121,14 +130,9 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
         pw.SizedBox(height: 20),
         pw.Table(
           columnWidths: {
-            0: const pw.IntrinsicColumnWidth(),
-            1: const pw.FixedColumnWidth(130),
-            2: const pw.FixedColumnWidth(130),
-            3: const pw.FixedColumnWidth(130),
-            4: const pw.FixedColumnWidth(130),
-            5: const pw.FixedColumnWidth(130),
-            6: const pw.FixedColumnWidth(130)
+            0: const pw.IntrinsicColumnWidth()
           },
+        
           children: [
             dhead(),
             ...drows(),
@@ -152,8 +156,7 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.TextSpan(text: reportViewModel.taxGood)
         ])),
-    
       ],
-    )); // Center
+    ); // Center
   });
 }
