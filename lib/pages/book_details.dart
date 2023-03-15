@@ -484,7 +484,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         r.rangeValues = RangeValues(widget.currentSheet!.sheetMonth!.toDouble(),
             widget.currentSheet!.sheetMonth!.toDouble());
         r.rangeLabels = RangeLabels(months[r.start!], months[r.end!]);
-        var footer = {...r.footer};
+
         r.footer = {};
         r.footer.addAll({'ITBIS EN SERVICIOS': r.taxServices});
         r.footer.addAll({'ITBIS EN BIENES': r.taxGood});

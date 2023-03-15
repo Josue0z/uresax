@@ -32,6 +32,8 @@ class ReportViewModel {
   int? start = 1;
 
   int? end = 12;
+  
+  String totalNcfs;
 
   ReportViewModel(
       {required this.body,
@@ -42,7 +44,7 @@ class ReportViewModel {
       this.start,
       this.end,
       this.pdf,
-
+      this.totalNcfs = '0',
       this.taxServices = '\$0.00',
       this.totalGeneral = '\$0.00',
       this.totalTax = '\$0.00',
@@ -180,7 +182,10 @@ class Purchase {
 
       var r4 = await connection.mappedResultsQuery('''
            SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
+      
 
+      var r5 = await connection.mappedResultsQuery('''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $st''');
+      
       var body = r1.map((e) => e['']).toList();
 
 
@@ -188,12 +193,14 @@ class Purchase {
 
       var t4 = r4.first['']?['ITBIS FACTURADO EN SERVICIOS'] ?? '\$0.00';
 
+      var t5 = r5.first['']?['TOTAL DE DOCUMENTOS'] ?? '0';
+
       return ReportViewModel(
           body: body,
           start: start,
           end: end,
-          footer: {},
           taxGood: t3,
+          totalNcfs: t5.toString(),
           taxServices: t4);
     } catch (e) {
       rethrow;
@@ -421,8 +428,8 @@ class Purchase {
         invoiceRetentionId: map['invoice_retentionId'],
         invoiceNcfTypeId: map['invoice_ncf_typeId'],
         invoiceNcfModifedTypeId: map['invoice_ncfModifed_typeId'],
-        invoiceYear: int.tryParse(map['invoice_year']),
-        invoiceMonth: int.tryParse(map['invoice_month']),
+        invoiceYear: map['invoice_year'],
+        invoiceMonth: map['invoice_month'],
         invoiceNcfDay: map['invoice_ncf_day'],
         invoiceNcf: map['invoice_ncf'],
         invoiceNcfModifed: map['invoice_ncf_modifed'],

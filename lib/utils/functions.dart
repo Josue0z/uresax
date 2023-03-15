@@ -73,19 +73,21 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
   dhead() {
     return pw.TableRow(
         children: reportViewModel.body[0]!.keys.map((key) {
-      return pw.Column(
-          mainAxisAlignment: pw.MainAxisAlignment.start,
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              key,
-              style: pw.TextStyle(
-                fontSize: 8,
-                fontWeight: pw.FontWeight.bold,
-                color: const PdfColor.fromInt(0x0000000),
-              ),
-            ),
-          ]);
+      return pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 5),
+          child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.start,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  key,
+                  style: pw.TextStyle(
+                    fontSize: 8,
+                    fontWeight: pw.FontWeight.bold,
+                    color: const PdfColor.fromInt(0x0000000),
+                  ),
+                ),
+              ]));
     }).toList());
   }
 
@@ -94,69 +96,93 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
       var index = reportViewModel.body.indexOf(item);
 
       return pw.TableRow(
+         verticalAlignment: pw.TableCellVerticalAlignment.middle,
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+                top: pw.BorderSide(
+                    color: PdfColor.fromInt(0xA8A8A8), width: 0.3)),
+          ),
           children: item!.entries.map((entry) {
-        var j = item.values.toList().indexOf(entry.value);
+            var j = item.values.toList().indexOf(entry.value);
 
-        bool isTotal = j == 0 && index == reportViewModel.body.length - 1;
+            bool isTotal = j == 0 && index == reportViewModel.body.length - 1;
 
-        return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            mainAxisAlignment: pw.MainAxisAlignment.start,
-            children: [
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 5),
-                child: pw.Text(entry.value ?? '\$0.00',
-                    style: pw.TextStyle(
-                        fontSize: 8,
-                        fontWeight: isTotal ? pw.FontWeight.bold : null)),
-              )
-            ]);
-      }).toList());
+            return pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 5),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                mainAxisAlignment: pw.MainAxisAlignment.start,
+                children: [
+                  pw.Text(entry.value ?? '\$0.00',
+                        style: pw.TextStyle(
+                            fontSize: 8,
+                            fontWeight: isTotal ? pw.FontWeight.bold : null)),
+                  
+                ])
+            );
+          }).toList());
     }).toList();
   }
 
   return pw.Page(
-    pageFormat: PdfPageFormat.a4,
-    margin: const pw.EdgeInsets.only(top: 25,left: 15,right: 15),
-    build: (pw.Context context) {
-    return  pw.Column(
-      mainAxisAlignment: pw.MainAxisAlignment.start,
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-            buildReportTitle(reportViewModel.start!, reportViewModel.end!,
-                reportViewModel.book!),
-            style: const pw.TextStyle(fontSize: 13)),
-        pw.SizedBox(height: 20),
-        pw.Table(
-          columnWidths: {
-            0: const pw.IntrinsicColumnWidth()
-          },
-        
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.only(top: 25, left: 15, right: 15),
+      build: (pw.Context context) {
+        return pw.Column(
+          mainAxisAlignment: pw.MainAxisAlignment.start,
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            dhead(),
-            ...drows(),
+            pw.Text(
+                buildReportTitle(reportViewModel.start!, reportViewModel.end!,
+                    reportViewModel.book!),
+                style: const pw.TextStyle(fontSize: 13)),
+            pw.SizedBox(height: 20),
+            pw.Table(
+              columnWidths: {
+              0:const pw.IntrinsicColumnWidth(),
+              1:const pw.FixedColumnWidth(110),
+              2:const pw.FixedColumnWidth(110),
+              3:const pw.FixedColumnWidth(110),
+              4:const pw.FixedColumnWidth(110),
+              5:const pw.FixedColumnWidth(110),
+              6:const pw.FixedColumnWidth(110)
+              },
+              children: [
+                dhead(),
+                ...drows(),
+              ],
+            ),
+            pw.SizedBox(height: 20),
+            pw.RichText(
+                text: pw.TextSpan(
+                    style: const pw.TextStyle(fontSize: 9),
+                    children: [
+                  pw.TextSpan(
+                      text: 'ITBIS FACTURADO EN SERVICIOS: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.TextSpan(text: reportViewModel.taxServices)
+                ])),
+            pw.SizedBox(height: 10),
+            pw.RichText(
+                text: pw.TextSpan(
+                    style: const pw.TextStyle(fontSize: 9),
+                    children: [
+                  pw.TextSpan(
+                      text: 'ITBIS FACTURADO EN BIENES: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.TextSpan(text: reportViewModel.taxGood)
+                ])),
+             pw.SizedBox(height: 10),
+             pw.RichText(
+                text: pw.TextSpan(
+                    style: const pw.TextStyle(fontSize: 9),
+                    children: [
+                  pw.TextSpan(
+                      text: 'TOTAL DE DOCUMENTOS: ',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.TextSpan(text: reportViewModel.totalNcfs)
+                ])),
           ],
-        ),
-        pw.SizedBox(height: 20),
-        pw.RichText(
-            text:
-                pw.TextSpan(style: const pw.TextStyle(fontSize: 9), children: [
-          pw.TextSpan(
-              text: 'ITBIS FACTURADO EN SERVICIOS: ',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.TextSpan(text: reportViewModel.taxServices)
-        ])),
-        pw.SizedBox(height: 10),
-        pw.RichText(
-            text:
-                pw.TextSpan(style: const pw.TextStyle(fontSize: 9), children: [
-          pw.TextSpan(
-              text: 'ITBIS FACTURADO EN BIENES: ',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.TextSpan(text: reportViewModel.taxGood)
-        ])),
-      ],
-    ); // Center
-  });
+        ); // Center
+      });
 }

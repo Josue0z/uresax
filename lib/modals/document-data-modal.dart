@@ -71,8 +71,7 @@ class _DocumentModalState extends State<DocumentModal> {
 
   _save() async {
     try {
-      if (widget.reportViewModel.body.length == 1)
-        throw 'NO TIENES DATOS QUE GENERAR';
+      if (widget.reportViewModel.body.length == 1) throw 'NO TIENES DATOS QUE GENERAR';
 
       if (widget.reportViewModel.body.length > 1) {
         var filePath = path.join(
@@ -192,7 +191,7 @@ class _DocumentModalState extends State<DocumentModal> {
       padding: const EdgeInsets.symmetric(horizontal: 10),
       children: [
         Table(
-          columnWidths: {0: const IntrinsicColumnWidth()},
+          columnWidths: const {0: IntrinsicColumnWidth()},
           children: [_head, ..._rows],
         ),
         SingleChildScrollView(
