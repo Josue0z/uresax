@@ -81,6 +81,10 @@ class Book {
     }
   }
 
+  Future<void> dispose()async{
+      await updateBookUseStatus(false);
+  }
+
   Future<bool> checkIfBookIsUsed() async {
     try {
       var result = await connection.mappedResultsQuery(

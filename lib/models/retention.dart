@@ -15,9 +15,9 @@ class Retention {
   static Future<List<Retention>> all() async {
     try {
       var result = await connection
-          .mappedResultsQuery('''SELECT * FROM public."Retention"''');
+          .mappedResultsQuery('''SELECT * FROM public."RetentionIsr"''');
 
-      return result.map((e) => Retention.fromMap(e['Retention']!)).toList();
+      return result.map((e) => Retention.fromMap(e['RetentionIsr']!)).toList();
     } catch (e) {
       rethrow;
     }

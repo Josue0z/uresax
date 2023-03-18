@@ -133,8 +133,7 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text(
-                buildReportTitle(reportViewModel.start!, reportViewModel.end!,
-                    reportViewModel.book!),
+                reportViewModel.title,
                 style: const pw.TextStyle(fontSize: 13)),
             pw.SizedBox(height: 20),
             pw.Table(

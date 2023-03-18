@@ -7,8 +7,15 @@ import 'package:uresaxapp/apis/connection.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:simple_moment/simple_moment.dart';
 import 'package:pdf/widgets.dart' as pw;
+enum ReportType {
+  month,
+  year
+}
 
 class ReportViewModel {
+
+  String title;
+
   List<Map<String, dynamic>?> body;
 
   String taxServices;
@@ -35,9 +42,12 @@ class ReportViewModel {
   
   String totalNcfs;
 
+
+
   ReportViewModel(
       {required this.body,
       this.footer = const {},
+      this.title = '',
       this.rangeLabels,
       this.rangeValues,
       this.book,
@@ -92,6 +102,10 @@ class Purchase {
   String? invoiceFullNcfModifed;
   String? invoiceNcfName;
   String? invoiceNcfModifedName;
+  String? invoiceTaxRetentionValue;
+  String? invoiceIsrRetentionValue;
+  String? invoiceTotal;
+  String? invoiceNetTotal;
   DateTime? createdAt;
 
   Purchase(
@@ -135,12 +149,23 @@ class Purchase {
       this.invoiceTaxRetentionId,
       this.invoiceTaxRetentionRate,
       this.invoiceNcfName,
+      this.invoiceTaxRetentionValue,
+      this.invoiceIsrRetentionValue,
+      this.invoiceTotal,
+      this.invoiceNetTotal,
       this.createdAt});
 
-  static Future<ReportViewModel> getReportViewForInvoiceType(
-      {String id = '', int start = 1, int end = 12}) async {
-    var st =
-        '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and p."invoice_month" between $start and $end''';
+  static Future<ReportViewModel> getReportViewByInvoiceType(
+      {String id = '', int start = 1, int end = 12, reportType = ReportType.month}) async {
+     
+     String where = '';
+
+     if(reportType == ReportType.month){
+      where = '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and p."invoice_month" between $start and $end''';
+     }else{
+      where = '''p."invoice_companyId" = '$id' and p."invoice_year" between $start and $end''';
+     }
+
     try {
       await connection.query('''SET lc_monetary = 'es_US';''');
 
@@ -153,12 +178,10 @@ class Purchase {
         sum(p.invoice_total_as_service)::text AS "TOTAL EN SERVICIOS",
         sum(p.invoice_total_as_good)::text AS "TOTAL EN BIENES",
         sum(p.invoice_tax)::text AS "TOTAL ITBIS FACTURADO",
-        sum(p.invoice_tax * r.rate/100)::text AS "ITBIS RETENIDO",
-        sum(((p.invoice_total_as_good + p.invoice_total_as_service) - p.invoice_tax) * r2.rate/100)::text AS "ISR RETENIDO"
+        sum(p.invoice_tax_retention_value::numeric(10,2))::text AS "ITBIS RETENIDO",
+        sum(p.invoice_isr_retention_value::numeric(10,2))::text AS "ISR RETENIDO"
         FROM "PurchaseDetails" p
-        LEFT JOIN public."RetentionTax" r ON r.id = p."invoice_tax_retentionId"
-        LEFT JOIN public."Retention" r2 ON r2.id = p."invoice_retentionId"
-        WHERE $st
+        WHERE $where
         GROUP BY p."invoice_typeId",p.invoice_type_name
         ORDER BY p."invoice_typeId", p."invoice_type_name"
       ''');
@@ -177,14 +200,14 @@ class Purchase {
           ''');
 
       var r3 = await connection.mappedResultsQuery('''
-           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
+           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
       ''');
 
       var r4 = await connection.mappedResultsQuery('''
-           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $st and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
+           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
       
 
-      var r5 = await connection.mappedResultsQuery('''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $st''');
+      var r5 = await connection.mappedResultsQuery('''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $where''');
       
       var body = r1.map((e) => e['']).toList();
 
@@ -205,6 +228,10 @@ class Purchase {
     } catch (e) {
       rethrow;
     }
+  }
+  
+  static Future<void> dispose()async{
+     await connection.query('''DROP VIEW public."ReportViewForInvoiceType";''');
   }
 
   Future<void> checkIfExistsPurchase() async {
@@ -452,15 +479,19 @@ class Purchase {
         invoiceFullNcf: map['invoice_full_ncf'],
         invoiceFullNcfModifed: map['invoice_full_ncf_modifed'],
         invoiceNcfName: map['invoice_ncf_name'],
-        invoiceRate: map['invoice_rate'] == null
+        invoiceRate: map['invoice_isr_retention_rate'] == null
             ? null
-            : int.tryParse(map['invoice_rate']),
+            : int.tryParse(map['invoice_isr_retention_rate']),
         invoiceNcfModifedName: map['invoice_ncf_modifed_name'],
         invoicePayYear: map['invoice_pay_year'],
         invoicePayMonth: map['invoice_pay_month'],
         invoicePayDay: map['invoice_pay_day'],
         invoiceTaxRetentionId: map['invoice_tax_retentionId'],
         invoiceTaxRetentionRate: map['invoice_tax_retention_rate'],
+        invoiceTaxRetentionValue: map['invoice_tax_retention_value'],
+        invoiceIsrRetentionValue: map['invoice_isr_retention_value'],
+        invoiceTotal: map['invoice_total'],
+        invoiceNetTotal: map['invoice_net_total'],
         createdAt: map['created_at']);
   }
 
@@ -468,24 +499,6 @@ class Purchase {
     return invoiceRnc!.length < 11;
   }
 
-  double get invoiceTotal {
-    return invoiceTotalAsGood! + invoiceTotalAsService!;
-  }
-
-  double get taxWithRateIsr {
-    if (invoiceRetentionId == null) return 0;
-
-    return totalNet * (invoiceRate! / 100);
-  }
-
-  double get taxWithRate {
-    if (invoiceTaxRetentionId == null) return 0;
-    return invoiceTax! * (invoiceTaxRetentionRate! / 100);
-  }
-
-  double get totalNet {
-    return invoiceTotal - invoiceTax!;
-  }
 
   String get fullDate {
     return Moment.fromDate(DateTime(invoiceYear!, invoiceMonth!))
@@ -529,9 +542,9 @@ class Purchase {
       'FECHA DE PAGO': fullPayDate,
       'TOTAL COMO SERVICIOS': invoiceTotalAsService?.abs().toStringAsFixed(2),
       'TOTAL COMO BIENES': invoiceTotalAsGood?.abs().toStringAsFixed(2),
-      'TOTAL FACTURADO': invoiceTotal.abs().toStringAsFixed(2),
+      'TOTAL FACTURADO': double.tryParse(invoiceTotal!)?.abs().toString(),
       'ITBIS FACTURADO': invoiceTax?.abs().toStringAsFixed(2),
-      'ITBIS RETENIDO': taxWithRate.toStringAsFixed(2),
+      'ITBIS RETENIDO': double.tryParse(invoiceTaxRetentionValue!)?.abs().toString(),
       'y': '',
       'a': '',
       'ITBIS POR ADELANTAR': invoiceTax?.abs().toStringAsFixed(2),
@@ -539,7 +552,7 @@ class Purchase {
       'TIPO DE RETENCION ISR': invoiceRetentionId == null
           ? ''
           : Moment.fromDate(DateTime(0, invoiceRetentionId!)).format('MM'),
-      'MONTO DE RETENCION ISR': taxWithRateIsr.toStringAsFixed(2),
+      'MONTO DE RETENCION ISR': double.tryParse(invoiceIsrRetentionValue!)?.abs().toString(),
       '3': '',
       '4': '',
       '5': '',
@@ -569,12 +582,12 @@ class Purchase {
       'METODO DE PAGO': invoicePaymentMethodName,
       'TOTAL COMO SERVICIOS': invoiceTotalAsService?.toStringAsFixed(2),
       'TOTAL COMO BIENES': invoiceTotalAsGood?.toStringAsFixed(2),
-      'TOTAL FACTURADO': invoiceTotal.toStringAsFixed(2),
+      'TOTAL FACTURADO': invoiceTotal,
       'ITBIS FACTURADO': invoiceTax?.toStringAsFixed(2),
-      'TOTAL NETO': (invoiceTotal - invoiceTax!).toStringAsFixed(2),
-      'ITBIS RETENIDO': taxWithRate.toStringAsFixed(2),
+      'TOTAL NETO': invoiceNetTotal,
+      'ITBIS RETENIDO': invoiceTaxRetentionValue,
       'NOMBRE DE RETENCION': invoiceRetentionName ?? 'NINGUNO',
-      'MONTO RETENCION RENTA': taxWithRateIsr.toStringAsFixed(2),
+      'ISR RETENIDO':invoiceIsrRetentionValue,
     };
   }
 

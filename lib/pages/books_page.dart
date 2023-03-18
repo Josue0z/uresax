@@ -3,15 +3,18 @@
 import 'package:flutter/material.dart';
 import 'package:moment_dart/moment_dart.dart';
 import 'package:uresaxapp/modals/add-book-modal.dart';
+import 'package:uresaxapp/modals/document-data-modal.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/book_details.dart';
+import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/custom-appbar.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class BooksPage extends StatefulWidget {
   Company company;
@@ -107,6 +110,48 @@ class _BooksPageState extends State<BooksPage> {
     }
   }
 
+  _showReport(Book book) async {
+
+    await showLoader(context);
+    try {
+      var r = await Purchase.getReportViewByInvoiceType(
+          reportType: ReportType.year,
+          id: widget.company.id!,
+          start: book.year!,
+          end: book.year!);
+
+      r.book = book;
+      
+      r.rangeValues = RangeValues(r.start!.toDouble(), r.end!.toDouble());
+
+      r.footer = {};
+      r.footer.addAll({'ITBIS EN SERVICIOS': r.taxServices});
+      r.footer.addAll({'ITBIS EN BIENES': r.taxGood});
+
+      r.pdf = pw.Document();
+
+      r.pdf?.addPage(buildReportViewModel(r));
+
+      Navigator.pop(context);
+
+      showDialog(
+          context: context,
+          builder: (ctx) {
+            return ScaffoldMessenger(child: Builder(builder: (ctx) {
+              return DocumentModal(
+                context: ctx,
+                reportType: ReportType.year,
+                reportViewModel: r,
+                book: book
+              );
+            }));
+          });
+    } catch (e) {
+      Navigator.pop(context);
+      await showAlert(context, message: e.toString());
+    }
+  }
+
   @override
   void initState() {
     _fetchBooks();
@@ -144,6 +189,9 @@ class _BooksPageState extends State<BooksPage> {
                 IconButton(
                     onPressed: () => _preloadBookData(book),
                     icon: const Icon(Icons.remove_red_eye)),
+                IconButton(
+                    onPressed: () => _showReport(book),
+                    icon: const Icon(Icons.document_scanner)),
                 User.current?.isAdmin
                     ? IconButton(
                         onPressed: () => _delete(book, index),

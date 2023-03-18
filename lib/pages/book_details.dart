@@ -13,12 +13,12 @@ import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
-import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
 import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:path/path.dart' as path;
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:uresaxapp/widgets/toolbutton.widget.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -459,7 +459,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   Future<bool> _onBeforeClose() async {
     try {
-      await widget.book.updateBookUseStatus(false);
+      await widget.book.dispose();
       await windowManager.setPreventClose(false);
       return true;
     } catch (e) {
@@ -471,9 +471,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   Future<void> _preloadReportData() async {
     await showLoader(context);
 
-    if (widget.currentSheet != null) {
+
       try {
-        r = await Purchase.getReportViewForInvoiceType(
+            if (widget.currentSheet != null) {
+        r = await Purchase.getReportViewByInvoiceType(
             id: widget.book.id!,
             start: widget.currentSheet!.sheetMonth!,
             end: widget.currentSheet!.sheetMonth!);
@@ -506,11 +507,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                     currentSheet: widget.currentSheet);
               }));
             });
+            }else{
+               throw 'AGREGA UNA HOJA AL MENOS';
+            }
       } catch (e) {
         Navigator.pop(context);
         await showAlert(context, message: e.toString());
       }
-    }
+    
   }
 
   @override
@@ -529,7 +533,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   _goHome() async {
     try {
-      await widget.book.updateBookUseStatus(false);
+      await widget.book.dispose();
       await windowManager.setPreventClose(false);
       Navigator.pushAndRemoveUntil(
           context,
@@ -591,7 +595,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                             var widgets = List.generate(values.length, (j) {
                               var cell = values[j];
                               return GestureDetector(
-                                onTap: () => _selectInvoice(
+                                onDoubleTap: ()=> _selectInvoice(
                                     widget.purchases[invs.indexOf(invoice)]),
                                 child: Container(
                                   width: j == 0 ? 80 : 250,
@@ -632,7 +636,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         children: widget.sheets.map((sheet) {
           var isCurrent = widget.currentSheet?.id == sheet.id;
           var index = widget.sheets.indexOf(sheet);
-          return GestureDetector(
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
             onTap: () => _setCurrentSheet(sheet, index),
             child: AnimatedContainer(
                 decoration: BoxDecoration(
@@ -651,6 +657,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                             color: isCurrent ? Colors.white : Colors.black45,
                             fontSize: 17,
                             fontWeight: FontWeight.w500)))),
+          ),
           );
         }).toList(),
       ),
@@ -662,7 +669,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.article_outlined,
+          Icon(Icons.edit_document,
               color: Theme.of(context).primaryColor, size: 100)
         ],
       ),
@@ -701,52 +708,26 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                                   fontSize: 18, fontWeight: FontWeight.w500)),
                         ),
                       )),
-                  SizedBox(
-                      height: kToolbarHeight,
-                      child: Tooltip(
-                        message: 'IR A INICIO',
-                        child: ElevatedButton(
-                          onPressed: _goHome,
-                          child: const Icon(Icons.home),
-                        ),
-                      )),
-                  SizedBox(
-                    width: kToolbarHeight,
-                    height: 50,
-                    child: Tooltip(
-                      message: 'ABRIR CATALOGO DE CATEGORIAS',
-                      child: ElevatedButton(
-                          onPressed: _showConceptModal,
-                          child: const Icon(Icons.category)),
-                    ),
-                  ),
-                  SizedBox(
-                      height: kToolbarHeight,
-                      child: Tooltip(
-                        message: 'ABRIR CARPETA DE ${widget.book.companyName}',
-                        child: ElevatedButton(
-                          onPressed: _openFolder,
-                          child: const Icon(Icons.folder),
-                        ),
-                      )),
-                  SizedBox(
-                      height: kToolbarHeight,
-                      child: Tooltip(
-                        message: 'GENERAR 606',
-                        child: ElevatedButton(
-                          onPressed: _generate606,
-                          child: const Icon(Icons.save),
-                        ),
-                      )),
-                  SizedBox(
-                      height: kToolbarHeight,
-                      child: Tooltip(
-                        message: 'ELIMINAR ESTA HOJA',
-                        child: ElevatedButton(
-                          onPressed: _deleteSheet,
-                          child: const Icon(Icons.delete),
-                        ),
-                      )),
+                  ToolButton(
+                      onTap: _goHome,
+                      toolTip: 'IR A INICIO',
+                      icon: const Icon(Icons.home)),
+                  ToolButton(
+                      onTap: _showConceptModal,
+                      toolTip: 'ABRIR CATALOGO DE CATEGORIAS',
+                      icon: const Icon(Icons.category)),
+                  ToolButton(
+                      onTap: _openFolder,
+                      toolTip: 'ABRIR CARPETA DE ${widget.book.companyName}',
+                      icon: const Icon(Icons.folder)),
+                  ToolButton(
+                      onTap: _generate606,
+                      toolTip: 'GENERAR 606',
+                      icon: const Icon(Icons.save)),
+                  ToolButton(
+                      onTap: _deleteSheet,
+                      toolTip: 'ELIMNINAR ESTA HOJA',
+                      icon: const Icon(Icons.delete))
                 ],
               )
             ],
