@@ -143,7 +143,7 @@ class User {
     );
   }
 
-  get isAdmin {
+  bool get isAdmin {
     return roleId == 1;
   }
 

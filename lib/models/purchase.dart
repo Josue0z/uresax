@@ -1,19 +1,21 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/book.dart';
+import 'package:uresaxapp/utils/extra.dart';
 import 'package:uuid/uuid.dart';
 import 'package:uresaxapp/apis/connection.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:simple_moment/simple_moment.dart';
 import 'package:pdf/widgets.dart' as pw;
-enum ReportType {
-  month,
-  year
-}
+import 'package:string_mask/string_mask.dart';
+
+var formatter = StringMask('#.###.00');
+
+enum ReportType { month, year }
+
+enum QueryContext { tax, consumption }
 
 class ReportViewModel {
-
   String title;
 
   List<Map<String, dynamic>?> body;
@@ -39,10 +41,8 @@ class ReportViewModel {
   int? start = 1;
 
   int? end = 12;
-  
+
   String totalNcfs;
-
-
 
   ReportViewModel(
       {required this.body,
@@ -156,15 +156,29 @@ class Purchase {
       this.createdAt});
 
   static Future<ReportViewModel> getReportViewByInvoiceType(
-      {String id = '', int start = 1, int end = 12, reportType = ReportType.month}) async {
-     
-     String where = '';
+      {String id = '',
+      int start = 1,
+      int end = 12,
+      reportType = ReportType.month,
+      QueryContext queryContext = QueryContext.tax}) async {
+    String where = '';
+    String queryContextI = '';
 
-     if(reportType == ReportType.month){
-      where = '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and p."invoice_month" between $start and $end''';
-     }else{
-      where = '''p."invoice_companyId" = '$id' and p."invoice_year" between $start and $end''';
-     }
+    if (queryContext == QueryContext.consumption) {
+      queryContextI =
+          '(p."invoice_ncf_typeId" = 2 or p."invoice_ncf_typeId" = 32)';
+    } else {
+      queryContextI =
+          'p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32';
+    }
+
+    if (reportType == ReportType.month) {
+      where =
+          '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and $queryContextI and p."invoice_month" between $start and $end''';
+    } else {
+      where =
+          '''p."invoice_companyId" = '$id' and $queryContextI and p."invoice_year" between $start and $end''';
+    }
 
     try {
       await connection.query('''SET lc_monetary = 'es_US';''');
@@ -205,12 +219,11 @@ class Purchase {
 
       var r4 = await connection.mappedResultsQuery('''
            SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
-      
 
-      var r5 = await connection.mappedResultsQuery('''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $where''');
-      
+      var r5 = await connection.mappedResultsQuery(
+          '''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $where''');
+
       var body = r1.map((e) => e['']).toList();
-
 
       var t3 = r3.first['']?['ITBIS FACTURADO EN BIENES'] ?? '\$0.00';
 
@@ -229,9 +242,9 @@ class Purchase {
       rethrow;
     }
   }
-  
-  static Future<void> dispose()async{
-     await connection.query('''DROP VIEW public."ReportViewForInvoiceType";''');
+
+  static Future<void> dispose() async {
+    await connection.query('''DROP VIEW public."ReportViewForInvoiceType";''');
   }
 
   Future<void> checkIfExistsPurchase() async {
@@ -499,7 +512,6 @@ class Purchase {
     return invoiceRnc!.length < 11;
   }
 
-
   String get fullDate {
     return Moment.fromDate(DateTime(invoiceYear!, invoiceMonth!))
         .format('yyyyMM');
@@ -509,6 +521,19 @@ class Purchase {
     return Moment.fromDate(
             DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!)))
         .format('yyyyMMdd');
+  }
+
+  String get fullNcfDatek {
+    return Moment.fromDate(
+            DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!)))
+        .format('dd/MM/yyyy');
+  }
+
+  String get fullPayDatek {
+    if (invoicePayYear == null) return '';
+    return Moment.fromDate(
+            DateTime(invoicePayYear!, invoicePayMonth!, invoicePayDay!))
+        .format('dd/MM/yyyy');
   }
 
   String get fullPayDate {
@@ -542,9 +567,11 @@ class Purchase {
       'FECHA DE PAGO': fullPayDate,
       'TOTAL COMO SERVICIOS': invoiceTotalAsService?.abs().toStringAsFixed(2),
       'TOTAL COMO BIENES': invoiceTotalAsGood?.abs().toStringAsFixed(2),
-      'TOTAL FACTURADO': double.tryParse(invoiceTotal!)?.abs().toString(),
+      'TOTAL FACTURADO':
+          double.tryParse(invoiceTotal!)?.abs().toStringAsFixed(2),
       'ITBIS FACTURADO': invoiceTax?.abs().toStringAsFixed(2),
-      'ITBIS RETENIDO': double.tryParse(invoiceTaxRetentionValue!)?.abs().toString(),
+      'ITBIS RETENIDO':
+          double.tryParse(invoiceTaxRetentionValue!)?.abs().toStringAsFixed(2),
       'y': '',
       'a': '',
       'ITBIS POR ADELANTAR': invoiceTax?.abs().toStringAsFixed(2),
@@ -552,13 +579,44 @@ class Purchase {
       'TIPO DE RETENCION ISR': invoiceRetentionId == null
           ? ''
           : Moment.fromDate(DateTime(0, invoiceRetentionId!)).format('MM'),
-      'MONTO DE RETENCION ISR': double.tryParse(invoiceIsrRetentionValue!)?.abs().toString(),
+      'MONTO DE RETENCION ISR':
+          double.tryParse(invoiceIsrRetentionValue!)?.abs().toString(),
       '3': '',
       '4': '',
       '5': '',
       '6': '',
       'METODO DE PAGO':
           Moment.fromDate(DateTime(0, invoicePaymentMethodId!)).format('MM'),
+    };
+  }
+
+  Map<String, dynamic> to606Display() {
+    return {
+      'RNC': invoiceRnc,
+      'TYPEID': checkedType ? 1 : 2,
+      'TYPE FACT': invoiceTypeName,
+      'NCF': invoiceNcf,
+      'NCF MODIFICADO': invoiceNcfModifed ?? '',
+      'FECHA DE COMPROBANTE': fullNcfDatek,
+      'FECHA DE PAGO': fullPayDatek,
+      'TOTAL COMO SERVICIOS': invoiceTotalAsService?.toStringAsFixed(2),
+      'TOTAL COMO BIENES': invoiceTotalAsGood?.toStringAsFixed(2),
+      'TOTAL FACTURADO': double.tryParse(invoiceTotal!)?.toStringAsFixed(2),
+      'ITBIS FACTURADO': invoiceTax?.toStringAsFixed(2),
+      'ITBIS RETENIDO':
+          double.tryParse(invoiceTaxRetentionValue!)?.toStringAsFixed(2),
+      'y': 0,
+      'a': 0,
+      'ITBIS POR ADELANTAR': invoiceTax?.toStringAsFixed(2),
+      '1': 0,
+      'TIPO DE RETENCION ISR': invoiceRetentionName ?? '',
+      'MONTO DE RETENCION ISR':
+          double.tryParse(invoiceIsrRetentionValue!)?.toStringAsFixed(2),
+      '3': 0,
+      '4': 0,
+      '5': 0,
+      '6': 0,
+      'METODO DE PAGO': invoicePaymentMethodName,
     };
   }
 
@@ -587,7 +645,7 @@ class Purchase {
       'TOTAL NETO': invoiceNetTotal,
       'ITBIS RETENIDO': invoiceTaxRetentionValue,
       'NOMBRE DE RETENCION': invoiceRetentionName ?? 'NINGUNO',
-      'ISR RETENIDO':invoiceIsrRetentionValue,
+      'ISR RETENIDO': invoiceIsrRetentionValue,
     };
   }
 

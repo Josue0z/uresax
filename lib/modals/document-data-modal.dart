@@ -40,14 +40,25 @@ class DocumentModal extends StatefulWidget {
 
 class _DocumentModalState extends State<DocumentModal> {
   double offsetX1 = 0;
+
   double offsetX2 = 0;
 
   TextEditingController startYear = TextEditingController();
 
   TextEditingController endYear = TextEditingController();
 
+  List<Map<String, dynamic>> ncfsTypes = [
+    {'TIPO': QueryContext.tax, 'NAME': 'FACTURAS FISCALES'},
+    {'TIPO': QueryContext.consumption, 'NAME': 'FACTURAS DE CONSUMO'}
+  ];
+
+  QueryContext queryContext = QueryContext.tax;
+
+  String label = '';
+
   @override
   void initState() {
+    label = ncfsTypes.first['NAME'];
     setState(() {
       widget.reportViewModel.title = _title;
       offsetX1 = widget.reportViewModel.rangeValues!.start;
@@ -101,12 +112,15 @@ class _DocumentModalState extends State<DocumentModal> {
 
   String get _title {
     if (widget.reportType == ReportType.month) {
-      return buildReportTitle(
-          widget.reportViewModel.rangeValues!.start.toInt() - 1,
-          widget.reportViewModel.rangeValues!.end.toInt() - 1,
-          widget.book);
+      var a = months[widget.reportViewModel.rangeValues!.start.toInt() - 1];
+      var b = months[widget.reportViewModel.rangeValues!.end.toInt() - 1];
+      var c = '$label - ${widget.book.companyName}';
+      String t = '$c $a ${widget.book.year}';
+      if (a == b) return t;
+      t = '$a - $b ${widget.book.year}';
+      return '$c $t';
     } else {
-      String t = '${widget.book.companyName}';
+      String t = '$label - ${widget.book.companyName}';
       if (widget.reportViewModel.rangeValues!.start ==
           widget.reportViewModel.rangeValues!.end) {
         return '$t ${widget.reportViewModel.rangeValues!.start.toInt()}';
@@ -153,12 +167,13 @@ class _DocumentModalState extends State<DocumentModal> {
         offsetX2 = v.end;
       });
 
-      var id = widget.reportType == ReportType.month
-          ? widget.book.id
-          : widget.book.companyId;
+      var id = widget.book.id;
 
       widget.reportViewModel = await Purchase.getReportViewByInvoiceType(
-          id: id!, start: v.start.toInt(), end: v.end.toInt());
+          id: id!,
+          start: v.start.toInt(),
+          end: v.end.toInt(),
+          queryContext: queryContext);
 
       widget.reportViewModel.rangeValues = v;
       widget.reportViewModel.rangeLabels =
@@ -197,7 +212,11 @@ class _DocumentModalState extends State<DocumentModal> {
       var id = widget.book.companyId;
 
       widget.reportViewModel = await Purchase.getReportViewByInvoiceType(
-          reportType: ReportType.year, id: id!, start: start!, end: end!);
+          reportType: ReportType.year,
+          id: id!,
+          start: start!,
+          end: end!,
+          queryContext: queryContext);
 
       widget.reportViewModel.rangeValues =
           RangeValues(start.toDouble(), end.toDouble());
@@ -226,8 +245,7 @@ class _DocumentModalState extends State<DocumentModal> {
   TableRow get _head {
     return TableRow(
         children: widget.reportViewModel.body[0]?.keys.map((key) {
-
-        var index = widget.reportViewModel.body[0]?.keys.toList().indexOf(key);
+      var index = widget.reportViewModel.body[0]?.keys.toList().indexOf(key);
       return TableCell(
           child: Padding(
         padding: EdgeInsets.only(left: index! > 0 ? 10 : 0),
@@ -254,13 +272,14 @@ class _DocumentModalState extends State<DocumentModal> {
 
             bool isTotal =
                 j == 0 && index == widget.reportViewModel.body.length - 1;
-            
+
             bool isFirstCol = j == 0;
 
             return TableCell(
                 verticalAlignment: TableCellVerticalAlignment.middle,
                 child: Padding(
-                  padding:EdgeInsets.only(top: 10,bottom: 10,left: !isFirstCol ? 10 : 0),
+                  padding: EdgeInsets.only(
+                      top: 10, bottom: 10, left: !isFirstCol ? 10 : 0),
                   child: Text(
                     entry.value ?? '\$0.00',
                     style: TextStyle(
@@ -282,14 +301,37 @@ class _DocumentModalState extends State<DocumentModal> {
           children: [
             Text(_title,
                 style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor)),
             const Spacer(),
+            SizedBox(
+              width: 220,
+              child: DropdownButtonFormField<QueryContext>(
+                  value: queryContext,
+                  items: ncfsTypes
+                      .map((e) => DropdownMenuItem(
+                          value: e['TIPO'] as QueryContext,
+                          child: Text(e['NAME'])))
+                      .toList(),
+                  onChanged: (type) {
+                    queryContext = type!;
+                    label = ncfsTypes
+                        .where((element) => element['TIPO'] == type)
+                        .first['NAME'];
+                    if (widget.reportType == ReportType.month) {
+                      _onUpdate(widget.reportViewModel.rangeValues!);
+                    } else {
+                      _fecthReport();
+                    }
+                  }),
+            ),
+            const SizedBox(width: 15),
             IconButton(
                 onPressed: _save,
                 color: Theme.of(context).primaryColor,
                 icon: const Icon(Icons.picture_as_pdf)),
+            const SizedBox(width: 15),
             IconButton(
                 onPressed: () async {
                   if (await _onPopContext()) {

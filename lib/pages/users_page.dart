@@ -51,9 +51,7 @@ class _UsersPageState extends State<UsersPage> {
       if (isConfirm!) {
         await user.delete();
         users.removeAt(index);
-        setState(() {
-          
-        });
+        setState(() {});
       }
     } catch (e) {
       showAlert(context, message: e.toString());
@@ -63,22 +61,22 @@ class _UsersPageState extends State<UsersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:PreferredSize(
+      appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: CustomAppBar(title: 'USUARIOS'),
       ),
-      body: ListView.separated(
-          separatorBuilder: (ctx, i) => const Divider(),
+      body: ListView.builder(
           itemCount: users.length,
           itemBuilder: (ctx, index) {
             var user = users[index];
             return ListTile(
               leading: Icon(Icons.account_circle_outlined,
                   size: 50, color: Theme.of(context).primaryColor),
+              
               minVerticalPadding: 15,
               contentPadding: const EdgeInsets.symmetric(horizontal: 80),
               title: Text(
-                user.name!,
+                user.name!.toUpperCase(),
                 style: const TextStyle(fontSize: 26),
               ),
               subtitle: Column(
@@ -87,14 +85,16 @@ class _UsersPageState extends State<UsersPage> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                             color: Theme.of(context).primaryColor,
-                            borderRadius: BorderRadius.circular(2)),
+                            borderRadius: BorderRadius.circular(20)),
                         child: Text(
                           user.roleName!,
                           style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w500),
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -105,11 +105,12 @@ class _UsersPageState extends State<UsersPage> {
               ),
               trailing: Wrap(
                 children: [
-                  index  > 0 ?
-                  IconButton(
-                      onPressed: () => _deleteUser(user, index),
-                      color: Theme.of(context).colorScheme.error,
-                      icon: const Icon(Icons.delete)):const SizedBox(),
+                  index > 0
+                      ? IconButton(
+                          onPressed: () => _deleteUser(user, index),
+                          color: Theme.of(context).colorScheme.error,
+                          icon: const Icon(Icons.delete))
+                      : const SizedBox(),
                   IconButton(
                       onPressed: () => _showModalForEdit(user, index),
                       color: Colors.green,

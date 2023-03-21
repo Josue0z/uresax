@@ -55,6 +55,7 @@ dependencies:
   simple_moment: ^1.1.1
   printing: ^5.10.1
   number_text_input_formatter: ^1.0.0+1
+  string_mask: ^1.0.0
 
 
 

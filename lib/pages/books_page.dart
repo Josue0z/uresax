@@ -28,9 +28,44 @@ class BooksPage extends StatefulWidget {
 class _BooksPageState extends State<BooksPage> {
   List<Book> books = [];
 
+  Widget get _searchWidget {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 80),
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: TextFormField(
+        onChanged: _fetchBooksByYear,
+        style: const TextStyle(fontSize: 20),
+        decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'BUSCAR LIBROS... (AÑO)',
+            suffixIcon: Padding(
+                padding: EdgeInsets.only(right: 20),
+                child: Icon(Icons.search, size: 28))),
+      ),
+    );
+  }
+
   _fetchBooks() async {
     try {
-      books = await Book.all(companyId: widget.company.id);
+      books =
+          await Book.all(where: ''' "companyId" = '${widget.company.id}' ''');
+    } catch (_) {
+    } finally {
+      setState(() {});
+    }
+  }
+
+  _fetchBooksByYear(String year) async {
+    try {
+      if (year.isNotEmpty) {
+        books = await Book.all(
+            where:
+                ''' "companyId" = '${widget.company.id}' and book_year::text like '%${year.trim()}%' ''');
+      } else {
+        books =
+            await Book.all(where: ''' "companyId" = '${widget.company.id}' ''');
+      }
     } catch (_) {
     } finally {
       setState(() {});
@@ -105,13 +140,13 @@ class _BooksPageState extends State<BooksPage> {
         builder: (ctx) => AddBookModal(
             company: widget.company, books: books, bookTypeId: 1, bookYear: y));
     if (book is Book) {
-      books = await Book.all(companyId: widget.company.id);
+      books =
+          await Book.all(where: ''' "companyId" = '${widget.company.id}' ''');
       setState(() {});
     }
   }
 
   _showReport(Book book) async {
-
     await showLoader(context);
     try {
       var r = await Purchase.getReportViewByInvoiceType(
@@ -121,7 +156,7 @@ class _BooksPageState extends State<BooksPage> {
           end: book.year!);
 
       r.book = book;
-      
+
       r.rangeValues = RangeValues(r.start!.toDouble(), r.end!.toDouble());
 
       r.footer = {};
@@ -139,11 +174,10 @@ class _BooksPageState extends State<BooksPage> {
           builder: (ctx) {
             return ScaffoldMessenger(child: Builder(builder: (ctx) {
               return DocumentModal(
-                context: ctx,
-                reportType: ReportType.year,
-                reportViewModel: r,
-                book: book
-              );
+                  context: ctx,
+                  reportType: ReportType.year,
+                  reportViewModel: r,
+                  book: book);
             }));
           });
     } catch (e) {
@@ -165,58 +199,70 @@ class _BooksPageState extends State<BooksPage> {
   }
 
   Widget get _bookView {
-    return ListView.separated(
-        itemCount: books.length,
-        separatorBuilder: (ctx, index) => const Divider(),
-        itemBuilder: (ctx, index) {
-          Book book = books[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 80),
-            leading: CircleAvatar(
-              radius: 30,
-              backgroundColor: Theme.of(context).primaryColor,
-              child: const Icon(Icons.book, size: 25, color: Colors.white),
-            ),
-            title:
-                Text(book.name!, style: Theme.of(context).textTheme.headline5),
-            minVerticalPadding: 20,
-            subtitle: Text(
-              'RNC ${book.companyRnc} ${book.createdAt?.format("DD/MM/y")} / ${book.bookTypeName}',
-              style: const TextStyle(fontSize: 18),
-            ),
-            trailing: Wrap(
-              children: [
-                IconButton(
-                    onPressed: () => _preloadBookData(book),
-                    icon: const Icon(Icons.remove_red_eye)),
-                IconButton(
-                    onPressed: () => _showReport(book),
-                    icon: const Icon(Icons.document_scanner)),
-                User.current?.isAdmin
-                    ? IconButton(
-                        onPressed: () => _delete(book, index),
-                        color: Theme.of(context).colorScheme.error,
-                        icon: const Icon(Icons.delete))
-                    : const SizedBox()
-              ],
-            ),
-          );
-        });
+    if (books.isEmpty) return _emptyView;
+
+    return Expanded(
+        child: ListView.builder(
+            itemCount: books.length,
+            itemBuilder: (ctx, index) {
+              Book book = books[index];
+              String title =
+                  'RNC ${book.companyRnc} ${book.createdAt?.format("DD/MM/y")} / ${book.bookTypeName}';
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 80),
+                minVerticalPadding: 15,
+                leading: CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Theme.of(context).primaryColor,
+                  child: const Icon(Icons.book, size: 25, color: Colors.white),
+                ),
+                title: Text(book.name!,
+                    style: Theme.of(context).textTheme.headline5),
+                subtitle: Text(
+                  title,
+                  style: const TextStyle(fontSize: 18),
+                ),
+                trailing: Wrap(
+                  children: [
+                    IconButton(
+                        onPressed: () => _preloadBookData(book),
+                        icon: const Icon(Icons.remove_red_eye)),
+                    const SizedBox(width: 10),
+                    IconButton(
+                        color: Theme.of(context).primaryColor,
+                        tooltip:
+                            'VER REPORTE DE ${book.companyName} ${book.year}',
+                        onPressed: () => _showReport(book),
+                        icon: const Icon(Icons.document_scanner)),
+                    const SizedBox(width: 10),
+                    User.current!.isAdmin
+                        ? IconButton(
+                            tooltip: 'ELIMINAR',
+                            onPressed: () => _delete(book, index),
+                            color: Theme.of(context).colorScheme.error,
+                            icon: const Icon(Icons.delete))
+                        : const SizedBox()
+                  ],
+                ),
+              );
+            }));
   }
 
   Widget get _emptyView {
-    return Center(
+    return Expanded(
+        child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(
             Icons.book,
-            size: 150,
+            size: 100,
             color: Theme.of(context).primaryColor,
           )
         ],
       ),
-    );
+    ));
   }
 
   @override
@@ -226,7 +272,9 @@ class _BooksPageState extends State<BooksPage> {
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: CustomAppBar(title: widget.company.name!),
       ),
-      body: books.isNotEmpty ? _bookView : _emptyView,
+      body: Column(
+        children: [_searchWidget, _bookView],
+      ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'AÑADIR LIBRO',
         onPressed: _showModal,

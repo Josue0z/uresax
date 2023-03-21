@@ -3,7 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 
-Future<T> showAlert<T>(BuildContext context, {String message = '', String? title}) async{
+Future<T> showAlert<T>(BuildContext context,
+    {String message = '', String? title}) async {
   return await showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -47,7 +48,7 @@ Future<T> showAlert<T>(BuildContext context, {String message = '', String? title
 }
 
 Future<bool?> showConfirm(BuildContext context,
-    {String title = 'Confirmacion...', String body = ''}) async {
+    {String title = 'Confirmacion...'}) async {
   var formKey = GlobalKey<FormState>();
   TextEditingController code = TextEditingController();
 
@@ -61,11 +62,13 @@ Future<bool?> showConfirm(BuildContext context,
 
   var result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => Dialog(
-            shape: ShapeBorder.lerp(Border.all(color: Colors.transparent),
-                Border.all(color: Colors.transparent), 0),
-            child: SizedBox(
-                width: 400,
+      builder: (ctx) => AlertDialog(
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(10.0))),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            content: SizedBox(
+                width: 450,
                 child: Form(
                     key: formKey,
                     child: Padding(
@@ -74,11 +77,11 @@ Future<bool?> showConfirm(BuildContext context,
                         shrinkWrap: true,
                         children: [
                           Row(children: [
-                            Text(title,
-                                style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w500,
-                                    color: Theme.of(context).primaryColor)),
+                            Text(title.toUpperCase(),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(color: Theme.of(context).primaryColor)),
                             const Spacer(),
                           ]),
                           const SizedBox(height: 15),
@@ -90,31 +93,44 @@ Future<bool?> showConfirm(BuildContext context,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                             ],
-                            validator: (val) => int.parse(val!) != number
+                            validator: (val) => int.tryParse(val!) != number
                                 ? 'El numero digitado no es correcto'
                                 : null,
                             style: const TextStyle(fontSize: 18),
-                            decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: '######'),
+                            decoration: InputDecoration(
+                                border: const OutlineInputBorder(),
+                                hintText: number
+                                    .toString()
+                                    .characters
+                                    .map((e) => '#')
+                                    .toList()
+                                    .join()),
                           ),
                           const SizedBox(height: 15),
                           Row(
                             children: [
                               const Spacer(),
                               ElevatedButton(
-                                  style: ButtonStyle(
-                                      backgroundColor:
-                                          MaterialStateProperty.all(
-                                              Colors.grey)),
+                                  style:
+                                      ButtonStyle(
+                                          backgroundColor:
+                                              MaterialStateProperty.all(
+                                                  Theme.of(context)
+                                                      .colorScheme
+                                                      .error)),
                                   onPressed: () =>
                                       Navigator.pop(context, false),
-                                  child: const Text('CERRAR')),
+                                  child: const Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Text('CERRAR'))),
                               const SizedBox(
                                 width: 10,
                               ),
                               ElevatedButton(
-                                  onPressed: ok, child: const Text('CONFIRMAR'))
+                                  onPressed: ok,
+                                  child: const Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Text('CONFIRMAR')))
                             ],
                           )
                         ],

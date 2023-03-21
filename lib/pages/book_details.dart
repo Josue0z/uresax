@@ -13,6 +13,7 @@ import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sheet.dart';
+import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
 import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/functions.dart';
@@ -87,14 +88,22 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     return '${widget.book.bookTypeName!.toUpperCase()} ${_formatNumber(widget.currentSheet!.sheetDate!, 'XXXX-XX')}';
   }
 
-  String get _filePath {
+  String get _fileName {
     return path.join(
         Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
         'URESAX',
         widget.book.companyName?.trim(),
         widget.book.year.toString(),
         '606',
-        'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}.TXT');
+        'DGII_F_606_${widget.book.companyRnc}_${widget.currentSheet?.sheetDate}');
+  }
+
+  String get _filePath {
+    return '$_fileName.TXT';
+  }
+
+  String get _filePathCsv {
+    return '$_fileName.CSV';
   }
 
   String get _dirPath {
@@ -165,6 +174,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
           element.invoiceNcfTypeId == 2 || element.invoiceNcfTypeId == 32);
 
       var elements = purchases.map((e) => e.to606()).toList();
+      var elements2 = purchases.map((e) => e.to606Display()).toList();
 
       if (purchases.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -175,11 +185,20 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
       List<List<dynamic>> rows = [];
 
+      List<List<dynamic>> rows2 = [];
+
       for (int i = 0; i < elements.length; i++) {
         var item = elements[i];
         var values = item.values.toList();
         rows.add(values);
       }
+
+      for (int i = 0; i < elements2.length; i++) {
+        var item = elements2[i];
+        var values = item.values.toList();
+        rows2.add(values);
+      }
+
       var result = const ListToCsvConverter().convert([
         [
           606,
@@ -190,11 +209,46 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         ...rows
       ], fieldDelimiter: '|');
 
+      var r2 = const ListToCsvConverter().convert([
+        [
+          'RNC',
+          'TIPO ID',
+          'TIPO DE FACTURA',
+          'NCF',
+          'NCF MODIFICADO',
+          'FECHA DE COMPROBANTE',
+          'FECHA DE PAGO',
+          'TOTAL EN SERVICIOS',
+          'TOTAL EN BIENES',
+          'TOTAL FACTURADO',
+          'ITBIS FACTURADO',
+          'ITBIS RETENIDO',
+          'ITBIS ART. 349',
+          'ITBIS LLEVADO AL COSTO',
+          'ITBIS POR ADELANTAR',
+          'ITBIS PERCIBIDO EN COMPRAS',
+          'TIPO DE RETENCION EN ISR',
+          'MONTO DE RETENCION RENTA',
+          'ISR PERCIBIDO EN COMPRAS',
+          'IMPUESTO PERCIBIDO AL CONSUMO',
+          'OTROS IMPUESTOS O TASAS',
+          'MONTO PROPINA LEGAL',
+          'FORMA DE PAGO'
+        ],
+        ...rows2
+      ], fieldDelimiter: '|');
+
       var file = File(_filePath.trim());
+
+      var file2 = File(_filePathCsv.trim());
 
       await file.create(recursive: true);
 
+      await file2.create(recursive: true);
+
       await file.writeAsString(result);
+
+      await file2.writeAsString(r2);
 
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('FUE GENERADO EL 606'),
@@ -260,10 +314,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   }
 
   Future<void> _onSheetChanged(String? sheetId) async {
+    await showLoader(context);
     try {
       if (sheetId != null) {
-        showLoader(context);
-
         if (widget.sheets.isNotEmpty) {
           widget.currentSheet =
               widget.sheets.firstWhere((sheet) => sheet.id == sheetId);
@@ -277,12 +330,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
         await widget.book.updateLatestSheetVisited();
 
-        Navigator.pop(context);
-
         if (_scrollController.hasClients) {
           _scrollController.jumpTo(0);
           _verticalScrollController.jumpTo(0);
         }
+
+        Navigator.pop(context);
       }
     } catch (_) {
       Navigator.pop(context);
@@ -471,9 +524,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   Future<void> _preloadReportData() async {
     await showLoader(context);
 
-
-      try {
-            if (widget.currentSheet != null) {
+    try {
+      if (widget.currentSheet != null) {
         r = await Purchase.getReportViewByInvoiceType(
             id: widget.book.id!,
             start: widget.currentSheet!.sheetMonth!,
@@ -507,14 +559,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                     currentSheet: widget.currentSheet);
               }));
             });
-            }else{
-               throw 'AGREGA UNA HOJA AL MENOS';
-            }
-      } catch (e) {
-        Navigator.pop(context);
-        await showAlert(context, message: e.toString());
+      } else {
+        throw 'AGREGA UNA HOJA AL MENOS';
       }
-    
+    } catch (e) {
+      Navigator.pop(context);
+      await showAlert(context, message: e.toString());
+    }
   }
 
   @override
@@ -595,7 +646,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                             var widgets = List.generate(values.length, (j) {
                               var cell = values[j];
                               return GestureDetector(
-                                onDoubleTap: ()=> _selectInvoice(
+                                onDoubleTap: () => _selectInvoice(
                                     widget.purchases[invs.indexOf(invoice)]),
                                 child: Container(
                                   width: j == 0 ? 80 : 250,
@@ -639,25 +690,26 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
           return MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
-            onTap: () => _setCurrentSheet(sheet, index),
-            child: AnimatedContainer(
-                decoration: BoxDecoration(
-                    color: isCurrent ? Colors.blue : Colors.transparent,
-                    border: Border.symmetric(
-                        vertical: BorderSide(
-                            width: 0.5,
-                            color:
-                                isCurrent ? Colors.transparent : Colors.grey))),
-                duration: const Duration(milliseconds: 150),
-                child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Text(months[sheet.sheetMonth! - 1],
-                        style: TextStyle(
-                            color: isCurrent ? Colors.white : Colors.black45,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w500)))),
-          ),
+              onTap: () => _setCurrentSheet(sheet, index),
+              child: AnimatedContainer(
+                  decoration: BoxDecoration(
+                      color: isCurrent ? Colors.blue : Colors.transparent,
+                      border: Border.symmetric(
+                          vertical: BorderSide(
+                              width: 0.5,
+                              color: isCurrent
+                                  ? Colors.transparent
+                                  : Colors.grey))),
+                  duration: const Duration(milliseconds: 150),
+                  child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 10),
+                      child: Text(months[sheet.sheetMonth! - 1],
+                          style: TextStyle(
+                              color: isCurrent ? Colors.white : Colors.black45,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w500)))),
+            ),
           );
         }).toList(),
       ),
@@ -724,10 +776,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                       onTap: _generate606,
                       toolTip: 'GENERAR 606',
                       icon: const Icon(Icons.save)),
+                  User.current!.isAdmin ?
                   ToolButton(
                       onTap: _deleteSheet,
                       toolTip: 'ELIMNINAR ESTA HOJA',
-                      icon: const Icon(Icons.delete))
+                      icon: const Icon(Icons.delete)):Container()
                 ],
               )
             ],

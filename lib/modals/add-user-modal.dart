@@ -31,6 +31,10 @@ class _AddUserModalState extends State<AddUserModal> {
 
   final _formKey = GlobalKey<FormState>();
 
+  String get title {
+    return widget.isEditing! ? 'Editando Usuario...' : 'Añadiendo Usuario...';
+  }
+
   @override
   void initState() {
     if (mounted) {
@@ -73,22 +77,22 @@ class _AddUserModalState extends State<AddUserModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-        child: Form(
+    return AlertDialog(
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10.0))),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+        content: Form(
             key: _formKey,
             child: SizedBox(
                 width: 500,
                 child: Padding(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(20),
                   child: ListView(
                     shrinkWrap: true,
                     children: [
                       Row(
                         children: [
-                          Text(
-                              widget.isEditing!
-                                  ? 'Editando Usuario...'
-                                  : 'Añadiendo Usuario...',
+                          Text(title.toUpperCase(),
                               style: TextStyle(
                                   color: Theme.of(context).primaryColor,
                                   fontSize: 24)),
@@ -104,7 +108,8 @@ class _AddUserModalState extends State<AddUserModal> {
                       TextFormField(
                         controller: fullname,
                         style: const TextStyle(fontSize: 18),
-                        validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO': null,
+                        validator: (val) =>
+                            val!.isEmpty ? 'CAMPO REQUERIDO' : null,
                         decoration: const InputDecoration(
                             border: OutlineInputBorder(),
                             hintText: 'NOMBRE DE COMPLETO'),
@@ -115,7 +120,8 @@ class _AddUserModalState extends State<AddUserModal> {
                       TextFormField(
                         controller: username,
                         style: const TextStyle(fontSize: 18),
-                         validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO': null,
+                        validator: (val) =>
+                            val!.isEmpty ? 'CAMPO REQUERIDO' : null,
                         inputFormatters: [LowerCaseTextFormatter()],
                         decoration: const InputDecoration(
                             border: OutlineInputBorder(),
@@ -129,7 +135,8 @@ class _AddUserModalState extends State<AddUserModal> {
                               controller: password,
                               style: const TextStyle(fontSize: 18),
                               obscureText: !showPassword,
-                               validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO': null,
+                              validator: (val) =>
+                                  val!.isEmpty ? 'CAMPO REQUERIDO' : null,
                               decoration: InputDecoration(
                                   suffixIcon: IconButton(
                                       onPressed: () {
@@ -151,7 +158,8 @@ class _AddUserModalState extends State<AddUserModal> {
                           : Container(),
                       DropdownButtonFormField(
                         value: roleId,
-                         validator: (val) => val == null ? 'CAMPO REQUERIDO':null,
+                        validator: (val) =>
+                            val == null ? 'CAMPO REQUERIDO' : null,
                         decoration: InputDecoration(
                             enabledBorder: const OutlineInputBorder(
                               borderSide:

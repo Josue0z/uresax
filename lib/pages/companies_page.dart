@@ -18,21 +18,13 @@ class CompaniesPage extends StatefulWidget {
 }
 
 class _CompaniesPageState extends State<CompaniesPage> {
+  TextEditingController rnc = TextEditingController();
+
   List<Company> companies = [];
 
   bool isError = false;
 
   String message = '';
-
-  _fetchCompanies() async {
-    try {
-      companies = await Company.all();
-    } catch (e) {
-      isError = true;
-      message = e.toString();
-    }
-    setState(() {});
-  }
 
   _deleteCompany(Company company, int index) async {
     try {
@@ -47,6 +39,35 @@ class _CompaniesPageState extends State<CompaniesPage> {
     } catch (e) {
       showAlert(context, message: e.toString());
     }
+  }
+
+  _fetchCompanies() async {
+    isError = false;
+    try {
+      companies = await Company.all();
+    } catch (e) {
+      isError = true;
+      companies = [];
+      message = e.toString();
+    }
+    setState(() {});
+  }
+
+  _fetchCompaniesByRnc(String? rnc) async {
+    isError = false;
+    try {
+      if (rnc!.isEmpty) {
+        companies = await Company.all();
+      } else {
+        companies = await Company.all(
+            where: ''' company_rnc like '%${rnc.trim()}%' ''');
+      }
+    } catch (e) {
+      isError = true;
+      companies = [];
+      message = e.toString();
+    }
+    setState(() {});
   }
 
   _viewUsers() {
@@ -66,7 +87,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
     List<PopupMenuEntry<dynamic>> ops = [];
 
     for (var op in options) {
-      if (!(op.type == PageOptionType.users && !User.current?.isAdmin)) {
+      if (!(op.type == PageOptionType.users && !User.current!.isAdmin)) {
         ops.add(PopupMenuItem(value: op.type, child: Text(op.name)));
       }
     }
@@ -86,53 +107,9 @@ class _CompaniesPageState extends State<CompaniesPage> {
     super.dispose();
   }
 
-  Widget get _viewCompanies {
-    return ListView.separated(
-        separatorBuilder: (ctx, index) => const Divider(),
-        itemCount: companies.length,
-        itemBuilder: (ctx, index) {
-          Company company = companies[index];
-          return ListTile(
-              leading: CircleAvatar(
-                radius: 30,
-                backgroundColor: Theme.of(context).primaryColor,
-                child:
-                    const Icon(Icons.apartment, size: 25, color: Colors.white),
-              ),
-              title: Text(company.name!,
-                  style: Theme.of(context).textTheme.headlineSmall),
-              minVerticalPadding: 15,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 80),
-              subtitle: Text(
-                'RNC ${company.rnc} ${company.createdAt?.format("DD/MM/y")}',
-                style: const TextStyle(fontSize: 18),
-              ),
-              trailing: Wrap(
-                children: [
-                  IconButton(
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (ctx) => BooksPage(
-                                  company: company,
-                                  bookType: BookType.purchases))),
-                      icon: const Icon(Icons.insert_drive_file_rounded),
-                      tooltip: 'COMPRAS Y GASTOS'),
-                  const SizedBox(width: 10),
-                  User.current?.isAdmin
-                      ? IconButton(
-                          onPressed: () => _deleteCompany(company, index),
-                          icon: const Icon(Icons.delete),
-                          color: Theme.of(context).colorScheme.error,
-                          tooltip: 'ELIMINAR')
-                      : const SizedBox(),
-                ],
-              ));
-        });
-  }
-
   Widget get _errorWidget {
-    return Center(
+    return Expanded(
+        child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -143,15 +120,97 @@ class _CompaniesPageState extends State<CompaniesPage> {
           const SizedBox(height: 25),
         ],
       ),
+    ));
+  }
+
+  Widget get _searchWidget {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 80),
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: TextFormField(
+        controller: rnc,
+        onChanged: (rnc) => _fetchCompaniesByRnc(rnc),
+        style: const TextStyle(fontSize: 20),
+        decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'BUSCAR CONTRIBUYENTES... (RNC).',
+            suffixIcon: Padding(
+                padding: EdgeInsets.only(right: 20),
+                child: Icon(Icons.search, size: 28))),
+      ),
     );
+  }
+
+  Widget get _emptyContainer {
+    return Expanded(
+        child: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.payment_sharp,
+              size: 110, color: Theme.of(context).primaryColor)
+        ],
+      ),
+    ));
+  }
+
+  Widget get _viewCompanies {
+
+    if (isError) return _errorWidget;
+
+    if (companies.isEmpty) return _emptyContainer;
+
+    return Expanded(
+        child: ListView.builder(
+            itemCount: companies.length,
+            itemBuilder: (ctx, index) {
+              Company company = companies[index];
+              String title =
+                  'RNC ${company.rnc} ${company.createdAt?.format("DD/MM/y")}';
+
+              return ListTile(
+                  minVerticalPadding: 15,
+                  leading: CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Theme.of(context).primaryColor,
+                    child: const Icon(Icons.apartment,
+                        size: 25, color: Colors.white),
+                  ),
+                  title: Text(company.name!,
+                      style: Theme.of(context).textTheme.headlineSmall),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 80),
+                  subtitle: Text(
+                    title,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  trailing: Wrap(
+                    children: [
+                      IconButton(
+                          onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (ctx) => BooksPage(
+                                      company: company,
+                                      bookType: BookType.purchases))),
+                          icon: const Icon(Icons.insert_drive_file_rounded),
+                          tooltip: 'COMPRAS Y GASTOS'),
+                      const SizedBox(width: 10),
+                      User.current!.isAdmin
+                          ? IconButton(
+                              onPressed: () => _deleteCompany(company, index),
+                              icon: const Icon(Icons.delete),
+                              color: Theme.of(context).colorScheme.error,
+                              tooltip: 'ELIMINAR')
+                          : const SizedBox(),
+                    ],
+                  ));
+            }));
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isError) {
-      return Scaffold(body: _errorWidget);
-    }
-
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
@@ -159,29 +218,29 @@ class _CompaniesPageState extends State<CompaniesPage> {
           title: 'EMPRESAS',
           actions: [
             PopupMenuButton(
-              color: Colors.white,
-              onSelected: (option) async {
-              switch (option) {
-                case PageOptionType.users:
-                  _viewUsers();
-                  break;
-                case PageOptionType.loggout:
-                  var isConfirm =
-                      await showConfirm(context, title: 'Cerrar Sesion?');
-                  if (isConfirm!) {
-                    _logout();
+                color: Colors.white,
+                onSelected: (option) async {
+                  switch (option) {
+                    case PageOptionType.users:
+                      _viewUsers();
+                      break;
+                    case PageOptionType.loggout:
+                      var isConfirm =
+                          await showConfirm(context, title: 'Cerrar Sesion?');
+                      if (isConfirm!) {
+                        _logout();
+                      }
+                      break;
+                    default:
                   }
-                  break;
-                default:
-              }
-            }, itemBuilder: (ctx) {
-              return _createOptions();
-            }),
-           
+                },
+                itemBuilder: (ctx) {
+                  return _createOptions();
+                }),
           ],
         ),
       ),
-      body: _viewCompanies,
+      body: Column(children: [_searchWidget, _viewCompanies]),
       floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.add),
           onPressed: () async {

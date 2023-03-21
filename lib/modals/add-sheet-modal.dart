@@ -58,77 +58,79 @@ class _AddSheetModalState extends State<AddSheetModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Form(
-          key: _formKey,
-          child: SizedBox(
-              width: 500,
-              child: Material(
-                  child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    Row(
-                      children: [
-                        Text('AÑADIENDO NUEVO MES...',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                    color: Theme.of(context).primaryColor)),
-                        const Spacer(),
-                        IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close))
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField(
-                        value: _month,
-                        decoration: InputDecoration(
-                          enabledBorder: const OutlineInputBorder(
-                            //<-- SEE HERE
-                            borderSide:
-                                BorderSide(color: Colors.grey, width: 1),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            //<-- SEE HERE
-                            borderSide:
-                                BorderSide(color: Colors.grey, width: 1),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                  color: Theme.of(context).colorScheme.error)),
+    return AlertDialog(
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10.0))),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+      content: SizedBox(
+        width: 450,
+        child: Form(
+            key: _formKey,
+            child: Material(
+                child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  Row(
+                    children: [
+                      Text('AÑADIENDO NUEVO MES...',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                  color: Theme.of(context).primaryColor)),
+                      const Spacer(),
+                      IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close))
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField(
+                      value: _month,
+                      decoration: InputDecoration(
+                        enabledBorder: const OutlineInputBorder(
+                          //<-- SEE HERE
+                          borderSide: BorderSide(color: Colors.grey, width: 1),
                         ),
-                        items: months
-                            .map((e) => DropdownMenuItem(
-                                value: months.indexOf(e) + 1, child: Text(e)))
-                            .toList(),
-                        onChanged: (n) {
-                          _month = n!;
-                        }),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _bookYear,
-                      style: const TextStyle(fontSize: 19),
-                      enabled: false,
-                      decoration: const InputDecoration(
-                          hintText: 'AÑO', border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.maxFinite,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _addSheet,
-                        child: const Text('AÑADIR NUEVA HOJA',
-                            style: TextStyle(fontSize: 19)),
+                        focusedBorder: const OutlineInputBorder(
+                          //<-- SEE HERE
+                          borderSide: BorderSide(color: Colors.grey, width: 1),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.error)),
                       ),
-                    )
-                  ],
-                ),
-              )))),
+                      items: months
+                          .map((e) => DropdownMenuItem(
+                              value: months.indexOf(e) + 1, child: Text(e)))
+                          .toList(),
+                      onChanged: (n) {
+                        _month = n!;
+                      }),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _bookYear,
+                    style: const TextStyle(fontSize: 19),
+                    enabled: false,
+                    decoration: const InputDecoration(
+                        hintText: 'AÑO', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.maxFinite,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _addSheet,
+                      child: const Text('AÑADIR NUEVA HOJA',
+                          style: TextStyle(fontSize: 19)),
+                    ),
+                  )
+                ],
+              ),
+            ))),
+      ),
     );
   }
 }

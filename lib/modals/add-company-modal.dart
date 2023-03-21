@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/utils/functions.dart';
@@ -11,6 +13,7 @@ class AddCompanyModal extends StatefulWidget {
 }
 
 class AddCompanyModalState extends State<AddCompanyModal> {
+
   final _formKey = GlobalKey<FormState>();
   TextEditingController? rnc;
   TextEditingController? name;
@@ -66,12 +69,15 @@ class AddCompanyModalState extends State<AddCompanyModal> {
           FocusManager.instance.primaryFocus?.unfocus();
         }
       },
-      child: Dialog(
-          child: Form(
+      child: AlertDialog(
+          shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(10.0))),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
+          content: SizedBox(
+            width: 450,
+            child: Form(
               key: _formKey,
-              child: SizedBox(
-                width: 450,
-                child: Material(
+              child:Material(
                     color: Colors.white,
                     child: Padding(
                       padding: const EdgeInsets.all(20),
@@ -80,10 +86,10 @@ class AddCompanyModalState extends State<AddCompanyModal> {
                         children: [
                           Row(
                             children: [
-                              Text('Añadiendo Compañia...',
+                              Text('AÑADIENDO COMPAÑIA...',
                                   style: Theme.of(context)
                                       .textTheme
-                                      .headline5
+                                      .headlineSmall
                                       ?.copyWith(
                                           color:
                                               Theme.of(context).primaryColor)),
@@ -126,7 +132,8 @@ class AddCompanyModalState extends State<AddCompanyModal> {
                         ],
                       ),
                     )),
-              ))),
+              ),
+          )),
     );
   }
 }

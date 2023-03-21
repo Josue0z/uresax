@@ -59,10 +59,13 @@ class _AddBookModalState extends State<AddBookModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Form(
+    return AlertDialog(
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10.0))),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+      content: Form(
           child: SizedBox(
-              width: 500,
+              width: 450,
               child: Material(
                   color: Colors.white,
                   child: Padding(
@@ -72,8 +75,12 @@ class _AddBookModalState extends State<AddBookModal> {
                       children: [
                         Row(
                           children: [
-                            Text('Añadiendo Libro...',
-                                style: Theme.of(context).textTheme.headline5),
+                            Text('AÑADIENDO LIBRO...',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                        color: Theme.of(context).primaryColor)),
                             const Spacer(),
                             IconButton(
                                 onPressed: () => Navigator.pop(context),

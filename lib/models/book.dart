@@ -47,11 +47,17 @@ class Book {
     }
   }
 
-  static Future<List<Book>> all({String? companyId}) async {
+  static Future<List<Book>> all({String? where}) async {
     try {
+
+      if(where != ''){
+        where = 'where $where';
+      }  
+
       var results = await connection.mappedResultsQuery('''
-      select * from public."BookDetails" where "companyId" = '$companyId' and "book_typeId" = 1 order by "book_year";
+      select * from public."BookDetails" $where and "book_typeId" = 1 order by "book_year";
      ''');
+
       return results.map((row) => Book.fromJson(row['']!)).toList();
     } catch (e) {
       rethrow;

@@ -38,6 +38,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSwatch(errorColor: const Color(0xFFFA473B)),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: User.current is User ? const CompaniesPage() : const LoginPage(),

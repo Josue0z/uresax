@@ -14,8 +14,8 @@ import 'package:uresaxapp/models/sheet.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/ncf-editor-widget.dart';
-import 'package:number_text_input_formatter/number_text_input_formatter.dart';
 import 'package:simple_moment/simple_moment.dart';
+import '../utils/extra.dart';
 
 class AddPurchaseModal extends StatefulWidget {
   final Purchase? purchase;
@@ -58,18 +58,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
   bool isCorrectRnc = false;
 
-  var myformatter = NumberTextInputFormatter(
-    integerDigits: 10,
-    decimalDigits: 2,
-    maxValue: '1000000000.00',
-    decimalSeparator: '.',
-    groupDigits: 3,
-    groupSeparator: ',',
-    allowNegative: false,
-    overrideDecimalPoint: true,
-    insertDecimalPoint: false,
-    insertDecimalDigits: true,
-  );
+
 
   TextEditingController rnc = TextEditingController();
   TextEditingController ck = TextEditingController();
