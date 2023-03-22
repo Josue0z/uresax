@@ -13,7 +13,7 @@ var formatter = StringMask('#.###.00');
 
 enum ReportType { month, year }
 
-enum QueryContext { tax, consumption }
+enum QueryContext { general, tax, consumption }
 
 class ReportViewModel {
   String title;
@@ -162,22 +162,22 @@ class Purchase {
       reportType = ReportType.month,
       QueryContext queryContext = QueryContext.tax}) async {
     String where = '';
-    String queryContextI = '';
+    String queryContextI = 'and';
 
     if (queryContext == QueryContext.consumption) {
       queryContextI =
-          '(p."invoice_ncf_typeId" = 2 or p."invoice_ncf_typeId" = 32)';
-    } else {
+          'and (p."invoice_ncf_typeId" = 2 or p."invoice_ncf_typeId" = 32) and';
+    } else if (queryContext == QueryContext.tax) {
       queryContextI =
-          'p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32';
+          'and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and';
     }
 
     if (reportType == ReportType.month) {
       where =
-          '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') and $queryContextI and p."invoice_month" between $start and $end''';
+          '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') $queryContextI p."invoice_month" between $start and $end''';
     } else {
       where =
-          '''p."invoice_companyId" = '$id' and $queryContextI and p."invoice_year" between $start and $end''';
+          '''p."invoice_companyId" = '$id' $queryContextI p."invoice_year" between $start and $end''';
     }
 
     try {
@@ -206,6 +206,7 @@ class Purchase {
           SUM("TOTAL EN BIENES"::numeric(10,2))::money::text AS "TOTAL EN BIENES",
           SUM("TOTAL EN BIENES"::numeric(10,2) + "TOTAL EN SERVICIOS"::numeric(10,2))::money::text AS "TOTAL FACTURADO",
           SUM("TOTAL ITBIS FACTURADO"::numeric(10,2))::money::text AS "TOTAL ITBIS FACTURADO",
+          SUM(("TOTAL EN BIENES"::numeric(10,2) + "TOTAL EN SERVICIOS"::numeric(10,2)) - "TOTAL ITBIS FACTURADO"::numeric(10,2))::money::text AS "TOTAL NETO",
           SUM("ITBIS RETENIDO"::numeric(10,2))::money::text AS "ITBIS RETENIDO",
           SUM("ISR RETENIDO"::numeric(10,2))::money::text AS "ISR RETENIDO"
           FROM public."ReportViewForInvoiceType"

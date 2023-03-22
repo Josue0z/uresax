@@ -144,7 +144,8 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
               3:const pw.FixedColumnWidth(110),
               4:const pw.FixedColumnWidth(110),
               5:const pw.FixedColumnWidth(110),
-              6:const pw.FixedColumnWidth(110)
+              6:const pw.FixedColumnWidth(110),
+              7:const pw.FixedColumnWidth(110)
               },
               children: [
                 dhead(),

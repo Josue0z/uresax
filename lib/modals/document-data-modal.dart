@@ -48,6 +48,7 @@ class _DocumentModalState extends State<DocumentModal> {
   TextEditingController endYear = TextEditingController();
 
   List<Map<String, dynamic>> ncfsTypes = [
+    {'TIPO':QueryContext.general,'NAME':'REPORTE GENERAL'},
     {'TIPO': QueryContext.tax, 'NAME': 'FACTURAS FISCALES'},
     {'TIPO': QueryContext.consumption, 'NAME': 'FACTURAS DE CONSUMO'}
   ];
@@ -58,8 +59,9 @@ class _DocumentModalState extends State<DocumentModal> {
 
   @override
   void initState() {
-    label = ncfsTypes.first['NAME'];
+   
     setState(() {
+      label = ncfsTypes[1]['NAME'];
       widget.reportViewModel.title = _title;
       offsetX1 = widget.reportViewModel.rangeValues!.start;
       offsetX2 = widget.reportViewModel.rangeValues!.end;
@@ -151,7 +153,7 @@ class _DocumentModalState extends State<DocumentModal> {
             action: SnackBarAction(
                 label: 'ABRIR ARCHIVO',
                 onPressed: () async {
-                  await launchFile(path.dirname(filePath));
+                  await launchFile(filePath);
                 })));
       }
     } catch (e) {
@@ -427,13 +429,13 @@ class _DocumentModalState extends State<DocumentModal> {
 
   Widget get _emptyContainer {
     return SizedBox(
-      height: 200,
+      height: 178,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.book, size: 100, color: Theme.of(context).primaryColor)
+            Icon(Icons.book, size: 60, color: Theme.of(context).primaryColor)
           ],
         ),
       ),
