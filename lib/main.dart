@@ -5,7 +5,6 @@ import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
 import 'package:uresaxapp/pages/login_page.dart';
 import 'package:window_manager/window_manager.dart';
-import './apis/connection.dart';
 
 void main() async {
   try {

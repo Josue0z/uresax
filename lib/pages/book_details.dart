@@ -9,10 +9,17 @@ import 'package:uresaxapp/modals/add-concept-modal.dart';
 import 'package:uresaxapp/modals/add-purchase-modal.dart';
 import 'package:uresaxapp/modals/add-sheet-modal.dart';
 import 'package:uresaxapp/modals/document-data-modal.dart';
+import 'package:uresaxapp/models/banking.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/concept.dart';
+import 'package:uresaxapp/models/invoicetype.dart';
+import 'package:uresaxapp/models/ncftype.dart';
+import 'package:uresaxapp/models/payment-method.dart';
 import 'package:uresaxapp/models/purchase.dart';
+import 'package:uresaxapp/models/retention.dart';
+import 'package:uresaxapp/models/retention.tax.dart';
 import 'package:uresaxapp/models/sheet.dart';
+import 'package:uresaxapp/models/tax.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
 import 'package:uresaxapp/utils/extra.dart';
@@ -271,24 +278,84 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     }
   }
 
+  _getPurchaseContext({bool isEditing = false, Purchase? purchase}) async {
+    var concepts = [Concept(name: 'CONCEPTO'), ...(await Concept.getConcepts())]
+        .cast<Concept>();
+
+    var bankings = [Banking(name: 'BANCO'), ...(await Banking.getBankings())]
+        .cast<Banking>();
+
+    var invoiceTypes = [
+      InvoiceType(name: 'TIPO DE FACTURA'),
+      ...(await InvoiceType.getInvoiceTypes())
+    ].cast<InvoiceType>();
+
+    var paymentMethods = [
+      PaymentMethod(name: 'METODO DE PAGO'),
+      ...(await PaymentMethod.getPaymentMethods())
+    ].cast<PaymentMethod>();
+
+    var retentions = [
+      Retention(name: 'RETENCION ISR'),
+      ...(await Retention.all())
+    ].cast<Retention>();
+
+    var ncfs = [
+      NcfType(name: 'TIPO DE COMPROBANTE'),
+      ...(await NcfType.getNcfs())
+    ].cast<NcfType>();
+
+    var retentionTaxes = [
+      RetentionTax(name: 'RETENCION DE ITBIS'),
+      ...(await RetentionTax.all())
+    ].cast<RetentionTax>();
+
+    var taxes = await Tax.all();
+
+    Navigator.pop(context);
+
+    return await showDialog(
+        context: context,
+        builder: (ctx) => AddPurchaseModal(
+              book: widget.book,
+              sheet: widget.currentSheet!,
+              purchase: purchase,
+              concepts: concepts,
+              bankings: bankings,
+              invoiceTypes: invoiceTypes,
+              paymentMethods: paymentMethods,
+              retentions: retentions,
+              retentionTaxes: retentionTaxes,
+              ncfs: ncfs,
+              taxes: taxes,
+              isEditing: isEditing,
+            ));
+  }
+
   _showModalPurchase() async {
     try {
-      RawKeyboard.instance.removeListener(_handlerKeys);
-      var result = await showDialog(
-          context: context,
-          builder: (ctx) =>
-              AddPurchaseModal(book: widget.book, sheet: widget.currentSheet!));
-      RawKeyboard.instance.addListener(_handlerKeys);
+      await showLoader(context);
 
-      if (result['method'] == 'INSERT') {
-        var purchase = result['data'] as Purchase;
-        widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'SE INSERTO LA FACTURA CON EL RNC: ${purchase.invoiceRnc} Y EL NCF: ${purchase.invoiceNcf}')));
-        setState(() {});
+      RawKeyboard.instance.removeListener(_handlerKeys);
+
+      var result = await _getPurchaseContext();
+
+      if (result is Map) {
+        if (result['method'] == 'INSERT') {
+          var purchase = result['data'] as Purchase;
+          widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(
+                  'SE INSERTO LA FACTURA CON EL RNC: ${purchase.invoiceRnc} Y EL NCF: ${purchase.invoiceNcf}')));
+          RawKeyboard.instance.addListener(_handlerKeys);
+
+          setState(() {});
+        }
       }
-    } catch (_) {}
+    } catch (e) {
+      Navigator.pop(context);
+      showAlert(context, message: e.toString());
+    }
   }
 
   _showModalSheet() async {
@@ -356,28 +423,33 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   _selectInvoice(Purchase purchase) async {
     try {
-      var result = await showDialog(
-          context: context,
-          builder: (ctx) => AddPurchaseModal(
-              book: widget.book,
-              sheet: widget.currentSheet!,
-              purchase: purchase,
-              isEditing: true));
+      await showLoader(context);
 
-      if (result['method'] == 'DELETE') {
-        widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('SE ELIMINO LA FACTURA')));
-        setState(() {});
+      RawKeyboard.instance.removeListener(_handlerKeys);
+      var result =
+          await _getPurchaseContext(isEditing: true, purchase: purchase);
+      if (result is Map) {
+        if (result['method'] == 'DELETE') {
+          widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('SE ELIMINO LA FACTURA')));
+          setState(() {});
+        }
+
+        if (result['method'] == 'UPDATE') {
+          widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('SE ACTUALIZO LA FACTURA')));
+
+          setState(() {});
+        }
       }
 
-      if (result['method'] == 'UPDATE') {
-        widget.purchases = await widget.currentSheet?.getPurchases() ?? [];
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('SE ACTUALIZO LA FACTURA')));
-        setState(() {});
-      }
-    } catch (_) {}
+      RawKeyboard.instance.addListener(_handlerKeys);
+    } catch (e) {
+      Navigator.pop(context);
+      showAlert(context, message: e.toString());
+    }
   }
 
   _deleteSheet() async {
@@ -776,11 +848,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                       onTap: _generate606,
                       toolTip: 'GENERAR 606',
                       icon: const Icon(Icons.save)),
-                  User.current!.isAdmin ?
-                  ToolButton(
-                      onTap: _deleteSheet,
-                      toolTip: 'ELIMNINAR ESTA HOJA',
-                      icon: const Icon(Icons.delete)):Container()
+                  User.current!.isAdmin
+                      ? ToolButton(
+                          onTap: _deleteSheet,
+                          toolTip: 'ELIMNINAR ESTA HOJA',
+                          icon: const Icon(Icons.delete))
+                      : Container()
                 ],
               )
             ],
