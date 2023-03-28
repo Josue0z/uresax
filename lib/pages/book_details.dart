@@ -656,6 +656,16 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     super.dispose();
   }
 
+  _copyRnc() async {
+    try {
+      await Clipboard.setData(ClipboardData(text: widget.book.companyRnc));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('RNC DE ${widget.book.companyName} COPIADO!')));
+    } catch (e) {
+      showAlert(context, message: e.toString());
+    }
+  }
+
   _goHome() async {
     try {
       await widget.book.dispose();
@@ -834,6 +844,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
                               fontSize: 18, fontWeight: FontWeight.w500)),
                     ),
                   )),
+              ToolButton(
+                  onTap: _copyRnc,
+                  toolTip: 'COPIAR RNC DE ${widget.book.companyName}',
+                  icon: const Icon(Icons.copy)),
               ToolButton(
                   onTap: _goHome,
                   toolTip: 'IR A INICIO',

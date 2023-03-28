@@ -76,18 +76,17 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
       return pw.Padding(
           padding: const pw.EdgeInsets.only(bottom: 5),
           child: pw.Column(
-              mainAxisAlignment: pw.MainAxisAlignment.start,
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  key,
-                  style: pw.TextStyle(
-                    fontSize: 8,
-                    fontWeight: pw.FontWeight.bold,
-                    color: const PdfColor.fromInt(0x0000000),
-                  ),
-                ),
-              ]));
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+            pw.Text(
+              key,
+              style: pw.TextStyle(
+                fontSize: 8,
+                fontWeight: pw.FontWeight.bold,
+                color: const PdfColor.fromInt(0x0000000),
+              ),
+            ),
+          ]));
     }).toList());
   }
 
@@ -96,7 +95,7 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
       var index = reportViewModel.body.indexOf(item);
 
       return pw.TableRow(
-         verticalAlignment: pw.TableCellVerticalAlignment.middle,
+          verticalAlignment: pw.TableCellVerticalAlignment.middle,
           decoration: const pw.BoxDecoration(
             border: pw.Border(
                 top: pw.BorderSide(
@@ -108,18 +107,15 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
             bool isTotal = j == 0 && index == reportViewModel.body.length - 1;
 
             return pw.Padding(
-              padding: const pw.EdgeInsets.symmetric(vertical: 5),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                mainAxisAlignment: pw.MainAxisAlignment.start,
-                children: [
-                  pw.Text(entry.value ?? '\$0.00',
-                        style: pw.TextStyle(
-                            fontSize: 8,
-                            fontWeight: isTotal ? pw.FontWeight.bold : null)),
-                  
-                ])
-            );
+                padding: const pw.EdgeInsets.symmetric(vertical: 5),
+                child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(entry.value ?? '\$0.00',
+                          style: pw.TextStyle(
+                              fontSize: 8,
+                              fontWeight: isTotal ? pw.FontWeight.bold : null)),
+                    ]));
           }).toList());
     }).toList();
   }
@@ -132,20 +128,19 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
           mainAxisAlignment: pw.MainAxisAlignment.start,
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(
-                reportViewModel.title,
+            pw.Text(reportViewModel.title,
                 style: const pw.TextStyle(fontSize: 13)),
             pw.SizedBox(height: 20),
             pw.Table(
               columnWidths: {
-              0:const pw.IntrinsicColumnWidth(),
-              1:const pw.FixedColumnWidth(110),
-              2:const pw.FixedColumnWidth(110),
-              3:const pw.FixedColumnWidth(110),
-              4:const pw.FixedColumnWidth(110),
-              5:const pw.FixedColumnWidth(110),
-              6:const pw.FixedColumnWidth(110),
-              7:const pw.FixedColumnWidth(110)
+                0: const pw.IntrinsicColumnWidth(),
+                1: const pw.FixedColumnWidth(110),
+                2: const pw.FixedColumnWidth(110),
+                3: const pw.FixedColumnWidth(110),
+                4: const pw.FixedColumnWidth(110),
+                5: const pw.FixedColumnWidth(110),
+                6: const pw.FixedColumnWidth(110),
+                7: const pw.FixedColumnWidth(110)
               },
               children: [
                 dhead(),
@@ -172,8 +167,8 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                   pw.TextSpan(text: reportViewModel.taxGood)
                 ])),
-             pw.SizedBox(height: 10),
-             pw.RichText(
+            pw.SizedBox(height: 10),
+            pw.RichText(
                 text: pw.TextSpan(
                     style: const pw.TextStyle(fontSize: 9),
                     children: [
@@ -186,4 +181,3 @@ pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
         ); // Center
       });
 }
-
