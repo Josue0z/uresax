@@ -48,7 +48,7 @@ class _DocumentModalState extends State<DocumentModal> {
   TextEditingController endYear = TextEditingController();
 
   List<Map<String, dynamic>> ncfsTypes = [
-    {'TIPO':QueryContext.general,'NAME':'REPORTE GENERAL'},
+    {'TIPO': QueryContext.general, 'NAME': 'REPORTE GENERAL'},
     {'TIPO': QueryContext.tax, 'NAME': 'FACTURAS FISCALES'},
     {'TIPO': QueryContext.consumption, 'NAME': 'FACTURAS DE CONSUMO'}
   ];
@@ -59,7 +59,6 @@ class _DocumentModalState extends State<DocumentModal> {
 
   @override
   void initState() {
-   
     setState(() {
       label = ncfsTypes[1]['NAME'];
       widget.reportViewModel.title = _title;
@@ -308,9 +307,22 @@ class _DocumentModalState extends State<DocumentModal> {
                     color: Theme.of(context).primaryColor)),
             const Spacer(),
             SizedBox(
-              width: 220,
+              width: 250,
               child: DropdownButtonFormField<QueryContext>(
                   value: queryContext,
+                  decoration: InputDecoration(
+                    enabledBorder: const OutlineInputBorder(
+                      //<-- SEE HERE
+                      borderSide: BorderSide(color: Colors.grey, width: 1),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      //<-- SEE HERE
+                      borderSide: BorderSide(color: Colors.grey, width: 1),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.error)),
+                  ),
                   items: ncfsTypes
                       .map((e) => DropdownMenuItem(
                           value: e['TIPO'] as QueryContext,
@@ -363,7 +375,7 @@ class _DocumentModalState extends State<DocumentModal> {
             ? Wrap(
                 children: [
                   Table(
-                    columnWidths: const {0: IntrinsicColumnWidth()},
+                    columnWidths: const {0: FixedColumnWidth(350)},
                     children: [_head, ..._rows],
                   ),
                   SingleChildScrollView(
@@ -445,8 +457,11 @@ class _DocumentModalState extends State<DocumentModal> {
   Widget get _content {
     return Scaffold(
         backgroundColor: Colors.transparent,
-        body: Dialog(
-          child: SizedBox(
+        body: AlertDialog(
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(10.0))),
+          contentPadding: const EdgeInsets.symmetric(vertical: 5),
+          content: SizedBox(
             width: 1300,
             child: Padding(padding: const EdgeInsets.all(10), child: _viewData),
           ),

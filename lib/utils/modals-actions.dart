@@ -68,7 +68,7 @@ Future<bool?> showConfirm(BuildContext context,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             content: SizedBox(
-                width: 450,
+                width: 400,
                 child: Form(
                     key: formKey,
                     child: Padding(

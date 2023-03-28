@@ -72,7 +72,6 @@ class _UsersPageState extends State<UsersPage> {
             return ListTile(
               leading: Icon(Icons.account_circle_outlined,
                   size: 50, color: Theme.of(context).primaryColor),
-              
               minVerticalPadding: 15,
               contentPadding: const EdgeInsets.symmetric(horizontal: 80),
               title: Text(
@@ -85,18 +84,21 @@ class _UsersPageState extends State<UsersPage> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            borderRadius: BorderRadius.circular(20)),
-                        child: Text(
-                          user.roleName!,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500),
-                        ),
-                      ),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                              color: Theme.of(context).primaryColor,
+                              borderRadius: BorderRadius.circular(20)),
+                          child: SizedBox(
+                              width: 120,
+                              child: Center(
+                                child: Text(
+                                  user.roleName!,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                              ))),
                       const SizedBox(width: 10),
                       Text(user.username!, style: const TextStyle(fontSize: 18))
                     ],

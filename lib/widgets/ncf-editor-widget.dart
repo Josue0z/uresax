@@ -26,7 +26,6 @@ class NcfEditorWidget extends StatefulWidget {
 }
 
 class _NcfEditorWidgetState extends State<NcfEditorWidget> {
-
   
   NcfType? currentNcfType;
 
@@ -34,19 +33,20 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
     return currentNcfType?.ncfTag != null;
   }
 
-  bool get isElectronic{
-     if(!isReady)return false;
-     return currentNcfType!.prefixId == 2;
+  bool get isElectronic {
+    if (!isReady) return false;
+    return currentNcfType!.prefixId == 2;
   }
 
   @override
   void initState() {
-    if(!mounted)return;
+    if (!mounted) return;
     setState(() {
       currentNcfType = widget.ncfs
           .firstWhere((element) => element.id == widget.currentNcfTypeId);
-      if(widget.controller.text.isNotEmpty){
-         widget.controller.value = TextEditingValue(text: widget.controller.value.text.substring(3));
+      if (widget.controller.text.isNotEmpty) {
+        widget.controller.value =
+            TextEditingValue(text: widget.controller.value.text.substring(3));
       }
     });
     super.initState();
@@ -66,7 +66,7 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: DropdownButtonFormField<int?>(
               value: currentNcfType?.id,
-              validator:!widget.isNcfModifed ? widget.validator : null,
+              validator:!widget.isNcfModifed? widget.validator : null,
               decoration: InputDecoration(
                   enabledBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.grey, width: 1),
@@ -74,19 +74,25 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
                   focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.grey, width: 1),
                   ),
+                  focusedErrorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.error)),
                   errorBorder: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: Theme.of(context).colorScheme.error))),
+                      borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.error))),
               hint: const Text('TIPO DE COMPROBANTE'),
               dropdownColor: Colors.white,
               enableFeedback: false,
               isExpanded: true,
               focusColor: Colors.white,
               onChanged: (id) {
-                if(id == null){
-                    widget.controller.value = TextEditingValue.empty;
+                if (id == null) {
+                  widget.controller.value = TextEditingValue.empty;
+                  currentNcfType = null;
+                } else {
+                  currentNcfType =
+                      widget.ncfs.firstWhere((element) => element.id == id);
                 }
-                currentNcfType =  widget.ncfs.firstWhere((element) => element.id == id);
                 widget.currentNcfTypeId = id;
                 widget.onChanged(currentNcfType);
                 setState(() {});
@@ -103,19 +109,18 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
           child: TextFormField(
             keyboardType: TextInputType.number,
             controller: widget.controller,
-            validator: isReady
-                ? (val) => val!.isEmpty
+            validator: (val) => isReady ? val!.isEmpty
                     ? 'CAMPO REQUERIDO'
                     : !(val.length == 8 || val.length == 10)
                         ? 'EL NUMERO DE DIGITOS DEBE SER 8 O 10'
                         : null
-                : null,
+              :null,
             inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.digitsOnly
             ],
             style: const TextStyle(fontSize: 18),
             enabled: isReady,
-            maxLength: !isElectronic ? 8 : 10,
+            maxLength: !isElectronic?8:10,
             decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: isReady

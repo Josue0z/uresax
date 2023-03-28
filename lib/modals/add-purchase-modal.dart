@@ -176,7 +176,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
       var sumRates = rates.reduce((value, element) => value + element);
 
-      if ((n1 > sumRates)) {
+      if (n1 > sumRates) {
         return 'EL ITBIS ES MAYOR QUE LA TASA APLICADA POR LEY';
       }
     }
@@ -255,12 +255,16 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-        child: SizedBox(
-            width: 600,
+    return AlertDialog(
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10.0))),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        content: SizedBox(
+            width: 550,
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: Form(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                   key: _formKey,
                   child: Column(
                     children: [
@@ -332,6 +336,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         borderSide: BorderSide(
                                             color: Colors.grey, width: 1),
                                       ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error)),
                                       errorBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
                                               color: Theme.of(context)
@@ -373,15 +382,20 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                       const EdgeInsets.symmetric(vertical: 10),
                                   child: DropdownButtonFormField<int?>(
                                     value: currentBanking,
-                                    decoration: const InputDecoration(
-                                      enabledBorder: OutlineInputBorder(
+                                    decoration: InputDecoration(
+                                      enabledBorder: const OutlineInputBorder(
                                         borderSide: BorderSide(
                                             color: Colors.grey, width: 1),
                                       ),
-                                      focusedBorder: OutlineInputBorder(
+                                      focusedBorder: const OutlineInputBorder(
                                         borderSide: BorderSide(
                                             color: Colors.grey, width: 1),
                                       ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error)),
                                     ),
                                     hint: const Text('BANCO'),
                                     dropdownColor: Colors.white,
@@ -465,6 +479,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         borderSide: BorderSide(
                                             color: Colors.grey, width: 1),
                                       ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error)),
                                       errorBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
                                               color: Theme.of(context)
@@ -505,6 +524,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         borderSide: BorderSide(
                                             color: Colors.grey, width: 1),
                                       ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error)),
                                       errorBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
                                               color: Theme.of(context)
@@ -542,6 +566,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         borderSide: BorderSide(
                                             color: Colors.grey, width: 1),
                                       ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error)),
                                       errorBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
                                               color: Theme.of(context)
@@ -580,6 +609,11 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         borderSide: BorderSide(
                                             color: Colors.grey, width: 1),
                                       ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error)),
                                       errorBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
                                               color: Theme.of(context)
@@ -723,6 +757,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                           ),
                         ],
                       )),
+                      const SizedBox(height: 20),
                       Row(
                         children: [
                           widget.isEditing

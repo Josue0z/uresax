@@ -26,6 +26,7 @@ import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:path/path.dart' as path;
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:uresaxapp/widgets/custom.floating-action.button.dart';
 import 'package:uresaxapp/widgets/toolbutton.widget.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -347,11 +348,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(
                   'SE INSERTO LA FACTURA CON EL RNC: ${purchase.invoiceRnc} Y EL NCF: ${purchase.invoiceNcf}')));
-          RawKeyboard.instance.addListener(_handlerKeys);
 
           setState(() {});
         }
       }
+      RawKeyboard.instance.addListener(_handlerKeys);
     } catch (e) {
       Navigator.pop(context);
       showAlert(context, message: e.toString());
@@ -586,6 +587,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     try {
       await widget.book.dispose();
       await windowManager.setPreventClose(false);
+      Navigator.pop(context);
       return true;
     } catch (e) {
       showAlert(context, message: e.toString());
@@ -811,82 +813,82 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onBeforeClose,
-      child: Scaffold(
-          appBar: AppBar(
-            title: Text(_title),
-            elevation: 0,
-            actions: [
-              Row(
-                children: [
-                  SizedBox(
-                      height: kToolbarHeight,
-                      width: 50,
-                      child: Tooltip(
-                        message:
-                            'CANTIDAD DE NCFS QUE SERAN REPORTADOS A LA DGII',
-                        child: Center(
-                          child: Text(_count01,
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w500)),
-                        ),
-                      )),
-                  ToolButton(
-                      onTap: _goHome,
-                      toolTip: 'IR A INICIO',
-                      icon: const Icon(Icons.home)),
-                  ToolButton(
-                      onTap: _showConceptModal,
-                      toolTip: 'ABRIR CATALOGO DE CATEGORIAS',
-                      icon: const Icon(Icons.category)),
-                  ToolButton(
-                      onTap: _openFolder,
-                      toolTip: 'ABRIR CARPETA DE ${widget.book.companyName}',
-                      icon: const Icon(Icons.folder)),
-                  ToolButton(
-                      onTap: _generate606,
-                      toolTip: 'GENERAR 606',
-                      icon: const Icon(Icons.save)),
-                  User.current!.isAdmin
-                      ? ToolButton(
-                          onTap: _deleteSheet,
-                          toolTip: 'ELIMNINAR ESTA HOJA',
-                          icon: const Icon(Icons.delete))
-                      : Container()
-                ],
-              )
-            ],
-          ),
-          body: widget.purchases.isNotEmpty ? _invoicesView : _emptyContainer,
-          floatingActionButton: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: null,
+        leadingWidth: 0,
+        title: Text(_title),
+        elevation: 0,
+        actions: [
+          Row(
             children: [
-              FloatingActionButton(
-                  heroTag: null,
-                  tooltip: 'VER REPORTE DEL MES',
-                  onPressed: _preloadReportData,
-                  child: const Icon(Icons.document_scanner)),
-              const SizedBox(width: 10),
-              FloatingActionButton(
-                  heroTag: null,
-                  tooltip: widget.sheets.isEmpty
-                      ? 'AÑADE UNA HOJA PRIMERO'
-                      : 'AÑADIR FACTURA DE ${widget.book.bookTypeName}',
-                  onPressed:
-                      widget.sheets.isNotEmpty ? _showModalPurchase : null,
-                  child: const Icon(Icons.insert_drive_file_outlined)),
-              const SizedBox(width: 10),
-              FloatingActionButton(
-                  heroTag: null,
-                  tooltip: _checkSheetLimit
-                      ? 'AÑADIR HOJA'
-                      : 'YA NO SE PUEDE AÑADIR MAS MESES PARA ESTE LIBRO',
-                  onPressed: _checkSheetLimit ? _showModalSheet : null,
-                  child: const Icon(Icons.add))
+              SizedBox(
+                  height: kToolbarHeight,
+                  width: 50,
+                  child: Tooltip(
+                    message: 'CANTIDAD DE NCFS QUE SERAN REPORTADOS A LA DGII',
+                    child: Center(
+                      child: Text(_count01,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                    ),
+                  )),
+              ToolButton(
+                  onTap: _goHome,
+                  toolTip: 'IR A INICIO',
+                  icon: const Icon(Icons.home)),
+              ToolButton(
+                  onTap: _onBeforeClose,
+                  toolTip: 'IR A LA BIBLIOTECA DE ${widget.book.companyName}',
+                  icon: const Icon(Icons.book)),
+              ToolButton(
+                  onTap: _showConceptModal,
+                  toolTip: 'ABRIR CATALOGO DE CATEGORIAS',
+                  icon: const Icon(Icons.category)),
+              ToolButton(
+                  onTap: _openFolder,
+                  toolTip: 'ABRIR CARPETA DE ${widget.book.companyName}',
+                  icon: const Icon(Icons.folder)),
+              ToolButton(
+                  onTap: _generate606,
+                  toolTip: 'GENERAR 606',
+                  icon: const Icon(Icons.save)),
+              User.current!.isAdmin
+                  ? ToolButton(
+                      onTap: _deleteSheet,
+                      toolTip: 'ELIMNINAR ESTA HOJA',
+                      icon: const Icon(Icons.delete))
+                  : Container()
             ],
-          ),
-          bottomNavigationBar: _bottomBar),
+          )
+        ],
+      ),
+      body: widget.purchases.isNotEmpty ? _invoicesView : _emptyContainer,
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          CustomFloatingActionButton(
+              onTap: _preloadReportData,
+              title: 'VER REPORTE',
+              icon: Icons.document_scanner_outlined),
+          const SizedBox(width: 10),
+          CustomFloatingActionButton(
+              onTap: widget.sheets.isNotEmpty ? _showModalPurchase : null,
+              title: widget.sheets.isEmpty
+                  ? 'AÑADE UNA HOJA PRIMERO'
+                  : 'AÑADIR FACTURA DE ${widget.book.bookTypeName}',
+              icon: Icons.insert_drive_file_outlined),
+          const SizedBox(width: 10),
+          CustomFloatingActionButton(
+              onTap: _showModalSheet,
+              title: _checkSheetLimit
+                  ? 'AÑADIR HOJA'
+                  : 'YA NO SE PUEDE AÑADIR MAS MESES PARA ESTE LIBRO',
+              icon: Icons.add)
+        ],
+      ),
+      bottomNavigationBar: _bottomBar,
     );
   }
 }
