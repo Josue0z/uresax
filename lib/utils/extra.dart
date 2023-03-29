@@ -16,6 +16,18 @@ List<String> months = [
   'DICIEMBRE'
 ];
 
+
+enum ReportType { month, year }
+
+enum QueryContext { general, tax, consumption }
+
+
+List<Map<String, dynamic>> ncfsTypes = [
+  {'TIPO': QueryContext.general, 'NAME': 'REPORTE GENERAL'},
+  {'TIPO': QueryContext.tax, 'NAME': 'FACTURAS FISCALES'},
+  {'TIPO': QueryContext.consumption, 'NAME': 'FACTURAS DE CONSUMO'}
+];
+
 var myformatter = NumberTextInputFormatter(
   integerDigits: 10,
   decimalDigits: 2,

@@ -69,7 +69,7 @@ String buildReportTitle(int start, int end, Book book) {
   return '$c $t';
 }
 
-pw.Page buildReportViewModel(ReportViewModel reportViewModel) {
+pw.Page buildReportViewModel(ReportViewModelForInvoiceType reportViewModel) {
   dhead() {
     return pw.TableRow(
         children: reportViewModel.body[0]!.keys.map((key) {

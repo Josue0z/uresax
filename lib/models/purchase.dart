@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/book.dart';
-import 'package:uresaxapp/utils/extra.dart';
 import 'package:uuid/uuid.dart';
 import 'package:uresaxapp/apis/connection.dart';
 import 'package:uresaxapp/models/user.dart';
@@ -9,13 +8,33 @@ import 'package:simple_moment/simple_moment.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:string_mask/string_mask.dart';
 
+import '../utils/extra.dart';
+
 var formatter = StringMask('#.###.00');
 
-enum ReportType { month, year }
+class ReportViewModelForConceptType {
+  String? title;
+  List<Map<String, dynamic>?> body;
+  pw.Document? pdf;
+  Book? book;
+  int? start = 1;
+  int? end = 12;
+  RangeLabels? rangeLabels;
+  RangeValues? rangeValues;
+  String totalNcfs;
+  ReportViewModelForConceptType(
+      {required this.body,
+      required this.totalNcfs,
+      this.rangeValues,
+      this.rangeLabels,
+      this.pdf,
+      this.title,
+      this.book,
+      this.start,
+      this.end});
+}
 
-enum QueryContext { general, tax, consumption }
-
-class ReportViewModel {
+class ReportViewModelForInvoiceType {
   String title;
 
   List<Map<String, dynamic>?> body;
@@ -44,7 +63,7 @@ class ReportViewModel {
 
   String totalNcfs;
 
-  ReportViewModel(
+  ReportViewModelForInvoiceType(
       {required this.body,
       this.footer = const {},
       this.title = '',
@@ -155,7 +174,7 @@ class Purchase {
       this.invoiceNetTotal,
       this.createdAt});
 
-  static Future<ReportViewModel> getReportViewByInvoiceType(
+  static Future<ReportViewModelForInvoiceType> getReportViewByInvoiceType(
       {String id = '',
       int start = 1,
       int end = 12,
@@ -232,7 +251,7 @@ class Purchase {
 
       var t5 = r5.first['']?['TOTAL DE DOCUMENTOS'] ?? '0';
 
-      return ReportViewModel(
+      return ReportViewModelForInvoiceType(
           body: body,
           start: start,
           end: end,
@@ -244,8 +263,65 @@ class Purchase {
     }
   }
 
+  static Future<ReportViewModelForConceptType> getReportViewByConceptType(
+      {String id = '',
+      int start = 1,
+      int end = 12,
+      reportType = ReportType.month,
+      QueryContext queryContext = QueryContext.tax}) async {
+    try {
+      String where = '';
+      String queryContextI = 'and';
+
+      if (queryContext == QueryContext.consumption) {
+        queryContextI =
+            'and (p."invoice_ncf_typeId" = 2 or p."invoice_ncf_typeId" = 32) and';
+      } else if (queryContext == QueryContext.tax) {
+        queryContextI =
+            'and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and';
+      }
+
+      if (reportType == ReportType.month) {
+        where =
+            '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') $queryContextI p."invoice_month" between $start and $end''';
+      } else {
+        where =
+            '''p."invoice_companyId" = '$id' $queryContextI p."invoice_year" between $start and $end''';
+      }
+
+      var result = await connection.mappedResultsQuery('''
+              SELECT
+              COALESCE("invoice_concept_name",'TOTAL GENERAL')
+              AS "CONCEPTO",
+              SUM("invoice_total_as_service" + "invoice_total_as_good")::money::text 
+              AS "TOTAL FACTURADO",
+              SUM("invoice_tax")::money::text AS "TOTAL ITBIS FACTURADO",
+              SUM(("invoice_total_as_service" + "invoice_total_as_good") - "invoice_tax")::money::text
+              AS "TOTAL NETO"
+              FROM public."PurchaseDetails" p
+              WHERE $where
+              GROUP BY GROUPING SETS (("invoice_conceptId","invoice_concept_name"), ())
+              ORDER BY "invoice_conceptId"
+        ''');
+
+      var r2 = await connection.mappedResultsQuery(
+          '''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $where''');
+      var countDocs = r2.first['']?['TOTAL DE DOCUMENTOS'] ?? '0';
+
+      var body = result.map((e) => e['']).toList();
+
+      return ReportViewModelForConceptType(
+          body: body, totalNcfs: countDocs.toString());
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   static Future<void> dispose() async {
-    await connection.query('''DROP VIEW public."ReportViewForInvoiceType";''');
+    await connection
+        .query('''DROP VIEW IF EXISTS public."ReportViewForInvoiceType";''');
+    await connection
+        .query('''DROP VIEW IF EXISTS public."ReportViewForInvoiceType";''');
   }
 
   Future<void> checkIfExistsPurchase() async {

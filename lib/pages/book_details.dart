@@ -8,7 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:uresaxapp/modals/add-concept-modal.dart';
 import 'package:uresaxapp/modals/add-purchase-modal.dart';
 import 'package:uresaxapp/modals/add-sheet-modal.dart';
-import 'package:uresaxapp/modals/document-data-modal.dart';
+import 'package:uresaxapp/modals/document.data.modal.concept.type.dart';
+import 'package:uresaxapp/modals/document.data.modal.for.invoice.type.dart';
 import 'package:uresaxapp/models/banking.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/concept.dart';
@@ -75,7 +76,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
   late pw.Document pdf;
 
-  late ReportViewModel r;
+  late ReportViewModelForInvoiceType _reportViewModelForInvoiceType;
+
+  late ReportViewModelForConceptType _reportViewModelForConceptType;
 
   Map<String, dynamic> invoicesLogs = {};
 
@@ -595,30 +598,41 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     }
   }
 
-  Future<void> _preloadReportData() async {
+  Future<void> _preloadReportDataForInvoiceType() async {
     await showLoader(context);
 
     try {
       if (widget.currentSheet != null) {
-        r = await Purchase.getReportViewByInvoiceType(
-            id: widget.book.id!,
-            start: widget.currentSheet!.sheetMonth!,
-            end: widget.currentSheet!.sheetMonth!);
+        _reportViewModelForInvoiceType =
+            await Purchase.getReportViewByInvoiceType(
+                id: widget.book.id!,
+                start: widget.currentSheet!.sheetMonth!,
+                end: widget.currentSheet!.sheetMonth!);
 
-        r.book = widget.book;
-        r.start = widget.currentSheet!.sheetMonth! - 1;
-        r.end = widget.currentSheet!.sheetMonth! - 1;
-        r.rangeValues = RangeValues(widget.currentSheet!.sheetMonth!.toDouble(),
+        _reportViewModelForInvoiceType.book = widget.book;
+        _reportViewModelForInvoiceType.start =
+            widget.currentSheet!.sheetMonth! - 1;
+        _reportViewModelForInvoiceType.end =
+            widget.currentSheet!.sheetMonth! - 1;
+        _reportViewModelForInvoiceType.rangeValues = RangeValues(
+            widget.currentSheet!.sheetMonth!.toDouble(),
             widget.currentSheet!.sheetMonth!.toDouble());
-        r.rangeLabels = RangeLabels(months[r.start!], months[r.end!]);
+        _reportViewModelForInvoiceType.rangeLabels = RangeLabels(
+            months[_reportViewModelForInvoiceType.start!],
+            months[_reportViewModelForInvoiceType.end!]);
 
-        r.footer = {};
-        r.footer.addAll({'ITBIS EN SERVICIOS': r.taxServices});
-        r.footer.addAll({'ITBIS EN BIENES': r.taxGood});
+        _reportViewModelForInvoiceType.book = widget.book;
 
-        r.pdf = pw.Document();
+        _reportViewModelForInvoiceType.footer = {};
+        _reportViewModelForInvoiceType.footer.addAll(
+            {'ITBIS EN SERVICIOS': _reportViewModelForInvoiceType.taxServices});
 
-        r.pdf?.addPage(buildReportViewModel(r));
+        _reportViewModelForInvoiceType.footer.addAll(
+            {'ITBIS EN BIENES': _reportViewModelForInvoiceType.taxGood});
+
+        _reportViewModelForInvoiceType.pdf = pw.Document();
+
+        //_reportViewModelForInvoiceType.pdf?.addPage(buildReportViewModel(_reportViewModelForInvoiceType));
 
         Navigator.pop(context);
 
@@ -626,9 +640,58 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
             context: context,
             builder: (ctx) {
               return ScaffoldMessenger(child: Builder(builder: (ctx) {
-                return DocumentModal(
+                return DocumentModalForInvoiceType(
                     context: ctx,
-                    reportViewModel: r,
+                    reportViewModel: _reportViewModelForInvoiceType,
+                    book: widget.book,
+                    currentSheet: widget.currentSheet);
+              }));
+            });
+      } else {
+        throw 'AGREGA UNA HOJA AL MENOS';
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      await showAlert(context, message: e.toString());
+    }
+  }
+
+  Future<void> _preloadReportDataForConceptType() async {
+    await showLoader(context);
+
+    try {
+      if (widget.currentSheet != null) {
+        _reportViewModelForConceptType =
+            await Purchase.getReportViewByConceptType(
+                id: widget.book.id!,
+                start: widget.currentSheet!.sheetMonth!,
+                end: widget.currentSheet!.sheetMonth!);
+
+        _reportViewModelForConceptType.book = widget.book;
+        _reportViewModelForConceptType.start =
+            widget.currentSheet!.sheetMonth! - 1;
+        _reportViewModelForConceptType.end =
+            widget.currentSheet!.sheetMonth! - 1;
+        _reportViewModelForConceptType.rangeValues = RangeValues(
+            widget.currentSheet!.sheetMonth!.toDouble(),
+            widget.currentSheet!.sheetMonth!.toDouble());
+        _reportViewModelForConceptType.rangeLabels = RangeLabels(
+            months[_reportViewModelForConceptType.start!],
+            months[_reportViewModelForConceptType.end!]);
+
+        _reportViewModelForConceptType.pdf = pw.Document();
+
+        //r.pdf?.addPage(buildReportViewModel(r));
+
+        Navigator.pop(context);
+
+        showDialog(
+            context: context,
+            builder: (ctx) {
+              return ScaffoldMessenger(child: Builder(builder: (ctx) {
+                return DocumentModalForConceptType(
+                    context: ctx,
+                    reportViewModel: _reportViewModelForConceptType,
                     book: widget.book,
                     currentSheet: widget.currentSheet);
               }));
@@ -883,9 +946,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           CustomFloatingActionButton(
-              onTap: _preloadReportData,
-              title: 'VER REPORTE',
+              onTap: _preloadReportDataForInvoiceType,
+              title: 'VER REPORTE POR TIPO DE FACTURA',
               icon: Icons.document_scanner_outlined),
+          const SizedBox(width: 10),
+          CustomFloatingActionButton(
+              onTap: _preloadReportDataForConceptType,
+              title: 'VER REPORTE POR CONCEPTO',
+              icon: Icons.category_outlined),
           const SizedBox(width: 10),
           CustomFloatingActionButton(
               onTap: widget.sheets.isNotEmpty ? _showModalPurchase : null,

@@ -2,7 +2,6 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -12,7 +11,8 @@ import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:path/path.dart' as path;
 
-class DocumentModal extends StatefulWidget {
+class DocumentModalForInvoiceType extends StatefulWidget {
+  
   final BuildContext context;
 
   final Book book;
@@ -21,11 +21,11 @@ class DocumentModal extends StatefulWidget {
 
   ReportType reportType;
 
-  ReportViewModel reportViewModel;
+  ReportViewModelForInvoiceType reportViewModel;
 
   List<Purchase> purchases;
 
-  DocumentModal(
+  DocumentModalForInvoiceType(
       {super.key,
       required this.context,
       this.purchases = const [],
@@ -35,10 +35,11 @@ class DocumentModal extends StatefulWidget {
       required this.book});
 
   @override
-  State<DocumentModal> createState() => _DocumentModalState();
+  State<DocumentModalForInvoiceType> createState() => _DocumentModalState();
 }
 
-class _DocumentModalState extends State<DocumentModal> {
+class _DocumentModalState extends State<DocumentModalForInvoiceType> {
+  
   double offsetX1 = 0;
 
   double offsetX2 = 0;

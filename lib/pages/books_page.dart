@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:moment_dart/moment_dart.dart';
 import 'package:uresaxapp/modals/add-book-modal.dart';
-import 'package:uresaxapp/modals/document-data-modal.dart';
+import 'package:uresaxapp/modals/document.data.modal.for.invoice.type.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/models/purchase.dart';
@@ -173,7 +173,7 @@ class _BooksPageState extends State<BooksPage> {
           context: context,
           builder: (ctx) {
             return ScaffoldMessenger(child: Builder(builder: (ctx) {
-              return DocumentModal(
+              return DocumentModalForInvoiceType(
                   context: ctx,
                   reportType: ReportType.year,
                   reportViewModel: r,

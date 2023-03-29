@@ -6,6 +6,7 @@ import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 
 class AddCompanyModal extends StatefulWidget {
+  
   const AddCompanyModal({Key? key}) : super(key: key);
 
   @override
