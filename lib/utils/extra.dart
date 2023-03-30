@@ -21,12 +21,29 @@ enum ReportType { month, year }
 
 enum QueryContext { general, tax, consumption }
 
+enum ReportModelType {
+    invoiceType,
+    conceptType
+}
+
+List<Map<String,dynamic>> reportTypes = [
+  {
+    'type':ReportModelType.invoiceType,
+    'name':'REPORTE POR TIPO DE FACTURA'
+  },
+  {
+    'type':ReportModelType.conceptType,
+    'name':'REPORTE POR CONCEPTO'
+  }
+];
 
 List<Map<String, dynamic>> ncfsTypes = [
   {'TIPO': QueryContext.general, 'NAME': 'REPORTE GENERAL'},
   {'TIPO': QueryContext.tax, 'NAME': 'FACTURAS FISCALES'},
   {'TIPO': QueryContext.consumption, 'NAME': 'FACTURAS DE CONSUMO'}
 ];
+
+
 
 var myformatter = NumberTextInputFormatter(
   integerDigits: 10,

@@ -681,7 +681,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
         _reportViewModelForConceptType.pdf = pw.Document();
 
-        //r.pdf?.addPage(buildReportViewModel(r));
+        _reportViewModelForConceptType.title = _title;
+        _reportViewModelForConceptType.pdf?.addPage(
+            buildReportViewModelForConceptType(_reportViewModelForConceptType));
 
         Navigator.pop(context);
 
@@ -740,6 +742,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     } catch (e) {
       showAlert(context, message: e.toString());
     }
+  }
+
+  _onSelectedOption(Map<String, dynamic> option) {
+    if (option['type'] == ReportModelType.invoiceType)
+      _preloadReportDataForInvoiceType();
+    if (option['type'] == ReportModelType.conceptType)
+      _preloadReportDataForConceptType();
   }
 
   Widget get _invoicesView {
@@ -946,28 +955,31 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           CustomFloatingActionButton(
-              onTap: _preloadReportDataForInvoiceType,
               title: 'VER REPORTE POR TIPO DE FACTURA',
-              icon: Icons.document_scanner_outlined),
-          const SizedBox(width: 10),
-          CustomFloatingActionButton(
-              onTap: _preloadReportDataForConceptType,
-              title: 'VER REPORTE POR CONCEPTO',
-              icon: Icons.category_outlined),
+              child: PopupMenuButton<Map<String, dynamic>>(
+                  onSelected: _onSelectedOption,
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  itemBuilder: (ctx) {
+                    return reportTypes
+                        .map((e) => PopupMenuItem<Map<String, dynamic>>(
+                            value: e, child: Text(e['name'])))
+                        .toList();
+                  })),
           const SizedBox(width: 10),
           CustomFloatingActionButton(
               onTap: widget.sheets.isNotEmpty ? _showModalPurchase : null,
               title: widget.sheets.isEmpty
                   ? 'AÑADE UNA HOJA PRIMERO'
                   : 'AÑADIR FACTURA DE ${widget.book.bookTypeName}',
-              icon: Icons.insert_drive_file_outlined),
+              child: const Icon(Icons.insert_drive_file_outlined,
+                  color: Colors.white)),
           const SizedBox(width: 10),
           CustomFloatingActionButton(
               onTap: _showModalSheet,
               title: _checkSheetLimit
                   ? 'AÑADIR HOJA'
                   : 'YA NO SE PUEDE AÑADIR MAS MESES PARA ESTE LIBRO',
-              icon: Icons.add)
+              child: const Icon(Icons.add, color: Colors.white))
         ],
       ),
       bottomNavigationBar: _bottomBar,

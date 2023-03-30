@@ -270,6 +270,7 @@ class Purchase {
       reportType = ReportType.month,
       QueryContext queryContext = QueryContext.tax}) async {
     try {
+      await connection.query('''SET lc_monetary = 'es_US';''');
       String where = '';
       String queryContextI = 'and';
 

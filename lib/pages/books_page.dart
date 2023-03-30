@@ -165,7 +165,7 @@ class _BooksPageState extends State<BooksPage> {
 
       r.pdf = pw.Document();
 
-      r.pdf?.addPage(buildReportViewModel(r));
+      r.pdf?.addPage(buildReportViewModelForInvoiceType(r));
 
       Navigator.pop(context);
 

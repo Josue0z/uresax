@@ -1,4 +1,3 @@
-
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:io';
@@ -13,7 +12,6 @@ import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:path/path.dart' as path;
 
 class DocumentModalForConceptType extends StatefulWidget {
-  
   final BuildContext context;
 
   final Book book;
@@ -40,7 +38,6 @@ class DocumentModalForConceptType extends StatefulWidget {
 }
 
 class _DocumentModalState extends State<DocumentModalForConceptType> {
-  
   double offsetX1 = 0;
 
   double offsetX2 = 0;
@@ -111,7 +108,7 @@ class _DocumentModalState extends State<DocumentModalForConceptType> {
     if (widget.reportType == ReportType.month) {
       var a = months[widget.reportViewModel.rangeValues!.start.toInt() - 1];
       var b = months[widget.reportViewModel.rangeValues!.end.toInt() - 1];
-      var c = 'C5 - $label - ${widget.book.companyName}';
+      var c = 'C - $label - ${widget.book.companyName}';
       String t = '$c $a ${widget.book.year}';
       if (a == b) return t;
       t = '$a - $b ${widget.book.year}';
@@ -181,13 +178,12 @@ class _DocumentModalState extends State<DocumentModalForConceptType> {
       widget.reportViewModel.start = v.start.toInt() - 1;
       widget.reportViewModel.end = v.end.toInt() - 1;
 
-
       widget.reportViewModel.pdf = pw.Document();
 
       widget.reportViewModel.title = _title;
 
-     /* widget.reportViewModel.pdf
-          ?.addPage(buildReportViewModel(widget.reportViewModel));*/
+      widget.reportViewModel.pdf
+          ?.addPage(buildReportViewModelForConceptType(widget.reportViewModel));
       setState(() {});
     } catch (e) {
       print(e);
@@ -217,9 +213,8 @@ class _DocumentModalState extends State<DocumentModalForConceptType> {
       widget.reportViewModel.pdf = pw.Document();
 
       widget.reportViewModel.title = _title;
-
-      /*widget.reportViewModel.pdf
-          ?.addPage(buildReportViewModel(widget.reportViewModel));*/
+      widget.reportViewModel.pdf
+          ?.addPage(buildReportViewModelForConceptType(widget.reportViewModel));
       setState(() {});
     } catch (e) {
       print(e);
@@ -324,11 +319,11 @@ class _DocumentModalState extends State<DocumentModalForConceptType> {
                   }),
             ),
             const SizedBox(width: 15),
-            /*IconButton(
+            IconButton(
                 onPressed: _save,
                 color: Theme.of(context).primaryColor,
-                icon: const Icon(Icons.picture_as_pdf)),*/
-            //const SizedBox(width: 15),
+                icon: const Icon(Icons.picture_as_pdf)),
+            const SizedBox(width: 15),
             IconButton(
                 onPressed: () async {
                   if (await _onPopContext()) {

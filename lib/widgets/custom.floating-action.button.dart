@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 
 class CustomFloatingActionButton extends StatelessWidget {
-  
   Function()? onTap;
 
   String title;
 
-  IconData icon;
+  Widget child;
 
   CustomFloatingActionButton(
-      {super.key,
-      required this.onTap,
-      required this.title,
-      required this.icon});
+      {super.key, this.onTap, required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +24,7 @@ class CustomFloatingActionButton extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: Theme.of(context).primaryColor,
                     borderRadius: BorderRadius.circular(50)),
-                child: Icon(icon, color: Colors.white),
+                child: child,
               ),
             )));
   }

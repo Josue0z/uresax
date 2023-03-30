@@ -198,7 +198,7 @@ class _DocumentModalState extends State<DocumentModalForInvoiceType> {
       widget.reportViewModel.title = _title;
 
       widget.reportViewModel.pdf
-          ?.addPage(buildReportViewModel(widget.reportViewModel));
+          ?.addPage(buildReportViewModelForInvoiceType(widget.reportViewModel));
       setState(() {});
     } catch (e) {
       print(e);
@@ -237,7 +237,7 @@ class _DocumentModalState extends State<DocumentModalForInvoiceType> {
       widget.reportViewModel.title = _title;
 
       widget.reportViewModel.pdf
-          ?.addPage(buildReportViewModel(widget.reportViewModel));
+          ?.addPage(buildReportViewModelForInvoiceType(widget.reportViewModel));
       setState(() {});
     } catch (e) {
       print(e);
