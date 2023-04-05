@@ -632,7 +632,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
         _reportViewModelForInvoiceType.pdf = pw.Document();
 
-        //_reportViewModelForInvoiceType.pdf?.addPage(buildReportViewModel(_reportViewModelForInvoiceType));
+        _reportViewModelForInvoiceType.pdf?.addPage(
+            buildReportViewModelForInvoiceType(_reportViewModelForInvoiceType));
 
         Navigator.pop(context);
 
@@ -725,7 +726,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     try {
       await Clipboard.setData(ClipboardData(text: widget.book.companyRnc));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('RNC DE ${widget.book.companyName} COPIADO!')));
+          content: Text('RNC DE ${widget.book.companyName} COPIADO')));
     } catch (e) {
       showAlert(context, message: e.toString());
     }
@@ -758,12 +759,28 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
     columns = [invs.length.toString(), ...columns];
 
     var widgets = List.generate(columns.length, (index) {
+      var isNumber = index == 0;
+      var isAuthor = index == 1;
+      var isRnc = index == 2;
+      var isTypeInvoice = index == 5;
+      var isNcf = index == 6 || index == 7;
+
+      var w = isNumber
+          ? 80
+          : isAuthor || isRnc
+              ? 150
+              : isTypeInvoice
+                  ? 485
+                  : isNcf
+                      ? 155
+                      : 250;
+
       return Container(
-        width: index == 0 ? 80 : 250,
-        padding: const EdgeInsets.all(15),
+        width: w.toDouble(),
+        padding: const EdgeInsets.only(left: 12, top: 15, bottom: 15),
         child: Text(columns[index],
             style: const TextStyle(color: Colors.blue, fontSize: 17),
-            softWrap: false),
+            softWrap: true),
       );
     });
 
@@ -779,8 +796,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
               scrollDirection: Axis.horizontal,
               children: [
                 Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [...widgets])
               ]),
         ),
@@ -801,13 +818,30 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
 
                             var widgets = List.generate(values.length, (j) {
                               var cell = values[j];
+                              var isNumber = j == 0;
+                              var isAuthor = j == 1;
+                              var isRnc = j == 2;
+
+                              var isTypeInvoice = j == 5;
+                              var isNcf = j == 6 || j == 7;
+
+                              var w = isNumber
+                                  ? 80
+                                  : isAuthor || isRnc
+                                      ? 150
+                                      : isTypeInvoice
+                                          ? 485
+                                          : isNcf
+                                              ? 155
+                                              : 250;
                               return GestureDetector(
                                 onDoubleTap: () => _selectInvoice(
                                     widget.purchases[invs.indexOf(invoice)]),
                                 child: Container(
-                                  width: j == 0 ? 80 : 250,
+                                  width: w.toDouble(),
                                   color: Colors.grey.withOpacity(0.09),
-                                  padding: const EdgeInsets.all(15),
+                                  padding: const EdgeInsets.only(
+                                      left: 12, right: 5, top: 15, bottom: 15),
                                   child: Text(
                                     cell.value == null || cell.value == ''
                                         ? 'NINGUNO'
@@ -931,7 +965,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
               ToolButton(
                   onTap: _showConceptModal,
                   toolTip: 'ABRIR CATALOGO DE CATEGORIAS',
-                  icon: const Icon(Icons.category)),
+                  icon: const Icon(Icons.reorder)),
               ToolButton(
                   onTap: _openFolder,
                   toolTip: 'ABRIR CARPETA DE ${widget.book.companyName}',

@@ -149,7 +149,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(Icons.payment_sharp,
+          Icon(Icons.apartment,
               size: 110, color: Theme.of(context).primaryColor)
         ],
       ),

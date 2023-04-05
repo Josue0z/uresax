@@ -28,8 +28,8 @@ class User {
 
   static Future<List<User>> all() async {
     try {
-      var result = await connection
-          .mappedResultsQuery('''SELECT * FROM public."UserView" order by "created_at";''');
+      var result = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."UserView" order by "created_at";''');
 
       return result.map((e) => User.fromMap(e['']!)).toList();
     } catch (e) {
@@ -71,12 +71,14 @@ class User {
     }
   }
 
-  Future<User> update()async{
-    try{
-      await connection.query('''UPDATE public."User" SET "name" = '$name', "roleId" = $roleId, "username" = '$username' WHERE "id" = '$id';''');
-      var result = await connection.mappedResultsQuery('''SELECT * FROM public."UserView" WHERE "id" = '$id';''');
+  Future<User> update() async {
+    try {
+      await connection.query(
+          '''UPDATE public."User" SET "name" = '$name', "roleId" = $roleId, "username" = '$username' WHERE "id" = '$id';''');
+      var result = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."UserView" WHERE "id" = '$id';''');
       return User.fromMap(result.first['']!);
-    }catch(e){
+    } catch (e) {
       rethrow;
     }
   }
@@ -118,6 +120,19 @@ class User {
           context,
           MaterialPageRoute(builder: (ctx) => const LoginPage()),
           (route) => false);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  editPassword(String currentPassword, String newPassword) async {
+    try {
+      var isCorrect = BCrypt.checkpw(currentPassword, password!);
+      var newPass = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+      if (isCorrect) {
+        await connection.mappedResultsQuery(
+            '''update public."User" set password = '$newPass' where id = '$id';''');
+      }
     } catch (e) {
       rethrow;
     }

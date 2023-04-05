@@ -184,6 +184,25 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
     return null;
   }
 
+  String? _validateTotal(val) {
+    if (val == null || val == '') {
+      return 'CAMPO REQUERIDO';
+    }
+
+    var n1 = double.parse(val.replaceAll(',', ''));
+
+    var n2 = double.tryParse(tax.text.replaceAll(',', '')) ?? 0;
+
+    var rates = widget.taxes.map((e) => (e.rate / 100) * n2).toList();
+
+    var sumRates = rates.reduce((value, element) => value + element);
+
+    if (n1 < sumRates) {
+      return 'EL TOTAL ES MENOR QUE LA TASA APLICADA POR LEY';
+    }
+    return null;
+  }
+
   Future<void> _onSubmit() async {
     try {
       var factor = currentNcfTypeId == 4 || currentNcfTypeId == 34 ? -1 : 1;
@@ -264,7 +283,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: Form(
-                autovalidateMode: AutovalidateMode.onUserInteraction,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   key: _formKey,
                   child: Column(
                     children: [
@@ -699,9 +718,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                   style: const TextStyle(fontSize: 18),
                                   controller: total,
                                   inputFormatters: [myformatter],
-                                  validator: (val) => val == null || val == ''
-                                      ? 'CAMPO REQUERIDO'
-                                      : null,
+                                  validator: _validateTotal,
                                   decoration: const InputDecoration(
                                       hintText: 'TOTAL FACTURADO',
                                       border: OutlineInputBorder()),

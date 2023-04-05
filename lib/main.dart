@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_session_manager/flutter_session_manager.dart';
+import 'package:uresaxapp/apis/connection.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
 import 'package:uresaxapp/pages/login_page.dart';
@@ -11,7 +12,9 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
 
     await windowManager.ensureInitialized();
-
+  
+    await connection.open();
+    
     var userData = await SessionManager().get('USER');
 
     User.current = userData == null ? null : User.fromJson(userData);
@@ -25,7 +28,9 @@ void main() async {
     });
 
     runApp(const MyApp());
-  } catch (_) {}
+  } catch (e) {
+    print(e);
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -37,7 +42,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        colorScheme: ColorScheme.fromSwatch(errorColor: const Color(0xFFFA473B)),
+        colorScheme:
+            ColorScheme.fromSwatch(errorColor: const Color(0xFFFA473B)),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: User.current is User ? const CompaniesPage() : const LoginPage(),

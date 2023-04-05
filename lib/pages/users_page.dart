@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/modals/add-user-modal.dart';
+import 'package:uresaxapp/modals/edit-password-modal.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/custom-appbar.dart';
@@ -57,6 +58,9 @@ class _UsersPageState extends State<UsersPage> {
       showAlert(context, message: e.toString());
     }
   }
+   _showModalForEditPassword(User user){
+      showDialog(context: context, builder: (ctx) => EditPasswordModal(user: user));
+   }
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +117,8 @@ class _UsersPageState extends State<UsersPage> {
                           color: Theme.of(context).colorScheme.error,
                           icon: const Icon(Icons.delete))
                       : const SizedBox(),
+
+                  IconButton(onPressed:()=> _showModalForEditPassword(user), icon: Icon(Icons.lock,color: Theme.of(context).primaryColor)),
                   IconButton(
                       onPressed: () => _showModalForEdit(user, index),
                       color: Colors.green,

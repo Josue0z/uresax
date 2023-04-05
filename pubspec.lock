@@ -272,6 +272,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
+  logging:
+    dependency: transitive
+    description:
+      name: logging
+      sha256: "04094f2eb032cbb06c6f6e8d3607edcfcb0455e2bb6cbc010cb01171dcb64e6d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.1"
   matcher:
     dependency: transitive
     description:
@@ -296,6 +304,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.8.0"
+  mime:
+    dependency: transitive
+    description:
+      name: mime
+      sha256: e4ff8e8564c03f255408decd16e7899da1733852a9110a58fe6d1b817684a63e
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   moment_dart:
     dependency: "direct main"
     description:
@@ -440,6 +456,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.5"
+  postgresql2:
+    dependency: "direct main"
+    description:
+      name: postgresql2
+      sha256: fec1114a03b3b201caade763fdf8251a2dd02dc7f2ff689802fe5a3edad17500
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   printing:
     dependency: "direct main"
     description:
@@ -480,6 +504,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.0"
+  rikulo_commons:
+    dependency: transitive
+    description:
+      name: rikulo_commons
+      sha256: bbc0f78b499da295b880b7046bbcd6234c31d51de764b2840095127d6b4bc16d
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.1"
   sasl_scram:
     dependency: transitive
     description:
