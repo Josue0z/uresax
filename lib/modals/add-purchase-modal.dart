@@ -64,6 +64,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   NcfType? currentNcfModifedType;
   int? currentRetentionTaxId;
   bool isCorrectRnc = false;
+  bool isAuthorized = true;
 
   TextEditingController rnc = TextEditingController();
   TextEditingController ck = TextEditingController();
@@ -105,6 +106,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
   Future<void> _initElements() async {
     try {
       if (widget.purchase != null) {
+        isAuthorized = widget.purchase!.authorized;
         rnc.value = TextEditingValue(text: widget.purchase!.invoiceRnc!);
         currentConcept = widget.purchase?.invoiceConceptId;
         currentNcfTypeId = widget.purchase?.invoiceNcfTypeId;
@@ -209,46 +211,36 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
 
       if (isAllCorrect) {
         var purchase = Purchase(
-          id: widget.purchase?.id,
-          invoiceRnc: rnc.text,
-          invoiceConceptId: currentConcept,
-          invoiceTypeId: currentType,
-          invoicePaymentMethodId: currentPaymentMethod,
-          invoiceNcf: '${currentNcfType?.ncfTag}${ncf.text}',
-          invoiceNcfTypeId: currentNcfType?.id,
-          invoiceNcfModifed: currentNcfModifedTypeId == null
-              ? ''
-              : '${currentNcfModifedType?.ncfTag}${ncfModifed.text}',
-          invoiceNcfModifedTypeId: currentNcfModifedType?.id,
-          invoiceYear: widget.book.year,
-          invoiceMonth: widget.sheet.sheetMonth,
-          invoiceNcfDay: day.text,
-          invoiceSheetId: widget.sheet.id,
-          invoiceBookId: widget.book.id,
-          invoiceCompanyId: widget.book.companyId,
-          invoiceBankingId: currentBanking,
-          invoicePayYear: int.tryParse(invoicePayYear.text),
-          invoicePayMonth: int.tryParse(invoicePayMonth.text),
-          invoicePayDay: int.tryParse(invoicePayDay.text),
-          invoiceCk: int.tryParse(ck.text.trim()),
-          invoiceRetentionId: currentRetention,
-          invoiceTaxRetentionId: currentRetentionTaxId,
-          invoiceTax: tax.text.isEmpty
-              ? 0
-              : double.tryParse(tax.text.trim().replaceAll(',', ''))! * factor,
-          invoiceTotalAsService: total.text.isEmpty
-              ? 0
-              : !isGoodCode
-                  ? double.tryParse(total.text.trim().replaceAll(',', ''))! *
-                      factor
-                  : 0,
-          invoiceTotalAsGood: total.text.isEmpty
-              ? 0
-              : isGoodCode
-                  ? double.tryParse(total.text.trim().replaceAll(',', ''))! *
-                      factor
-                  : 0,
-        );
+            id: widget.purchase?.id,
+            authorized: isAuthorized,
+            invoiceRnc: rnc.text,
+            invoiceConceptId: currentConcept,
+            invoiceTypeId: currentType,
+            invoicePaymentMethodId: currentPaymentMethod,
+            invoiceNcf: '${currentNcfType?.ncfTag}${ncf.text}',
+            invoiceNcfTypeId: currentNcfType?.id,
+            invoiceNcfModifed: currentNcfModifedTypeId == null
+                ? ''
+                : '${currentNcfModifedType?.ncfTag}${ncfModifed.text}',
+            invoiceNcfModifedTypeId: currentNcfModifedType?.id,
+            invoiceYear: widget.book.year,
+            invoiceMonth: widget.sheet.sheetMonth,
+            invoiceNcfDay: day.text,
+            invoiceSheetId: widget.sheet.id,
+            invoiceBookId: widget.book.id,
+            invoiceCompanyId: widget.book.companyId,
+            invoiceBankingId: currentBanking,
+            invoicePayYear: int.tryParse(invoicePayYear.text),
+            invoicePayMonth: int.tryParse(invoicePayMonth.text),
+            invoicePayDay: int.tryParse(invoicePayDay.text),
+            invoiceCk: int.tryParse(ck.text.trim()),
+            invoiceRetentionId: currentRetention,
+            invoiceTaxRetentionId: currentRetentionTaxId,
+            invoiceTax: tax.text.isEmpty
+                ? 0
+                : double.tryParse(tax.text.trim().replaceAll(',', ''))! *
+                    factor,
+            invoiceTotal: double.tryParse(total.text.trim().replaceAll(',',''))! * factor);
 
         if (!widget.isEditing) {
           await purchase.checkIfExistsPurchase();
@@ -256,7 +248,6 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
           Navigator.pop(context, {'method': 'INSERT', 'data': newPurchase});
         } else {
           var purchaseUpdated = await purchase.update();
-
           Navigator.pop(context, {'method': 'UPDATE', 'data': purchaseUpdated});
         }
       }
@@ -309,6 +300,16 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                             children: [
                               TextFormField(
                                 style: const TextStyle(fontSize: 18),
+                                controller: TextEditingController(
+                                    text:
+                                        '${months[widget.sheet.sheetMonth! - 1]} ${widget.book.year}'),
+                                decoration: const InputDecoration(
+                                    hintText: 'MES/AÑO',
+                                    border: OutlineInputBorder()),
+                              ),
+                              const SizedBox(height: 20),
+                              TextFormField(
+                                style: const TextStyle(fontSize: 18),
                                 controller: company,
                                 enabled: false,
                                 decoration: const InputDecoration(
@@ -333,7 +334,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                           ? 'LA CANTIDA DE CARACTERES NO ES VALIDA'
                                           : null,
                                   decoration: const InputDecoration(
-                                      hintText: 'RNC',
+                                      hintText: 'RNC/CEDULA',
                                       border: OutlineInputBorder()),
                                 ),
                               ),
@@ -570,6 +571,32 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                     }).toList(),
                                   )),
                               Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                child: TextFormField(
+                                  style: const TextStyle(fontSize: 18),
+                                  controller: total,
+                                  inputFormatters: [myformatter],
+                                  validator: _validateTotal,
+                                  decoration: const InputDecoration(
+                                      hintText: 'TOTAL FACTURADO',
+                                      border: OutlineInputBorder()),
+                                ),
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                child: TextFormField(
+                                  style: const TextStyle(fontSize: 18),
+                                  controller: tax,
+                                  validator: _validateTax,
+                                  inputFormatters: [myformatter],
+                                  decoration: const InputDecoration(
+                                      hintText: 'ITBIS FACTURADO',
+                                      border: OutlineInputBorder()),
+                                ),
+                              ),
+                              Padding(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 10),
                                   child: DropdownButtonFormField<int?>(
@@ -711,31 +738,23 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                       border: OutlineInputBorder()),
                                 ),
                               ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                child: TextFormField(
-                                  style: const TextStyle(fontSize: 18),
-                                  controller: total,
-                                  inputFormatters: [myformatter],
-                                  validator: _validateTotal,
-                                  decoration: const InputDecoration(
-                                      hintText: 'TOTAL FACTURADO',
-                                      border: OutlineInputBorder()),
-                                ),
-                              ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                child: TextFormField(
-                                  style: const TextStyle(fontSize: 18),
-                                  controller: tax,
-                                  validator: _validateTax,
-                                  inputFormatters: [myformatter],
-                                  decoration: const InputDecoration(
-                                      hintText: 'ITBIS FACTURADO',
-                                      border: OutlineInputBorder()),
-                                ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Text('NCF AUTORIZADO',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              Theme.of(context).primaryColor)),
+                                  const SizedBox(height: 10),
+                                  Switch(
+                                      value: isAuthorized,
+                                      onChanged: (val) async {
+                                        setState(() {
+                                          isAuthorized = val;
+                                        });
+                                      }),
+                                ],
                               ),
                               const SizedBox(height: 10),
                               widget.isEditing
@@ -755,7 +774,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
                                         const SizedBox(height: 10),
                                         Text.rich(TextSpan(children: [
                                           TextSpan(
-                                              text: 'CREADO EL',
+                                              text: 'EDITADO EL ',
                                               style: TextStyle(
                                                   fontWeight: FontWeight.w500,
                                                   color: Theme.of(context)

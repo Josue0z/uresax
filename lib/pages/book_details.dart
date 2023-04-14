@@ -182,7 +182,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
       var purchases = [...widget.purchases];
 
       purchases.removeWhere((element) =>
-          element.invoiceNcfTypeId == 2 || element.invoiceNcfTypeId == 32);
+          element.invoiceNcfTypeId == 2 || element.invoiceNcfTypeId == 32 || element.authorized == false);
 
       var elements = purchases.map((e) => e.to606()).toList();
       var elements2 = purchases.map((e) => e.to606Display()).toList();
@@ -921,7 +921,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> with WindowListener {
   String get _count01 {
     return widget.purchases
         .where((element) =>
-            element.invoiceNcfTypeId != 2 && element.invoiceNcfTypeId != 32)
+            element.invoiceNcfTypeId != 2 && element.invoiceNcfTypeId != 32 && element.authorized == true)
         .toList()
         .length
         .toString();

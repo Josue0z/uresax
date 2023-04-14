@@ -21,6 +21,11 @@ enum ReportType { month, year }
 
 enum QueryContext { general, tax, consumption }
 
+enum AuthorizationType {
+   authorized,
+   notAuthorized
+}
+
 enum ReportModelType {
     invoiceType,
     conceptType

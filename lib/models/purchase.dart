@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/book.dart';
 import 'package:uuid/uuid.dart';
@@ -123,8 +124,9 @@ class Purchase {
   String? invoiceNcfModifedName;
   String? invoiceTaxRetentionValue;
   String? invoiceIsrRetentionValue;
-  String? invoiceTotal;
-  String? invoiceNetTotal;
+  double? invoiceTotal;
+  double? invoiceNetTotal;
+  bool authorized;
   DateTime? createdAt;
 
   Purchase(
@@ -172,7 +174,13 @@ class Purchase {
       this.invoiceIsrRetentionValue,
       this.invoiceTotal,
       this.invoiceNetTotal,
+      this.authorized = true,
       this.createdAt});
+
+  
+  Future<void> updateAuthorization(bool newValue)async{
+      await connection.execute('''update public."Purchase" set authorized = $newValue where "id" = '$id';''');
+  }
 
   static Future<ReportViewModelForInvoiceType> getReportViewByInvoiceType(
       {String id = '',
@@ -200,7 +208,6 @@ class Purchase {
     }
 
     try {
-      await connection.query('''SET lc_monetary = 'es_US';''');
 
       await connection.query('''
         CREATE OR REPLACE VIEW public."ReportViewForInvoiceType"
@@ -218,6 +225,7 @@ class Purchase {
         GROUP BY p."invoice_typeId",p.invoice_type_name
         ORDER BY p."invoice_typeId", p."invoice_type_name"
       ''');
+      await connection.query('''SET lc_monetary = 'es_US';''');
       var r1 = await connection.mappedResultsQuery('''
           SELECT
           COALESCE("NOMBRE", 'TOTAL GENERAL') AS "NOMBRE",
@@ -270,7 +278,7 @@ class Purchase {
       reportType = ReportType.month,
       QueryContext queryContext = QueryContext.tax}) async {
     try {
-      await connection.query('''SET lc_monetary = 'es_US';''');
+
       String where = '';
       String queryContextI = 'and';
 
@@ -289,7 +297,7 @@ class Purchase {
         where =
             '''p."invoice_companyId" = '$id' $queryContextI p."invoice_year" between $start and $end''';
       }
-
+      await connection.query('''SET lc_monetary = 'es_US';''');
       var result = await connection.mappedResultsQuery('''
               SELECT
               COALESCE("invoice_concept_name",'TOTAL GENERAL')
@@ -344,7 +352,7 @@ class Purchase {
       invoiceCreatedBy = User.current!.id;
 
       await connection.query(
-          '''INSERT INTO public."Purchase" ("id","invoice_rnc","invoice_conceptId","invoice_sheetId","invoice_bookId","invoice_companyId","invoice_ncf","invoice_ncf_typeId","invoice_ncf_modifed","invoice_ncfModifed_typeId","invoice_typeId","invoice_ck","invoice_bankingId","invoice_payment_methodId","invoice_ncf_day","invoice_tax","invoice_total_as_service","invoice_total_as_good","invoice_created_by","invoice_retentionId","invoice_year","invoice_month","invoice_pay_year","invoice_pay_month","invoice_pay_day","invoice_tax_retentionId") VALUES('$id','$invoiceRnc',$invoiceConceptId,'$invoiceSheetId','$invoiceBookId','$invoiceCompanyId','$invoiceNcf', $invoiceNcfTypeId, '$invoiceNcfModifed', $invoiceNcfModifedTypeId, $invoiceTypeId, $invoiceCk, $invoiceBankingId, $invoicePaymentMethodId,'$invoiceNcfDay', $invoiceTax, $invoiceTotalAsService, $invoiceTotalAsGood,'$invoiceCreatedBy',$invoiceRetentionId,$invoiceYear,$invoiceMonth,$invoicePayYear,$invoicePayMonth,$invoicePayDay,$invoiceTaxRetentionId);''');
+          '''INSERT INTO public."Purchase" ("id","invoice_rnc","invoice_conceptId","invoice_sheetId","invoice_bookId","invoice_companyId","invoice_ncf","invoice_ncf_typeId","invoice_ncf_modifed","invoice_ncfModifed_typeId","invoice_typeId","invoice_ck","invoice_bankingId","invoice_payment_methodId","invoice_ncf_day","invoice_tax","invoice_total","invoice_created_by","invoice_retentionId","invoice_year","invoice_month","invoice_pay_year","invoice_pay_month","invoice_pay_day","invoice_tax_retentionId") VALUES('$id','$invoiceRnc',$invoiceConceptId,'$invoiceSheetId','$invoiceBookId','$invoiceCompanyId','$invoiceNcf', $invoiceNcfTypeId, '$invoiceNcfModifed', $invoiceNcfModifedTypeId, $invoiceTypeId, $invoiceCk, $invoiceBankingId, $invoicePaymentMethodId,'$invoiceNcfDay', $invoiceTax, $invoiceTotal,'$invoiceCreatedBy',$invoiceRetentionId,$invoiceYear,$invoiceMonth,$invoicePayYear,$invoicePayMonth,$invoicePayDay,$invoiceTaxRetentionId);''');
       var result = await connection.mappedResultsQuery(
           '''SELECT * FROM public."PurchaseDetails" WHERE id = '$id';''');
 
@@ -357,9 +365,8 @@ class Purchase {
   Future<Purchase> update() async {
     try {
       await connection.query('''
-      UPDATE public."Purchase" SET "invoice_rnc" = '$invoiceRnc', "invoice_conceptId" = $invoiceConceptId, "invoice_ncf" = '$invoiceNcf', "invoice_ncf_typeId" = $invoiceNcfTypeId, "invoice_ncf_modifed" = '$invoiceNcfModifed', "invoice_ncfModifed_typeId" = $invoiceNcfModifedTypeId, "invoice_typeId" = $invoiceTypeId, "invoice_ck" = $invoiceCk, "invoice_bankingId" = $invoiceBankingId, "invoice_payment_methodId" = $invoicePaymentMethodId, "invoice_ncf_day" = '$invoiceNcfDay', "invoice_tax" = $invoiceTax, "invoice_total_as_service" = $invoiceTotalAsService, "invoice_total_as_good" = $invoiceTotalAsGood, "invoice_created_by" = '${User.current!.id}', "invoice_retentionId" = $invoiceRetentionId, "invoice_year" = $invoiceYear, "invoice_month" = $invoiceMonth, "invoice_pay_year" = $invoicePayYear, "invoice_pay_month" = $invoicePayMonth, "invoice_pay_day" = $invoicePayDay, "invoice_tax_retentionId" = $invoiceTaxRetentionId WHERE "id" = '$id';
+      UPDATE public."Purchase" SET "invoice_rnc" = '$invoiceRnc', "authorized" = $authorized, "invoice_conceptId" = $invoiceConceptId, "invoice_ncf" = '$invoiceNcf', "invoice_ncf_typeId" = $invoiceNcfTypeId, "invoice_ncf_modifed" = '$invoiceNcfModifed', "invoice_ncfModifed_typeId" = $invoiceNcfModifedTypeId, "invoice_typeId" = $invoiceTypeId, "invoice_ck" = $invoiceCk, "invoice_bankingId" = $invoiceBankingId, "invoice_payment_methodId" = $invoicePaymentMethodId, "invoice_ncf_day" = '$invoiceNcfDay', "invoice_tax" = $invoiceTax, "invoice_total" = $invoiceTotal, "invoice_created_by" = '${User.current!.id}', "invoice_retentionId" = $invoiceRetentionId, "invoice_year" = $invoiceYear, "invoice_month" = $invoiceMonth, "invoice_pay_year" = $invoicePayYear, "invoice_pay_month" = $invoicePayMonth, "invoice_pay_day" = $invoicePayDay, "invoice_tax_retentionId" = $invoiceTaxRetentionId, "created_at" = CURRENT_TIMESTAMP WHERE "id" = '$id';
       ''');
-
       var result = await connection.mappedResultsQuery(
           '''SELECT * FROM public."PurchaseDetails" WHERE "id" = '$id';''');
       return Purchase.fromMap(result.first['']!);
@@ -536,6 +543,7 @@ class Purchase {
   }
 
   factory Purchase.fromMap(Map<String, dynamic> map) {
+
     return Purchase(
         id: map['id'],
         invoiceRnc: map['invoice_rnc'],
@@ -551,10 +559,6 @@ class Purchase {
         invoiceNcfDay: map['invoice_ncf_day'],
         invoiceNcf: map['invoice_ncf'],
         invoiceNcfModifed: map['invoice_ncf_modifed'],
-        invoiceTax: double.tryParse(map['invoice_tax']) ?? 0,
-        invoiceTotalAsService:
-            double.tryParse(map['invoice_total_as_service']) ?? 0,
-        invoiceTotalAsGood: double.tryParse(map['invoice_total_as_good']) ?? 0,
         invoiceCk: map['invoice_ck'],
         invoiceSheetId: map['invoice_sheetId'],
         invoiceBookId: map['invoice_bookId'],
@@ -581,8 +585,12 @@ class Purchase {
         invoiceTaxRetentionRate: map['invoice_tax_retention_rate'],
         invoiceTaxRetentionValue: map['invoice_tax_retention_value'],
         invoiceIsrRetentionValue: map['invoice_isr_retention_value'],
-        invoiceTotal: map['invoice_total'],
-        invoiceNetTotal: map['invoice_net_total'],
+        invoiceTotalAsService: double.tryParse(map['invoice_total_as_service']),
+        invoiceTotalAsGood: double.tryParse(map['invoice_total_as_good']),
+        invoiceTax: double.tryParse(map['invoice_tax']),
+        invoiceTotal: double.tryParse(map['invoice_total']),
+        invoiceNetTotal: double.tryParse(map['invoice_net_total']),
+        authorized: map['authorized'],
         createdAt: map['created_at']);
   }
 
@@ -646,7 +654,7 @@ class Purchase {
       'TOTAL COMO SERVICIOS': invoiceTotalAsService?.abs().toStringAsFixed(2),
       'TOTAL COMO BIENES': invoiceTotalAsGood?.abs().toStringAsFixed(2),
       'TOTAL FACTURADO':
-          double.tryParse(invoiceTotal!)?.abs().toStringAsFixed(2),
+         invoiceTotal?.abs().toStringAsFixed(2),
       'ITBIS FACTURADO': invoiceTax?.abs().toStringAsFixed(2),
       'ITBIS RETENIDO':
           double.tryParse(invoiceTaxRetentionValue!)?.abs().toStringAsFixed(2),
@@ -679,7 +687,7 @@ class Purchase {
       'FECHA DE PAGO': fullPayDatek,
       'TOTAL COMO SERVICIOS': invoiceTotalAsService?.toStringAsFixed(2),
       'TOTAL COMO BIENES': invoiceTotalAsGood?.toStringAsFixed(2),
-      'TOTAL FACTURADO': double.tryParse(invoiceTotal!)?.toStringAsFixed(2),
+      'TOTAL FACTURADO': invoiceTotal?.toStringAsFixed(2),
       'ITBIS FACTURADO': invoiceTax?.toStringAsFixed(2),
       'ITBIS RETENIDO':
           double.tryParse(invoiceTaxRetentionValue!)?.toStringAsFixed(2),
@@ -718,9 +726,9 @@ class Purchase {
       'METODO DE PAGO': invoicePaymentMethodName,
       'TOTAL COMO SERVICIOS': invoiceTotalAsService?.toStringAsFixed(2),
       'TOTAL COMO BIENES': invoiceTotalAsGood?.toStringAsFixed(2),
-      'TOTAL FACTURADO': invoiceTotal,
+      'TOTAL FACTURADO': invoiceTotal?.toStringAsFixed(2),
       'ITBIS FACTURADO': invoiceTax?.toStringAsFixed(2),
-      'TOTAL NETO': invoiceNetTotal,
+      'TOTAL NETO': invoiceNetTotal?.toStringAsFixed(2),
       'ITBIS RETENIDO': invoiceTaxRetentionValue,
       'NOMBRE DE RETENCION': invoiceRetentionName ?? 'NINGUNO',
       'ISR RETENIDO': invoiceIsrRetentionValue,
