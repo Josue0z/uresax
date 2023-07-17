@@ -2,9 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_session_manager/flutter_session_manager.dart';
+import 'package:get/get.dart';
+import 'package:uresaxapp/controllers/session.controller.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/pages/companies_page.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:uresaxapp/widgets/edit-password-widget.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,12 +25,11 @@ class _LoginPageState extends State<LoginPage> {
   _onSubmit() async {
     if (_formKey.currentState!.validate()) {
       try {
+        var controller = Get.find<SessionController>();
         var user = await User.signIn(username.text, password.text);
-        await SessionManager().set('USER', user);
-        Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (ctx) => const CompaniesPage()),
-            (route) => false);
+        controller.currentUser = Rx(user);
+        await SessionManager().set('USER', user?.toJson());
+        Get.offAll(() => CompaniesPage());
       } catch (e) {
         showAlert(context, message: e.toString());
       }
@@ -37,9 +39,9 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: const Color(0xFF303C42),
+        backgroundColor: Theme.of(context).primaryColor,
         body: Form(
-          autovalidateMode: AutovalidateMode.onUserInteraction,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             key: _formKey,
             child: Center(
               child: Column(
@@ -69,21 +71,15 @@ class _LoginPageState extends State<LoginPage> {
                         TextFormField(
                           controller: username,
                           style: const TextStyle(fontSize: 18),
-                          validator: (val) =>  val!.isEmpty ? 'EL USUARIO ES REQUERIDO': null,
+                          validator: (val) =>
+                              val!.isEmpty ? 'EL USUARIO ES REQUERIDO' : null,
                           decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               hintText: 'USUARIO'),
                         ),
                         const SizedBox(height: 20),
-                        TextFormField(
+                        EditPasswordWidget(
                           controller: password,
-                          validator: (val) =>  val!.isEmpty ? 'LA CLAVE ES REQUERIDA': null,
-                          style: const TextStyle(fontSize: 18),
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'CONTRASEÑA',
-                          ),
                         ),
                         const SizedBox(height: 20),
                         SizedBox(

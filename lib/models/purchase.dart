@@ -1,85 +1,19 @@
+import 'dart:io';
 import 'dart:convert';
-import 'dart:ffi';
-import 'package:flutter/material.dart';
-import 'package:uresaxapp/models/book.dart';
+import '../utils/extra.dart';
+import 'package:pdf/pdf.dart';
 import 'package:uuid/uuid.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:moment_dart/moment_dart.dart';
+import 'package:uresaxapp/utils/consts.dart';
+import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/apis/connection.dart';
 import 'package:uresaxapp/models/user.dart';
-import 'package:simple_moment/simple_moment.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:string_mask/string_mask.dart';
-
-import '../utils/extra.dart';
+import 'package:excel/excel.dart';
 
 var formatter = StringMask('#.###.00');
 
-class ReportViewModelForConceptType {
-  String? title;
-  List<Map<String, dynamic>?> body;
-  pw.Document? pdf;
-  Book? book;
-  int? start = 1;
-  int? end = 12;
-  RangeLabels? rangeLabels;
-  RangeValues? rangeValues;
-  String totalNcfs;
-  ReportViewModelForConceptType(
-      {required this.body,
-      required this.totalNcfs,
-      this.rangeValues,
-      this.rangeLabels,
-      this.pdf,
-      this.title,
-      this.book,
-      this.start,
-      this.end});
-}
-
-class ReportViewModelForInvoiceType {
-  String title;
-
-  List<Map<String, dynamic>?> body;
-
-  String taxServices;
-
-  String taxGood;
-
-  String totalTax;
-
-  String totalGeneral;
-
-  Map<String, dynamic> footer;
-
-  RangeLabels? rangeLabels;
-
-  RangeValues? rangeValues;
-
-  pw.Document? pdf;
-
-  Book? book;
-
-  int? start = 1;
-
-  int? end = 12;
-
-  String totalNcfs;
-
-  ReportViewModelForInvoiceType(
-      {required this.body,
-      this.footer = const {},
-      this.title = '',
-      this.rangeLabels,
-      this.rangeValues,
-      this.book,
-      this.start,
-      this.end,
-      this.pdf,
-      this.totalNcfs = '0',
-      this.taxServices = '\$0.00',
-      this.totalGeneral = '\$0.00',
-      this.totalTax = '\$0.00',
-      this.taxGood = '\$0.00'});
-}
 
 class Purchase {
   String? id;
@@ -99,6 +33,7 @@ class Purchase {
   double? invoiceTax;
   double? invoiceTotalAsService;
   double? invoiceTotalAsGood;
+  double? invoiceTaxCon;
   int? invoiceRate;
   int? invoiceCk;
   int? invoicePayYear;
@@ -122,10 +57,19 @@ class Purchase {
   String? invoiceFullNcfModifed;
   String? invoiceNcfName;
   String? invoiceNcfModifedName;
-  String? invoiceTaxRetentionValue;
-  String? invoiceIsrRetentionValue;
+  String? ckBeneficiary;
+  double? invoiceTaxRetentionValue;
+  double? invoiceIsrRetentionValue;
   double? invoiceTotal;
   double? invoiceNetTotal;
+  double? invoiceFinalTax;
+  double? invoiceLegalTipAmount;
+  double? invoiceIsrInPurchases;
+  double? invoiceSelectiveConsumptionTax;
+  double? invoiceTaxInPurchases;
+  double? invoiceOthersTaxes;
+  DateTime? invoiceIssueDate;
+  DateTime? invoicePayDate;
   bool authorized;
   DateTime? createdAt;
 
@@ -174,112 +118,628 @@ class Purchase {
       this.invoiceIsrRetentionValue,
       this.invoiceTotal,
       this.invoiceNetTotal,
+      this.invoiceTaxCon,
+      this.invoiceFinalTax,
+      this.invoiceLegalTipAmount,
+      this.invoiceIsrInPurchases,
+      this.invoiceSelectiveConsumptionTax,
+      this.invoiceTaxInPurchases,
+      this.invoiceOthersTaxes,
       this.authorized = true,
+      this.invoiceIssueDate,
+      this.invoicePayDate,
+      this.ckBeneficiary,
       this.createdAt});
 
-  
-  Future<void> updateAuthorization(bool newValue)async{
-      await connection.execute('''update public."Purchase" set authorized = $newValue where "id" = '$id';''');
+  Future<void> updateAuthorization(bool newValue) async {
+    await connection.execute(
+        '''update public."Purchase" set authorized = $newValue where "id" = '$id';''');
   }
 
-  static Future<ReportViewModelForInvoiceType> getReportViewByInvoiceType(
-      {String id = '',
-      int start = 1,
-      int end = 12,
-      reportType = ReportType.month,
+  static Future<Map<String, dynamic>> getReportViewByCompanyName(
+      {String words = '',
+      String targetPath = '',
+      String reportName = 'REPORTE FISCAL',
+      required Company company,
+      required DateTime startDate,
+      required DateTime endDate,
       QueryContext queryContext = QueryContext.tax}) async {
-    String where = '';
+    String id = company.id!;
+
+    String title =
+        '$reportName - ${company.name!.trim()} - ${startDate.format(payload: 'DD/MM/YYYY')} - ${endDate.format(payload: 'DD/MM/YYYY')}';
+
     String queryContextI = 'and';
 
     if (queryContext == QueryContext.consumption) {
       queryContextI =
-          'and (p."invoice_ncf_typeId" = 2 or p."invoice_ncf_typeId" = 32) and';
+          'and ("invoice_ncf_typeId" = 2 or "invoice_ncf_typeId" = 32) and';
     } else if (queryContext == QueryContext.tax) {
       queryContextI =
-          'and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and';
+          'and "invoice_ncf_typeId" != 2 and "invoice_ncf_typeId" != 32 and';
     }
 
-    if (reportType == ReportType.month) {
-      where =
-          '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') $queryContextI p."invoice_month" between $start and $end''';
-    } else {
-      where =
-          '''p."invoice_companyId" = '$id' $queryContextI p."invoice_year" between $start and $end''';
+    var extra = '';
+
+    if (words != '') {
+      extra =
+          '''("invoice_ck"::text like '%$words%' or "invoice_banking_name" like '%$words%' or "invoice_author" like '%$words%' or "invoice_concept_name" like '%$words%' or "invoice_rnc" = '$words' or "invoice_company_name" like '%$words%' or "invoice_ncf" like '%$words%') and ''';
     }
+
+    String where =
+        '''authorized = true and "invoice_companyId" = '$id' $queryContextI $extra "invoice_issue_date" between '${startDate.format(payload: 'YYYY-MM-DD')}' and '${endDate.format(payload: 'YYYY-MM-DD')}' ''';
 
     try {
-
-      await connection.query('''
-        CREATE OR REPLACE VIEW public."ReportViewForInvoiceType"
-        AS
+      var rsults = await connection.runTx((c) async {
+        await c.query('''SET lc_monetary = 'es_US';''');
+        var r1 = await c.mappedResultsQuery('''
         SELECT 
-        p."invoice_typeId" AS "TIPO",
-        p.invoice_type_name AS "NOMBRE",
-        sum(p.invoice_total_as_service)::text AS "TOTAL EN SERVICIOS",
-        sum(p.invoice_total_as_good)::text AS "TOTAL EN BIENES",
-        sum(p.invoice_tax)::text AS "TOTAL ITBIS FACTURADO",
-        sum(p.invoice_tax_retention_value::numeric(10,2))::text AS "ITBIS RETENIDO",
-        sum(p.invoice_isr_retention_value::numeric(10,2))::text AS "ISR RETENIDO"
-        FROM "PurchaseDetails" p
+        invoice_company_name AS "NOMBRE",
+        sum(invoice_total_as_service)::money::text AS "TOTAL EN SERVICIOS",
+        sum(invoice_total_as_good)::money::text AS "TOTAL EN BIENES",
+        sum(invoice_total)::money::text AS "TOTAL FACTURADO",
+        sum(invoice_final_tax)::money::text AS "ITBIS POR ADELANTAR",
+        sum(invoice_net_total)::money::text AS "TOTAL NETO",
+        sum(invoice_tax_retention_value)::money::text AS "ITBIS RETENIDO",
+        sum(invoice_isr_retention_value)::money::text AS "ISR RETENIDO"
+        FROM public."PurchaseDetails"
         WHERE $where
-        GROUP BY p."invoice_typeId",p.invoice_type_name
-        ORDER BY p."invoice_typeId", p."invoice_type_name"
-      ''');
-      await connection.query('''SET lc_monetary = 'es_US';''');
-      var r1 = await connection.mappedResultsQuery('''
-          SELECT
-          COALESCE("NOMBRE", 'TOTAL GENERAL') AS "NOMBRE",
-          SUM("TOTAL EN SERVICIOS"::numeric(10,2))::money::text AS "TOTAL EN SERVICIOS",
-          SUM("TOTAL EN BIENES"::numeric(10,2))::money::text AS "TOTAL EN BIENES",
-          SUM("TOTAL EN BIENES"::numeric(10,2) + "TOTAL EN SERVICIOS"::numeric(10,2))::money::text AS "TOTAL FACTURADO",
-          SUM("TOTAL ITBIS FACTURADO"::numeric(10,2))::money::text AS "TOTAL ITBIS FACTURADO",
-          SUM(("TOTAL EN BIENES"::numeric(10,2) + "TOTAL EN SERVICIOS"::numeric(10,2)) - "TOTAL ITBIS FACTURADO"::numeric(10,2))::money::text AS "TOTAL NETO",
-          SUM("ITBIS RETENIDO"::numeric(10,2))::money::text AS "ITBIS RETENIDO",
-          SUM("ISR RETENIDO"::numeric(10,2))::money::text AS "ISR RETENIDO"
-          FROM public."ReportViewForInvoiceType"
-          GROUP BY GROUPING SETS (("TIPO","NOMBRE"), ())
-          ORDER BY "TIPO"
-          ''');
-
-      var r3 = await connection.mappedResultsQuery('''
-           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
+        GROUP BY invoice_company_name
+        UNION ALL
+        SELECT 
+        'TOTAL GENERAL', 
+        sum(invoice_total_as_service)::money::text,
+        sum(invoice_total_as_good)::money::text,
+        sum(invoice_total)::money::text,
+        sum(invoice_final_tax)::money::text,
+        sum(invoice_net_total)::money::text,
+        sum(invoice_tax_retention_value)::money::text,
+        sum(invoice_isr_retention_value)::money::text
+        FROM public."PurchaseDetails"
+        WHERE $where
       ''');
 
-      var r4 = await connection.mappedResultsQuery('''
-           SELECT trunc(sum(p.invoice_tax),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
+        var r2 = await c.mappedResultsQuery('''
+           SELECT trunc(sum(p.invoice_tax - p.invoice_tax_con),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
+      ''');
 
-      var r5 = await connection.mappedResultsQuery(
-          '''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $where''');
+        var r3 = await c.mappedResultsQuery('''
+           SELECT trunc(sum(p.invoice_tax - p.invoice_tax_con),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
 
-      var body = r1.map((e) => e['']).toList();
+        var r4 = await c.mappedResultsQuery(
+            '''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $where''');
 
-      var t3 = r3.first['']?['ITBIS FACTURADO EN BIENES'] ?? '\$0.00';
+        return [r1, r2, r3, r4];
+      });
 
-      var t4 = r4.first['']?['ITBIS FACTURADO EN SERVICIOS'] ?? '\$0.00';
+      var r1 = rsults[0];
 
-      var t5 = r5.first['']?['TOTAL DE DOCUMENTOS'] ?? '0';
+      var data = r1.map((e) => e['']!).toList();
 
-      return ReportViewModelForInvoiceType(
-          body: body,
-          start: start,
-          end: end,
-          taxGood: t3,
-          totalNcfs: t5.toString(),
-          taxServices: t4);
+      var r2 = rsults[1];
+
+      var r3 = rsults[2];
+
+      var r4 = rsults[3];
+
+      var taxGoods = r2.first['']?['ITBIS FACTURADO EN BIENES'] ?? '\$0.00';
+
+      var taxServices =
+          r3.first['']?['ITBIS FACTURADO EN SERVICIOS'] ?? '\$0.00';
+
+      var countDocs = r4.first['']?['TOTAL DE DOCUMENTOS'] ?? '0';
+
+      late Excel excel;
+
+      var file = File(targetPath);
+
+      if (!file.existsSync()) {
+        excel = Excel.createExcel();
+      } else {
+        excel = Excel.decodeBytes(await file.readAsBytes());
+      }
+
+      var sheetName =
+          '$reportName - ${startDate.format(payload: 'YYYY-MM-DD')} - ${endDate.format(payload: 'YYYY-MM-DD')}';
+
+      excel.delete('Sheet1');
+
+      var sheet = excel[sheetName];
+
+      var list = data;
+
+      var item = list[0];
+
+      var keys = item.keys.toList();
+
+      int endHeaderRowIndex = 3;
+
+      var c =
+          sheet.cell(CellIndex.indexByColumnRow(rowIndex: 0, columnIndex: 0));
+
+      c.value = sheetName;
+
+      for (int i = 0; i < keys.length; i++) {
+        var c = sheet.cell(CellIndex.indexByColumnRow(
+            columnIndex: i, rowIndex: endHeaderRowIndex));
+        c.value = keys[i];
+      }
+
+      for (int i = 0; i < list.length; i++) {
+        var item = list[i];
+        var values = item.values.toList();
+        for (int j = 0; j < values.length; j++) {
+          var val = values[j];
+          var c = sheet.cell(CellIndex.indexByColumnRow(
+              columnIndex: j, rowIndex: (endHeaderRowIndex + 1) + i));
+          c.value = val;
+        }
+      }
+
+      pw.Document document = pw.Document();
+
+      dhead() {
+        return pw.TableRow(
+            children: data[0].keys.map((key) {
+          return pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 5),
+              child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      key,
+                      style: pw.TextStyle(
+                        fontSize: pdfFontSize,
+                        fontWeight: pw.FontWeight.bold,
+                        color: const PdfColor.fromInt(0x0000000),
+                      ),
+                    ),
+                  ]));
+        }).toList());
+      }
+
+      drows() {
+        return data.map((item) {
+          var index = data.indexOf(item);
+          return pw.TableRow(
+              verticalAlignment: pw.TableCellVerticalAlignment.middle,
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(
+                    top: pw.BorderSide(
+                        color: PdfColor.fromInt(0xA8A8A8), width: 0.3)),
+              ),
+              children: item.entries.map((entry) {
+                var j = item.values.toList().indexOf(entry.value);
+                bool isTotal = j == 0 && index == data.length - 1;
+                return pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 5),
+                    child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(entry.value ?? '\$0.00',
+                              style: pw.TextStyle(
+                                  fontSize: pdfFontSize,
+                                  fontWeight:
+                                      isTotal ? pw.FontWeight.bold : null)),
+                        ]));
+              }).toList());
+        }).toList();
+      }
+
+      var pages = pw.MultiPage(
+          pageFormat:
+              PdfPageFormat(PdfPageFormat.a4.width, 27.9 * PdfPageFormat.cm),
+          orientation: pw.PageOrientation.landscape,
+          margin: const pw.EdgeInsets.all(12),
+          build: (pw.Context context) {
+            return [
+              pw.Text(title, style: const pw.TextStyle(fontSize: 13)),
+              pw.SizedBox(height: 20),
+              pw.Table(
+                columnWidths: {
+                  0: const pw.IntrinsicColumnWidth(),
+                  1: const pw.FixedColumnWidth(60),
+                  2: const pw.FixedColumnWidth(60),
+                  3: const pw.FixedColumnWidth(60),
+                  4: const pw.FixedColumnWidth(60),
+                  5: const pw.FixedColumnWidth(60),
+                  6: const pw.FixedColumnWidth(60),
+                  7: const pw.FixedColumnWidth(60)
+                },
+                children: [
+                  dhead(),
+                  ...drows(),
+                ],
+              ),
+              pw.SizedBox(height: 15),
+              pw.Text('ITBIS FACTURADO EN SERVICIOS: $taxServices',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 8)),
+              pw.SizedBox(height: 15),
+              pw.Text('ITBIS FACTURADO EN BIENES: $taxGoods',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 8)),
+              pw.SizedBox(height: 15),
+              pw.Text('TOTAL DE DOCUMENTOS: $countDocs',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 8)),
+            ]; // Center
+          });
+
+      document.addPage(pages);
+
+      return {
+        'data': data,
+        'excelBytes': excel.save(),
+        'pdfBytes': await document.save(),
+        'footer': {
+          'ITBIS EN SERVICIOS': taxServices,
+          'ITBIS EN BIENES': taxGoods
+        }
+      };
     } catch (e) {
       rethrow;
     }
   }
 
-  static Future<ReportViewModelForConceptType> getReportViewByConceptType(
+  static Future<void> createXls(
       {String id = '',
-      int start = 1,
-      int end = 12,
-      reportType = ReportType.month,
+      String targetPath = '',
+      String sheetName = '',
+      String startDate = '',
+      String endDate = ''}) async {
+    String queryContextI =
+        'and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and';
+
+    String where =
+        '''authorized = true and p."invoice_companyId" = '$id' $queryContextI p."invoice_issue_date" between '$startDate' and '$endDate' ''';
+
+    try {
+      await connection.query('''SET lc_monetary = 'es_US';''');
+      var result = await connection.mappedResultsQuery('''
+              SELECT * FROM (
+              SELECT 
+              COALESCE(p.invoice_company_name, 'TOTAL GENERAL') AS "NOMBRE",
+              p.invoice_rnc AS "RNC",
+              p."invoice_typeId" AS "CODIGO",
+              p.invoice_type_name AS "TIPO DE FACTURA",
+              p.invoice_ncf AS "NCF",
+              p.invoice_ncf_modifed AS "NCF MODIFICADO",
+              sum(p.invoice_total_as_service)::money::text AS "TOTAL EN SERVICIOS",
+              sum(p.invoice_total_as_good)::money::text AS "TOTAL EN BIENES",
+              sum(p.invoice_total)::money::text AS "TOTAL FACTURADO",
+              sum(p.invoice_final_tax)::money::text AS "ITBIS POR ADELANTAR",
+              sum(p.invoice_net_total)::money::text AS "TOTAL NETO",
+              sum(p.invoice_tax_retention_value::numeric(10,2))::money::text AS "ITBIS RETENIDO",
+              sum(p.invoice_tax_con)::money::text AS "ITBIS LLEVADO AL COSTO",
+              p.invoice_issue_date::text AS "FECHA DE EMISION DE COMPROBANTE",
+              p.invoice_pay_date::text AS "FECHA DE PAGO DE COMPROBANTE",
+              p.invoice_retention_name AS "NOMBRE DE RETENCION ISR",
+              sum(p.invoice_isr_retention_value::numeric(10,2))::money::text AS "RETENCION ISR",
+              p.invoice_payment_method_name AS "METODO DE PAGO"
+              FROM "PurchaseDetails" p 
+              WHERE $where
+              GROUP BY GROUPING SETS ((invoice_company_name,
+             "invoice_typeId",
+             invoice_rnc,
+             invoice_type_name,
+             invoice_ncf,
+             invoice_ncf_modifed,
+             invoice_total_as_service, 
+             invoice_total_as_good,invoice_total,invoice_tax,
+             invoice_tax_retention_value,
+             invoice_tax_con,
+             invoice_final_tax,
+             invoice_issue_date,
+             invoice_pay_date,
+             invoice_retention_name,
+             invoice_isr_retention_value,
+             invoice_payment_method_name), ())
+             ) AS epic ORDER BY "CODIGO"
+     ''');
+
+      var file = File(targetPath);
+
+      Excel excel;
+
+      List<int>? bytes = [];
+
+      var list = result.map((e) => e['']).toList();
+
+      if (file.existsSync()) {
+        bytes = await file.readAsBytes();
+        excel = Excel.decodeBytes(bytes);
+      } else {
+        excel = Excel.createExcel();
+      }
+      excel.delete('Sheet1');
+      var sheet = excel[sheetName];
+
+      for (int i = 0; i < list.length; i++) {
+        var values = list[i]?.values.toList();
+        var keys = list[i]?.keys.toList();
+
+        for (int j = 0; j < keys!.length; j++) {
+          var cell = sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: j, rowIndex: 0));
+          cell.value = keys[j]; //
+        }
+
+        for (int j = 0; j < values!.length; j++) {
+          var cell = sheet.cell(
+              CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i + 1));
+          cell.value = values[j]; //
+        }
+      }
+      bytes = excel.save();
+
+      await file.create(recursive: true);
+      await file.writeAsBytes(bytes!);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getReportViewByInvoiceType(
+      {String words = '',
+      String targetPath = '',
+      String reportName = 'REPORTE FISCAL',
+      required DateTime startDate,
+      required DateTime endDate,
+      required Company company,
+      QueryContext queryContext = QueryContext.tax}) async {
+    String id = company.id!;
+
+    String title =
+        '$reportName - ${company.name!.trim()} - ${startDate.format(payload: 'DD/MM/YYYY')} - ${endDate.format(payload: 'DD/MM/YYYY')}';
+
+    String queryContextI = 'and';
+
+    if (queryContext == QueryContext.consumption) {
+      queryContextI =
+          'and ("invoice_ncf_typeId" = 2 or "invoice_ncf_typeId" = 32) and';
+    } else if (queryContext == QueryContext.tax) {
+      queryContextI =
+          'and "invoice_ncf_typeId" != 2 and "invoice_ncf_typeId" != 32 and';
+    }
+
+    var extra = '';
+
+    if (words != '') {
+      extra =
+          '''("invoice_ck"::text like '%$words%' or "invoice_author" like '%$words%' or "invoice_concept_name" like '%$words%' or "invoice_banking_name" like '%$words%' or "invoice_rnc" = '$words' or "invoice_company_name" like '%$words%' or "invoice_ncf" like '%$words%') and ''';
+    }
+
+    String where =
+        '''authorized = true and "invoice_companyId" = '$id' $queryContextI $extra "invoice_issue_date" between '${startDate.format(payload: 'YYYY-MM-DD')}' and '${endDate.format(payload: 'YYYY-MM-DD')}' ''';
+
+    try {
+      var rsults = await connection.runTx((c) async {
+        await c.query('''SET lc_monetary = 'es_US';''');
+        var r1 = await c.mappedResultsQuery('''
+        SELECT 
+        invoice_type_name AS "NOMBRE",
+        sum(invoice_total_as_service)::money::text AS "TOTAL EN SERVICIOS",
+        sum(invoice_total_as_good)::money::text AS "TOTAL EN BIENES",
+        sum(invoice_total)::money::text AS "TOTAL FACTURADO",
+        sum(invoice_final_tax)::money::text AS "ITBIS POR ADELANTAR",
+        sum(invoice_net_total)::money::text AS "TOTAL NETO",
+        sum(invoice_tax_retention_value)::money::text AS "ITBIS RETENIDO",
+        sum(invoice_isr_retention_value)::money::text AS "ISR RETENIDO"
+        FROM public."PurchaseDetails"
+        WHERE $where
+        GROUP BY "invoice_typeId", invoice_type_name
+        UNION ALL
+        SELECT 
+        'TOTAL GENERAL', 
+        sum(invoice_total_as_service)::money::text,
+        sum(invoice_total_as_good)::money::text,
+        sum(invoice_total)::money::text,
+        sum(invoice_final_tax)::money::text,
+        sum(invoice_net_total)::money::text,
+        sum(invoice_tax_retention_value)::money::text,
+        sum(invoice_isr_retention_value)::money::text
+        FROM public."PurchaseDetails"
+        WHERE $where
+      ''');
+
+        var r2 = await c.mappedResultsQuery('''
+           SELECT trunc(sum(p.invoice_tax - p.invoice_tax_con),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
+      ''');
+
+        var r3 = await c.mappedResultsQuery('''
+           SELECT trunc(sum(p.invoice_tax - p.invoice_tax_con),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''');
+
+        var r4 = await c.mappedResultsQuery(
+            '''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $where''');
+
+        return [r1, r2, r3, r4];
+      });
+
+      var r1 = rsults[0];
+
+      var r2 = rsults[1];
+
+      var r3 = rsults[2];
+
+      var r4 = rsults[3];
+
+      var data = r1.map((e) => e['']!).toList();
+
+      var taxServices =
+          r3.first['']?['ITBIS FACTURADO EN SERVICIOS'] ?? '\$0.00';
+
+      var taxGoods = r2.first['']?['ITBIS FACTURADO EN BIENES'] ?? '\$0.00';
+
+      var countDocs = r4.first['']?['TOTAL DE DOCUMENTOS'] ?? '0';
+
+      late Excel excel;
+
+      var file = File(targetPath);
+
+      if (!file.existsSync()) {
+        excel = Excel.createExcel();
+      } else {
+        excel = Excel.decodeBytes(await file.readAsBytes());
+      }
+
+      var sheetName =
+          '$reportName - ${startDate.format(payload: 'YYYY-MM-DD')} - ${endDate.format(payload: 'YYYY-MM-DD')}';
+
+      excel.delete('Sheet1');
+
+      var sheet = excel[sheetName];
+
+      var list = data;
+
+      var item = list[0];
+
+      var keys = item.keys.toList();
+
+      int endHeaderRowIndex = 3;
+
+      var c =
+          sheet.cell(CellIndex.indexByColumnRow(rowIndex: 0, columnIndex: 0));
+
+      c.value = sheetName;
+
+      for (int i = 0; i < keys.length; i++) {
+        var c = sheet.cell(CellIndex.indexByColumnRow(
+            columnIndex: i, rowIndex: endHeaderRowIndex));
+        c.value = keys[i];
+      }
+
+      for (int i = 0; i < list.length; i++) {
+        var item = list[i];
+        var values = item.values.toList();
+        for (int j = 0; j < values.length; j++) {
+          var val = values[j];
+          var c = sheet.cell(CellIndex.indexByColumnRow(
+              columnIndex: j, rowIndex: (endHeaderRowIndex + 1) + i));
+          c.value = val;
+        }
+      }
+
+      pw.Document document = pw.Document();
+
+      dhead() {
+        return pw.TableRow(
+            children: data[0].keys.map((key) {
+          return pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 5),
+              child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      key,
+                      style: pw.TextStyle(
+                        fontSize: pdfFontSize,
+                        fontWeight: pw.FontWeight.bold,
+                        color: const PdfColor.fromInt(0x0000000),
+                      ),
+                    ),
+                  ]));
+        }).toList());
+      }
+
+      drows() {
+        return data.map((item) {
+          var index = data.indexOf(item);
+          return pw.TableRow(
+              verticalAlignment: pw.TableCellVerticalAlignment.middle,
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(
+                    top: pw.BorderSide(
+                        color: PdfColor.fromInt(0xA8A8A8), width: 0.3)),
+              ),
+              children: item.entries.map((entry) {
+                var j = item.values.toList().indexOf(entry.value);
+                bool isTotal = j == 0 && index == data.length - 1;
+                return pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 5),
+                    child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(entry.value ?? '\$0.00',
+                              style: pw.TextStyle(
+                                  fontSize: pdfFontSize,
+                                  fontWeight:
+                                      isTotal ? pw.FontWeight.bold : null)),
+                        ]));
+              }).toList());
+        }).toList();
+      }
+
+      var pages = pw.MultiPage(
+          pageFormat:
+              PdfPageFormat(PdfPageFormat.a4.width, 27.9 * PdfPageFormat.cm),
+          orientation: pw.PageOrientation.landscape,
+          margin: const pw.EdgeInsets.all(12),
+          build: (pw.Context context) {
+            return [
+              pw.Text(title, style: const pw.TextStyle(fontSize: 13)),
+              pw.SizedBox(height: 20),
+              pw.Table(
+                columnWidths: {
+                  0: const pw.IntrinsicColumnWidth(),
+                  1: const pw.FixedColumnWidth(60),
+                  2: const pw.FixedColumnWidth(60),
+                  3: const pw.FixedColumnWidth(60),
+                  4: const pw.FixedColumnWidth(60),
+                  5: const pw.FixedColumnWidth(60),
+                  6: const pw.FixedColumnWidth(60),
+                  7: const pw.FixedColumnWidth(60)
+                },
+                children: [
+                  dhead(),
+                  ...drows(),
+                ],
+              ),
+              pw.SizedBox(height: 15),
+              pw.Text('ITBIS FACTURADO EN SERVICIOS: $taxServices',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 8)),
+              pw.SizedBox(height: 15),
+              pw.Text('ITBIS FACTURADO EN BIENES: $taxGoods',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 8)),
+              pw.SizedBox(height: 15),
+              pw.Text('TOTAL DE DOCUMENTOS: $countDocs',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 8)),
+            ]; // Center
+          });
+
+      document.addPage(pages);
+
+      return {
+        'data': data,
+        'excelBytes': excel.save(),
+        'pdfBytes': await document.save(),
+        'footer': {
+          'ITBIS EN SERVICIOS': taxServices,
+          'ITBIS EN BIENES': taxGoods
+        }
+      };
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getReportViewByConceptType(
+      {String words = '',
+      String targetPath = '',
+      String reportName = 'REPORTE FISCAL',
+      required DateTime startDate,
+      required DateTime endDate,
+      required Company company,
       QueryContext queryContext = QueryContext.tax}) async {
     try {
+      String id = company.id!;
 
-      String where = '';
+      String title =
+          '$reportName - ${company.name!.trim()} - ${startDate.format(payload: 'DD/MM/YYYY')} - ${endDate.format(payload: 'DD/MM/YYYY')}';
+
       String queryContextI = 'and';
 
       if (queryContext == QueryContext.consumption) {
@@ -290,82 +750,254 @@ class Purchase {
             'and p."invoice_ncf_typeId" != 2 and p."invoice_ncf_typeId" != 32 and';
       }
 
-      if (reportType == ReportType.month) {
-        where =
-            '''(p."invoice_sheetId" = '$id' OR p."invoice_bookId" = '$id') $queryContextI p."invoice_month" between $start and $end''';
-      } else {
-        where =
-            '''p."invoice_companyId" = '$id' $queryContextI p."invoice_year" between $start and $end''';
+      var extra = '';
+
+      if (words != '') {
+        extra =
+            '''("invoice_ck"::text like '%$words%' or "invoice_banking_name" like '%$words%' or "invoice_author" like '%$words%' or "invoice_concept_name" like '%$words%' or "invoice_rnc" = '$words' or "invoice_company_name" like '%$words%' or "invoice_rnc" = '$words' or "invoice_company_name" like '%$words%' or "invoice_ncf" like '%$words%') and ''';
       }
-      await connection.query('''SET lc_monetary = 'es_US';''');
-      var result = await connection.mappedResultsQuery('''
+
+      String where =
+          ''' authorized = true and p."invoice_companyId" = '$id' $queryContextI $extra p."invoice_issue_date" between '${startDate.format(payload: 'YYYY-MM-DD')}' and '${endDate.format(payload: 'YYYY-MM-DD')}' ''';
+
+      var result = await connection.runTx((c) async {
+        await c.query('''SET lc_monetary = 'es_US';''');
+        var result = await c.mappedResultsQuery('''
               SELECT
               COALESCE("invoice_concept_name",'TOTAL GENERAL')
               AS "CONCEPTO",
-              SUM("invoice_total_as_service" + "invoice_total_as_good")::money::text 
+              SUM(("invoice_total_as_service" + "invoice_total_as_good"))::money::text 
               AS "TOTAL FACTURADO",
               SUM("invoice_tax")::money::text AS "TOTAL ITBIS FACTURADO",
-              SUM(("invoice_total_as_service" + "invoice_total_as_good") - "invoice_tax")::money::text
-              AS "TOTAL NETO"
+              SUM(("invoice_total_as_service" + "invoice_total_as_good") - "invoice_tax")::money::text AS "TOTAL NETO"
               FROM public."PurchaseDetails" p
               WHERE $where
               GROUP BY GROUPING SETS (("invoice_conceptId","invoice_concept_name"), ())
               ORDER BY "invoice_conceptId"
         ''');
+        return result;
+      });
+
+      var data = result.map((e) => e['']!).toList();
 
       var r2 = await connection.mappedResultsQuery(
           '''SELECT COUNT(*) AS "TOTAL DE DOCUMENTOS" FROM public."PurchaseDetails" p WHERE $where''');
+
       var countDocs = r2.first['']?['TOTAL DE DOCUMENTOS'] ?? '0';
 
-      var body = result.map((e) => e['']).toList();
+      late Excel excel;
 
-      return ReportViewModelForConceptType(
-          body: body, totalNcfs: countDocs.toString());
+      var file = File(targetPath);
+
+      if (!file.existsSync()) {
+        excel = Excel.createExcel();
+      } else {
+        excel = Excel.decodeBytes(await file.readAsBytes());
+      }
+
+      var sheetName =
+          '$reportName - ${startDate.format(payload: 'YYYY-MM-DD')} - ${endDate.format(payload: 'YYYY-MM-DD')}';
+
+      excel.delete('Sheet1');
+
+      var sheet = excel[sheetName];
+
+      var list = result.map((e) => e['']).toList();
+
+      var item = list[0];
+
+      var keys = item?.keys.toList();
+
+      int endHeaderRowIndex = 3;
+
+      var c =
+          sheet.cell(CellIndex.indexByColumnRow(rowIndex: 0, columnIndex: 0));
+
+      c.value = sheetName;
+
+      for (int i = 0; i < keys!.length; i++) {
+        var c = sheet.cell(CellIndex.indexByColumnRow(
+            columnIndex: i, rowIndex: endHeaderRowIndex));
+        c.value = keys[i];
+      }
+
+      for (int i = 0; i < list.length; i++) {
+        var item = list[i];
+        var values = item?.values.toList();
+        for (int j = 0; j < values!.length; j++) {
+          var val = values[j];
+          var c = sheet.cell(CellIndex.indexByColumnRow(
+              columnIndex: j, rowIndex: (endHeaderRowIndex + 1) + i));
+          c.value = val;
+        }
+      }
+
+      pw.Document document = pw.Document();
+
+      dhead() {
+        return pw.TableRow(
+            children: data[0].keys.map((key) {
+          return pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 5),
+              child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      key,
+                      style: pw.TextStyle(
+                        fontSize: pdfFontSize,
+                        fontWeight: pw.FontWeight.bold,
+                        color: const PdfColor.fromInt(0x0000000),
+                      ),
+                    ),
+                  ]));
+        }).toList());
+      }
+
+      drows() {
+        return data.map((item) {
+          var index = data.indexOf(item);
+          return pw.TableRow(
+              verticalAlignment: pw.TableCellVerticalAlignment.middle,
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(
+                    top: pw.BorderSide(
+                        color: PdfColor.fromInt(0xA8A8A8), width: 0.3)),
+              ),
+              children: item.entries.map((entry) {
+                var j = item.values.toList().indexOf(entry.value);
+                bool isTotal = j == 0 && index == data.length - 1;
+                return pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 5),
+                    child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(entry.value ?? '\$0.00',
+                              style: pw.TextStyle(
+                                  fontSize: pdfFontSize,
+                                  fontWeight:
+                                      isTotal ? pw.FontWeight.bold : null)),
+                        ]));
+              }).toList());
+        }).toList();
+      }
+
+      var pages = pw.MultiPage(
+          pageFormat:
+              PdfPageFormat(PdfPageFormat.a4.width, 27.9 * PdfPageFormat.cm),
+          orientation: pw.PageOrientation.landscape,
+          margin: const pw.EdgeInsets.all(12),
+          build: (pw.Context context) {
+            return [
+              pw.Text(title, style: const pw.TextStyle(fontSize: 13)),
+              pw.SizedBox(height: 20),
+              pw.Table(
+                columnWidths: {
+                  0: const pw.IntrinsicColumnWidth(),
+                  1: const pw.FixedColumnWidth(60),
+                  2: const pw.FixedColumnWidth(60),
+                  3: const pw.FixedColumnWidth(60),
+                  4: const pw.FixedColumnWidth(60),
+                  5: const pw.FixedColumnWidth(60),
+                  6: const pw.FixedColumnWidth(60),
+                  7: const pw.FixedColumnWidth(60)
+                },
+                children: [
+                  dhead(),
+                  ...drows(),
+                ],
+              ),
+              pw.SizedBox(height: 15),
+              pw.Text('TOTAL DE DOCUMENTOS: $countDocs',
+                  style:
+                      pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8))
+            ]; // Center
+          });
+
+      document.addPage(pages);
+
+      return {
+        'data': data,
+        'excelBytes': excel.save(),
+        'pdfBytes': await document.save()
+      };
     } catch (e) {
       rethrow;
     }
   }
 
-  static Future<void> dispose() async {
-    await connection
-        .query('''DROP VIEW IF EXISTS public."ReportViewForInvoiceType";''');
-    await connection
-        .query('''DROP VIEW IF EXISTS public."ReportViewForInvoiceType";''');
-  }
 
-  Future<void> checkIfExistsPurchase() async {
+  Future<void> checkIfExists(
+      {String id = '',
+      String purchaseId = '',
+      String startDate = '',
+      String endDate = '',
+      editing = false}) async {
     try {
+      var ncf = invoiceNcf == null ? null : "'$invoiceNcf'";
+      //var ncfM = invoiceNcfModifed == null ? '' : '''and "invoice_ncf_modifed" = '$invoiceNcfModifed' ''';
+      var extraContext = editing ? ''' id != '$purchaseId' and''' : '';
+
       var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM "Purchase" WHERE "invoice_sheetId" = '$invoiceSheetId' and "invoice_rnc" = '$invoiceRnc' and ("invoice_ncf" = '$invoiceNcf' AND "invoice_ncf_modifed" = '$invoiceNcfModifed');''');
+          '''SELECT * FROM public."Purchase" WHERE $extraContext "invoice_companyId" = '$id' and "invoice_rnc" = '$invoiceRnc' and "invoice_ncf" = $ncf and "invoice_issue_date" between '$startDate' and '$endDate';''');
+
       if (result.isNotEmpty) {
-        throw 'YA EXISTE ESTA COMPRA EN ESTA HOJA';
+        throw 'YA EXISTE ESTA FACTURA EN ESTA HOJA';
       }
     } catch (e) {
       rethrow;
     }
   }
 
+  String get issueDate {
+    return invoiceIssueDate!.format(payload: 'YYYY-MM-DD');
+  }
+
+  String? get payDate {
+    if (invoicePayDate == null) return null;
+    return invoicePayDate!.format(payload: 'YYYY-MM-DD');
+  }
+
   Future<Purchase> create() async {
     try {
       id = const Uuid().v4();
-
       invoiceCreatedBy = User.current!.id;
+      var payContext = payDate != null ? "'$payDate'" : null;
+      var ncf = invoiceNcf == null ? null : "'$invoiceNcf'";
+      var ncfM = invoiceNcfModifed == null ? null : "'$invoiceNcfModifed'";
+      var ckbeneficiary = ckBeneficiary == null ? null : "'$ckBeneficiary'";
+      await connection.query('''
+             INSERT
+             INTO 
+             public."Purchase" ("id","ck_beneficiary","invoice_rnc","invoice_conceptId","invoice_companyId","invoice_ncf","invoice_ncf_typeId","invoice_ncf_modifed","invoice_ncfModifed_typeId","invoice_typeId","invoice_ck","invoice_bankingId","invoice_payment_methodId","invoice_tax","invoice_total","invoice_created_by","invoice_retentionId","invoice_tax_retentionId","invoice_tax_con","authorized","invoice_legal_tip_amount","isr_in_purchases","selective_consumption_tax","tax_in_purchases", "other_taxes","invoice_issue_date", "invoice_pay_date") 
+             VALUES('$id',$ckbeneficiary,'$invoiceRnc', $invoiceConceptId, '$invoiceCompanyId', $ncf, $invoiceNcfTypeId, $ncfM, $invoiceNcfModifedTypeId, $invoiceTypeId, $invoiceCk, $invoiceBankingId, $invoicePaymentMethodId, $invoiceTax, $invoiceTotal,'$invoiceCreatedBy',$invoiceRetentionId,$invoiceTaxRetentionId,$invoiceTaxCon,$authorized,$invoiceLegalTipAmount, $invoiceIsrInPurchases, $invoiceSelectiveConsumptionTax, $invoiceTaxInPurchases, $invoiceOthersTaxes, '$issueDate', $payContext);''');
+      /*var result = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."PurchaseDetails" WHERE id = '$id';''');*/
 
-      await connection.query(
-          '''INSERT INTO public."Purchase" ("id","invoice_rnc","invoice_conceptId","invoice_sheetId","invoice_bookId","invoice_companyId","invoice_ncf","invoice_ncf_typeId","invoice_ncf_modifed","invoice_ncfModifed_typeId","invoice_typeId","invoice_ck","invoice_bankingId","invoice_payment_methodId","invoice_ncf_day","invoice_tax","invoice_total","invoice_created_by","invoice_retentionId","invoice_year","invoice_month","invoice_pay_year","invoice_pay_month","invoice_pay_day","invoice_tax_retentionId") VALUES('$id','$invoiceRnc',$invoiceConceptId,'$invoiceSheetId','$invoiceBookId','$invoiceCompanyId','$invoiceNcf', $invoiceNcfTypeId, '$invoiceNcfModifed', $invoiceNcfModifedTypeId, $invoiceTypeId, $invoiceCk, $invoiceBankingId, $invoicePaymentMethodId,'$invoiceNcfDay', $invoiceTax, $invoiceTotal,'$invoiceCreatedBy',$invoiceRetentionId,$invoiceYear,$invoiceMonth,$invoicePayYear,$invoicePayMonth,$invoicePayDay,$invoiceTaxRetentionId);''');
-      var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM public."PurchaseDetails" WHERE id = '$id';''');
-
-      return Purchase.fromMap(result.first['']!);
+      return Purchase();
     } catch (e) {
+      print(e);
       rethrow;
     }
   }
 
   Future<Purchase> update() async {
     try {
+      String payContext = payDate != null
+          ? ''',"invoice_pay_date" = '$payDate','''
+          : ''',"invoice_pay_date" =  null,''';
+
+      var ncf = invoiceNcf == null
+          ? ''',invoice_ncf = null,'''
+          : ''',"invoice_ncf" = '$invoiceNcf',''';
+      var ncfM = invoiceNcfModifed == null
+          ? ''',invoice_ncf_modifed = null,'''
+          : ''',invoice_ncf_modifed = '$invoiceNcfModifed',''';
+
+      var ckbeneficiary = ckBeneficiary == null ? null : "'$ckBeneficiary'";
+
       await connection.query('''
-      UPDATE public."Purchase" SET "invoice_rnc" = '$invoiceRnc', "authorized" = $authorized, "invoice_conceptId" = $invoiceConceptId, "invoice_ncf" = '$invoiceNcf', "invoice_ncf_typeId" = $invoiceNcfTypeId, "invoice_ncf_modifed" = '$invoiceNcfModifed', "invoice_ncfModifed_typeId" = $invoiceNcfModifedTypeId, "invoice_typeId" = $invoiceTypeId, "invoice_ck" = $invoiceCk, "invoice_bankingId" = $invoiceBankingId, "invoice_payment_methodId" = $invoicePaymentMethodId, "invoice_ncf_day" = '$invoiceNcfDay', "invoice_tax" = $invoiceTax, "invoice_total" = $invoiceTotal, "invoice_created_by" = '${User.current!.id}', "invoice_retentionId" = $invoiceRetentionId, "invoice_year" = $invoiceYear, "invoice_month" = $invoiceMonth, "invoice_pay_year" = $invoicePayYear, "invoice_pay_month" = $invoicePayMonth, "invoice_pay_day" = $invoicePayDay, "invoice_tax_retentionId" = $invoiceTaxRetentionId, "created_at" = CURRENT_TIMESTAMP WHERE "id" = '$id';
+      UPDATE public."Purchase" SET "invoice_rnc" = '$invoiceRnc', ck_beneficiary = $ckbeneficiary, "authorized" = $authorized, "invoice_conceptId" = $invoiceConceptId $ncf "invoice_ncf_typeId" = $invoiceNcfTypeId $ncfM "invoice_ncfModifed_typeId" = $invoiceNcfModifedTypeId, "invoice_typeId" = $invoiceTypeId, "invoice_ck" = $invoiceCk, "invoice_bankingId" = $invoiceBankingId, "invoice_payment_methodId" = $invoicePaymentMethodId, "invoice_tax" = $invoiceTax, "invoice_total" = $invoiceTotal, "invoice_created_by" = '${User.current!.id}', "invoice_retentionId" = $invoiceRetentionId, "invoice_tax_retentionId" = $invoiceTaxRetentionId, "invoice_tax_con" = $invoiceTaxCon, "invoice_legal_tip_amount" = $invoiceLegalTipAmount, "isr_in_purchases" = $invoiceIsrInPurchases , "selective_consumption_tax" = $invoiceSelectiveConsumptionTax, "tax_in_purchases" = $invoiceTaxInPurchases, "other_taxes" = $invoiceOthersTaxes, "invoice_issue_date" = '$issueDate' $payContext "created_at" = CURRENT_TIMESTAMP WHERE "id" = '$id';
       ''');
       var result = await connection.mappedResultsQuery(
           '''SELECT * FROM public."PurchaseDetails" WHERE "id" = '$id';''');
@@ -543,7 +1175,6 @@ class Purchase {
   }
 
   factory Purchase.fromMap(Map<String, dynamic> map) {
-
     return Purchase(
         id: map['id'],
         invoiceRnc: map['invoice_rnc'],
@@ -583,14 +1214,27 @@ class Purchase {
         invoicePayDay: map['invoice_pay_day'],
         invoiceTaxRetentionId: map['invoice_tax_retentionId'],
         invoiceTaxRetentionRate: map['invoice_tax_retention_rate'],
-        invoiceTaxRetentionValue: map['invoice_tax_retention_value'],
-        invoiceIsrRetentionValue: map['invoice_isr_retention_value'],
+        invoiceTaxRetentionValue:
+            double.tryParse(map['invoice_tax_retention_value']),
+        invoiceIsrRetentionValue:
+            double.tryParse(map['invoice_isr_retention_value']),
         invoiceTotalAsService: double.tryParse(map['invoice_total_as_service']),
         invoiceTotalAsGood: double.tryParse(map['invoice_total_as_good']),
         invoiceTax: double.tryParse(map['invoice_tax']),
         invoiceTotal: double.tryParse(map['invoice_total']),
+        invoiceTaxCon: double.tryParse(map['invoice_tax_con']),
         invoiceNetTotal: double.tryParse(map['invoice_net_total']),
+        invoiceLegalTipAmount: double.tryParse(map['invoice_legal_tip_amount']),
+        invoiceIsrInPurchases: double.tryParse(map['isr_in_purchases']),
+        invoiceSelectiveConsumptionTax:
+            double.tryParse(map['selective_consumption_tax']),
+        invoiceTaxInPurchases: double.tryParse(map['tax_in_purchases']),
+        invoiceOthersTaxes: double.tryParse(map['other_taxes']),
+        invoiceFinalTax: double.tryParse(map['invoice_final_tax']),
         authorized: map['authorized'],
+        invoiceIssueDate: map['invoice_issue_date'],
+        invoicePayDate: map['invoice_pay_date'],
+        ckBeneficiary: map['ck_beneficiary'],
         createdAt: map['created_at']);
   }
 
@@ -599,110 +1243,125 @@ class Purchase {
   }
 
   String get fullDate {
-    return Moment.fromDate(DateTime(invoiceYear!, invoiceMonth!))
-        .format('yyyyMM');
+    return DateTime(invoiceYear!, invoiceMonth!).format(payload: 'YYYYMM');
   }
 
   String get fullNcfDate {
-    return Moment.fromDate(
-            DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!)))
-        .format('yyyyMMdd');
+    return DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!))
+        .format(payload: 'YYYYMM');
   }
 
   String get fullNcfDatek {
-    return Moment.fromDate(
-            DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!)))
-        .format('dd/MM/yyyy');
+    return DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!))
+        .format(payload: 'DD/MM/YYYY');
   }
 
   String get fullPayDatek {
     if (invoicePayYear == null) return '';
-    return Moment.fromDate(
-            DateTime(invoicePayYear!, invoicePayMonth!, invoicePayDay!))
-        .format('dd/MM/yyyy');
+    return DateTime(invoicePayYear!, invoicePayMonth!, invoicePayDay!)
+        .format(payload: 'DD/MM/YYYY');
   }
 
   String get fullPayDate {
     if (invoicePayYear == null) return '';
-    return Moment.fromDate(
-            DateTime(invoicePayYear!, invoicePayMonth!, invoicePayDay!))
-        .format('yyyyMMdd');
+    return DateTime(invoicePayYear!, invoicePayMonth!, invoicePayDay!)
+        .format(payload: 'DD/MM/YYYY');
   }
 
   String get dfullNcfDate {
-    return Moment.fromDate(
-            DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!)))
-        .format('dd/MM/yyyy');
+    return DateTime(invoiceYear!, invoiceMonth!, int.parse(invoiceNcfDay!))
+        .format(payload: 'DD/MM/YYYY');
   }
 
   String? get dfullPayDate {
-    if (invoicePayYear == null) return null;
-    return Moment.fromDate(
-            DateTime(invoicePayYear!, invoicePayMonth!, invoicePayDay!))
-        .format('dd/MM/yyyy');
+    if (invoicePayYear == null ||
+        invoicePayMonth == null ||
+        invoicePayDay == null) return null;
+    return DateTime(invoicePayYear!, invoicePayMonth!, invoicePayDay!)
+        .format(payload: 'DD/MM/YYYY');
+  }
+
+  static Future<List<Purchase>> getPurchases({
+    String id = '',
+    String searchWord = '',
+    bool searchMode = false,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      var searchContext = '';
+
+      if (searchMode) {
+        searchContext =
+            '''("invoice_ck"::text like '%$searchWord%' or "invoice_author" like '%$searchWord%' or "invoice_concept_name" like '%$searchWord%' or "invoice_banking_name" like '%$searchWord%' or "invoice_rnc"::text like '%$searchWord' or "invoice_ncf" like '%$searchWord%' or "invoice_ncf_modifed" like '%$searchWord%' or "invoice_net_total"::text like '%$searchWord' or "invoice_total"::text like '%$searchWord' or "invoice_tax"::text like '%$searchWord' or "invoice_company_name" like '%$searchWord%') and''';
+      }
+
+      var results = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."PurchaseDetails" WHERE $searchContext "invoice_companyId" = '$id' and "invoice_issue_date" between '${startDate.format(payload: 'YYYY-MM-DD')}' and '${endDate.format(payload: 'YYYY-MM-DD')}' order by "invoice_issue_date", "invoice_company_name"''');
+      return results.map((row) => Purchase.fromMap(row['']!)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getListPeriods(
+      {String id = '', String search = ''}) async {
+    try {
+      var searchContext = '';
+      if (search != '') {
+        searchContext =
+            ''' and to_char(invoice_issue_date,'yyyymm') like '%$search%' ''';
+      }
+      var result = await connection.mappedResultsQuery('''
+            SELECT to_char(invoice_issue_date,'yyyy-mm')
+            AS date_label
+            FROM public."Purchase" 
+            WHERE "invoice_companyId" = '$id' $searchContext
+            GROUP BY to_char(invoice_issue_date,'yyyy-mm')
+            ORDER BY to_char(invoice_issue_date,'yyyy-mm') DESC
+        ''');
+
+      return result.map((e) => e['']!).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Map<String, dynamic> to606() {
     return {
       'RNC': invoiceRnc,
-      'TYPEID': checkedType ? 1 : 2,
-      'TYPE FACT': Moment.fromDate(DateTime(0, invoiceTypeId!)).format('MM'),
+      'TYPE ID': checkedType ? 1 : 2,
+      'TYPE FACT': DateTime(0, invoiceTypeId!).format(payload: 'MM'),
       'NCF': invoiceNcf,
       'NCF MODIFICADO': invoiceNcfModifed ?? '',
-      'FECHA DE COMPROBANTE': fullNcfDate,
-      'FECHA DE PAGO': fullPayDate,
-      'TOTAL COMO SERVICIOS': invoiceTotalAsService?.abs().toStringAsFixed(2),
-      'TOTAL COMO BIENES': invoiceTotalAsGood?.abs().toStringAsFixed(2),
-      'TOTAL FACTURADO':
-         invoiceTotal?.abs().toStringAsFixed(2),
+      'FECHA DE COMPROBANTE': invoiceIssueDate!.format(payload: 'YYYYMMDD'),
+      'FECHA DE PAGO': invoicePayDate != null
+          ? invoicePayDate!.format(payload: 'YYYYMMDD')
+          : '',
+      'TOTAL COMO SERVICIOS': invoiceTotalAsService == 0
+          ? '0.00'
+          : (invoiceTotalAsService! - invoiceTax!).abs().toStringAsFixed(2),
+      'TOTAL COMO BIENES': invoiceTotalAsGood == 0
+          ? '0.00'
+          : (invoiceTotalAsGood! - invoiceTax!).abs().toStringAsFixed(2),
+      'TOTAL FACTURADO': (invoiceNetTotal)?.abs().toStringAsFixed(2),
       'ITBIS FACTURADO': invoiceTax?.abs().toStringAsFixed(2),
-      'ITBIS RETENIDO':
-          double.tryParse(invoiceTaxRetentionValue!)?.abs().toStringAsFixed(2),
+      'ITBIS RETENIDO': invoiceTaxRetentionValue?.abs().toStringAsFixed(2),
       'y': '',
-      'a': '',
-      'ITBIS POR ADELANTAR': invoiceTax?.abs().toStringAsFixed(2),
+      'ITBIS LLEVADO AL COSTO': invoiceTaxCon?.abs().toStringAsFixed(2),
+      'ITBIS POR ADELANTAR': invoiceFinalTax?.abs().toStringAsFixed(2),
       '1': '',
       'TIPO DE RETENCION ISR': invoiceRetentionId == null
-          ? ''
-          : Moment.fromDate(DateTime(0, invoiceRetentionId!)).format('MM'),
+          ? invoiceTaxInPurchases?.abs().toStringAsFixed(2)
+          : DateTime(0, invoiceRetentionId!).format(payload: 'MM'),
       'MONTO DE RETENCION ISR':
-          double.tryParse(invoiceIsrRetentionValue!)?.abs().toString(),
-      '3': '',
-      '4': '',
-      '5': '',
-      '6': '',
+          invoiceIsrRetentionValue?.abs().toStringAsFixed(2),
+      '3': invoiceIsrInPurchases?.abs().toStringAsFixed(2),
+      '4': invoiceSelectiveConsumptionTax?.abs().toStringAsFixed(2),
+      '5': invoiceOthersTaxes?.abs().toStringAsFixed(2),
+      'MONTO PROPINA LEGAL': invoiceLegalTipAmount?.abs().toStringAsFixed(2),
       'METODO DE PAGO':
-          Moment.fromDate(DateTime(0, invoicePaymentMethodId!)).format('MM'),
-    };
-  }
-
-  Map<String, dynamic> to606Display() {
-    return {
-      'RNC': invoiceRnc,
-      'TYPEID': checkedType ? 1 : 2,
-      'TYPE FACT': invoiceTypeName,
-      'NCF': invoiceNcf,
-      'NCF MODIFICADO': invoiceNcfModifed ?? '',
-      'FECHA DE COMPROBANTE': fullNcfDatek,
-      'FECHA DE PAGO': fullPayDatek,
-      'TOTAL COMO SERVICIOS': invoiceTotalAsService?.toStringAsFixed(2),
-      'TOTAL COMO BIENES': invoiceTotalAsGood?.toStringAsFixed(2),
-      'TOTAL FACTURADO': invoiceTotal?.toStringAsFixed(2),
-      'ITBIS FACTURADO': invoiceTax?.toStringAsFixed(2),
-      'ITBIS RETENIDO':
-          double.tryParse(invoiceTaxRetentionValue!)?.toStringAsFixed(2),
-      'y': 0,
-      'a': 0,
-      'ITBIS POR ADELANTAR': invoiceTax?.toStringAsFixed(2),
-      '1': 0,
-      'TIPO DE RETENCION ISR': invoiceRetentionName ?? '',
-      'MONTO DE RETENCION ISR':
-          double.tryParse(invoiceIsrRetentionValue!)?.toStringAsFixed(2),
-      '3': 0,
-      '4': 0,
-      '5': 0,
-      '6': 0,
-      'METODO DE PAGO': invoicePaymentMethodName,
+          DateTime(0, invoicePaymentMethodId!).format(payload: 'MM'),
     };
   }
 
@@ -712,26 +1371,40 @@ class Purchase {
 
   Map<String, dynamic> toDisplay() {
     return {
-      'AUTOR': author,
-      'RNC': invoiceRnc,
-      'EMPRESA': invoiceCompanyName ?? 'DESCONOCIDA',
+      'EDITOR': author,
+      'RNC/CEDULA': invoiceRnc,
+      'PROVEEDOR': invoiceCompanyName ?? 'DESCONOCIDA',
       'CONCEPTO': invoiceConceptName,
       'TIPO DE FACTURA': invoiceTypeName,
-      'NCF': invoiceNcf,
-      'NCF MODIFICADO': invoiceNcfModifed ?? 'NINGUNO',
-      'FECHA DE COMPROBANTE': dfullNcfDate,
-      'FECHA DE PAGO': dfullPayDate ?? 'NINGUNO',
-      'BANCO': invoiceBankingName ?? 'NINGUNO',
-      'NUMERO DE CHEQUE': invoiceCk ?? 'NINGUNO',
+      'NCF': invoiceNcf ?? 'S/N',
+      'NCF MODIFICADO': invoiceNcfModifed != '' && invoiceNcfModifed != null
+          ? invoiceNcfModifed
+          : 'S/N',
+      'FECHA DE COMPROBANTE': invoiceIssueDate!.format(payload: 'DD/MM/YYYY'),
+      'FECHA DE PAGO': invoicePayDate != null
+          ? invoicePayDate!.format(payload: 'DD/MM/YYYY')
+          : 'S/N',
+      'BANCO': invoiceBankingName ?? 'S/N',
+      'BENEFICIARIO':
+          ckBeneficiary == null || ckBeneficiary == '' ? 'S/N' : ckBeneficiary,
+      'NUMERO DE CHEQUE': invoiceCk ?? 'S/N',
       'METODO DE PAGO': invoicePaymentMethodName,
       'TOTAL COMO SERVICIOS': invoiceTotalAsService?.toStringAsFixed(2),
       'TOTAL COMO BIENES': invoiceTotalAsGood?.toStringAsFixed(2),
       'TOTAL FACTURADO': invoiceTotal?.toStringAsFixed(2),
       'ITBIS FACTURADO': invoiceTax?.toStringAsFixed(2),
       'TOTAL NETO': invoiceNetTotal?.toStringAsFixed(2),
-      'ITBIS RETENIDO': invoiceTaxRetentionValue,
-      'NOMBRE DE RETENCION': invoiceRetentionName ?? 'NINGUNO',
-      'ISR RETENIDO': invoiceIsrRetentionValue,
+      'MONTO PROPINA LEGAL': invoiceLegalTipAmount?.toStringAsFixed(2),
+      'ITBIS RETENIDO': invoiceTaxRetentionValue?.toStringAsFixed(2),
+      'ITBIS LLEVADO AL COSTO': invoiceTaxCon?.toStringAsFixed(2),
+      'ITBIS POR ADELANTAR': invoiceFinalTax?.toStringAsFixed(2),
+      'NOMBRE DE RETENCION': invoiceRetentionName ?? 'S/N',
+      'ISR RETENIDO': invoiceIsrRetentionValue?.toStringAsFixed(2),
+      'ISR EN COMPRAS': invoiceIsrInPurchases?.toStringAsFixed(2),
+      'ITBIS EN COMPRAS': invoiceTaxInPurchases?.toStringAsFixed(2),
+      'IMPUS. SELEC. AL CONSUMO':
+          invoiceSelectiveConsumptionTax?.toStringAsFixed(2),
+      'OTROS IMPUESTOS': invoiceOthersTaxes?.toStringAsFixed(2)
     };
   }
 

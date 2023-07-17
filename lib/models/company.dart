@@ -44,13 +44,9 @@ class Company {
 
   Future<void> delete() async {
     try {
-      await connection.transaction((c) async {
+      await connection.runTx((c) async {
         await c.query(
             '''DELETE FROM public."Purchase" WHERE "invoice_companyId" = '$id';''');
-        await c
-            .query('''DELETE FROM public."Sheet" WHERE "companyId" = '$id';''');
-        await c
-            .query('''DELETE FROM public."Book" WHERE "companyId" = '$id';''');
         await c.query('''DELETE FROM public."Company" WHERE "id" = '$id';''');
       });
     } catch (e) {

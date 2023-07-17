@@ -87,7 +87,7 @@ class AddCompanyModalState extends State<AddCompanyModal> {
                         children: [
                           Row(
                             children: [
-                              Text('AÑADIENDO COMPAÑIA...',
+                              Text('AÑADIENDO CONTRIBUYENTE...',
                                   style: Theme.of(context)
                                       .textTheme
                                       .headlineSmall
@@ -104,18 +104,18 @@ class AddCompanyModalState extends State<AddCompanyModal> {
                           TextFormField(
                             controller: name,
                             decoration: const InputDecoration(
-                                hintText: 'EMPRESA',
+                                hintText: 'CONTRIBUYENTE',
                                 border: OutlineInputBorder()),
                             style: const TextStyle(fontSize: 20),
                             keyboardType: TextInputType.phone,
-                            enabled: false,
+                            readOnly: true,
                           ),
                           const SizedBox(height: 10),
                           TextField(
                             controller: rnc,
                             onSubmitted: (_) => _onSubmit(),
                             decoration: const InputDecoration(
-                                hintText: 'RNC', border: OutlineInputBorder()),
+                                hintText: 'RNC/CEDULA', border: OutlineInputBorder()),
                             style: const TextStyle(fontSize: 20),
                             keyboardType: TextInputType.phone,
                             maxLength: 11,
@@ -127,7 +127,7 @@ class AddCompanyModalState extends State<AddCompanyModal> {
                               child: ElevatedButton(
                                   onPressed: disabled ? null : _onSubmit,
                                   child: const Text(
-                                    'AÑADIR COMPAÑIA',
+                                    'AÑADIR CONTRIBUYENTE',
                                     style: TextStyle(fontSize: 19),
                                   )))
                         ],

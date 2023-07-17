@@ -10,12 +10,17 @@ class NcfEditorWidget extends StatefulWidget {
   String? Function(int?)? validator;
 
   int? currentNcfTypeId;
+
   bool isNcfModifed;
+
+  FocusNode? focusNode;
+
   NcfEditorWidget(
-      {super.key,
+      {Key? key,
       this.validator,
       this.hintText = 'NUMERO DE COMPROBANTE',
       this.isNcfModifed = false,
+      this.focusNode,
       required this.currentNcfTypeId,
       required this.controller,
       required this.ncfs,
@@ -26,11 +31,10 @@ class NcfEditorWidget extends StatefulWidget {
 }
 
 class _NcfEditorWidgetState extends State<NcfEditorWidget> {
-  
   NcfType? currentNcfType;
 
   bool get isReady {
-    return currentNcfType?.ncfTag != null;
+    return currentNcfType != null;
   }
 
   bool get isElectronic {
@@ -42,11 +46,13 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
   void initState() {
     if (!mounted) return;
     setState(() {
-      currentNcfType = widget.ncfs
-          .firstWhere((element) => element.id == widget.currentNcfTypeId);
+      if (widget.currentNcfTypeId != null) {
+        currentNcfType = widget.ncfs
+            .firstWhere((element) => element.id == widget.currentNcfTypeId);
+      }
       if (widget.controller.text.isNotEmpty) {
         widget.controller.value =
-            TextEditingValue(text: widget.controller.value.text.substring(3));
+            TextEditingValue(text: widget.controller.value.text);
       }
     });
     super.initState();
@@ -65,9 +71,10 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: DropdownButtonFormField<int?>(
+              key: widget.key,
               value: currentNcfType?.id,
-              validator:!widget.isNcfModifed? widget.validator : null,
               decoration: InputDecoration(
+                  labelText: 'TIPO DE COMPROBANTE',
                   enabledBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.grey, width: 1),
                   ),
@@ -100,34 +107,45 @@ class _NcfEditorWidgetState extends State<NcfEditorWidget> {
               items: widget.ncfs.map((ncf) {
                 return DropdownMenuItem(
                   value: ncf.id,
-                  child: Text(ncf.name),
+                  child: Text(ncf.fullName),
                 );
               }).toList(),
             )),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: TextFormField(
+            focusNode: widget.focusNode,
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
             controller: widget.controller,
-            validator: (val) => isReady ? val!.isEmpty
-                    ? 'CAMPO REQUERIDO'
-                    : !(val.length == 8 || val.length == 10)
-                        ? 'EL NUMERO DE DIGITOS DEBE SER 8 O 10'
-                        : null
-              :null,
             inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.digitsOnly
             ],
             style: const TextStyle(fontSize: 18),
             enabled: isReady,
-            maxLength: !isElectronic?8:10,
+            maxLength: !isElectronic ? 8 : 10,
+            validator: isReady
+                ? (val) {
+                    if (isElectronic) {
+                      if (val!.length < 10) {
+                        return 'LA SECUENCIA DEBE SER DE 10 DIGITOS';
+                      }
+                    } else {
+                      if (val!.length < 8) {
+                        return 'LA SECUENCIA DEBE SER DE 8 DIGITOS';
+                      }
+                    }
+
+                    return null;
+                  }
+                : (v) => null,
             decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: isReady
                     ? Padding(
                         padding: const EdgeInsets.all(10),
                         child: Text(currentNcfType!.ncfTag!,
-                            style: const TextStyle(fontSize: 18)))
+                            style:TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Theme.of(context).primaryColor)))
                     : null,
                 hintText: widget.hintText,
                 border: const OutlineInputBorder()),

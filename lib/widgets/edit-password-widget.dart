@@ -4,6 +4,7 @@ class EditPasswordWidget extends StatefulWidget {
   TextEditingController? controller;
   String hintText;
   bool showPassword;
+
   EditPasswordWidget(
       {super.key,
       this.controller,
@@ -35,7 +36,11 @@ class _EditPasswordWidgetState extends State<EditPasswordWidget> {
       controller: widget.controller,
       style: const TextStyle(fontSize: 18),
       obscureText: !widget.showPassword,
-      validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO' : null,
+      validator: (val) => val!.isEmpty
+          ? 'CAMPO REQUERIDO'
+          : val.length <= 3
+              ? 'LA CONTRASEÑA DEBE CONTENER COMO MINIMO 4 CARACTERES'
+              : null,
       focusNode: _focusNode,
       decoration: InputDecoration(
           suffixIcon: IconButton(

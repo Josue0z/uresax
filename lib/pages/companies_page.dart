@@ -1,30 +1,40 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:moment_dart/moment_dart.dart';
+import 'package:uresaxapp/controllers/companies.controller.dart';
+import 'package:uresaxapp/controllers/periods.controller.dart';
+import 'package:uresaxapp/controllers/purchases.controller.dart';
+import 'package:uresaxapp/controllers/sales.controller.dart';
+import 'package:uresaxapp/controllers/session.controller.dart';
 import 'package:uresaxapp/modals/add-company-modal.dart';
-import 'package:uresaxapp/models/book.dart';
 import 'package:uresaxapp/models/company.dart';
-import 'package:uresaxapp/models/page-option.dart';
+import 'package:uresaxapp/models/purchase.dart';
+import 'package:uresaxapp/models/sale.dart';
 import 'package:uresaxapp/models/user.dart';
-import 'package:uresaxapp/pages/books_page.dart';
+import 'package:uresaxapp/pages/company_details.dart';
 import 'package:uresaxapp/pages/users_page.dart';
+import 'package:uresaxapp/utils/extra.dart';
+import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
-import 'package:uresaxapp/widgets/custom-appbar.dart';
+import 'package:uresaxapp/widgets/toolbutton.widget.dart';
 
-class CompaniesPage extends StatefulWidget {
-  const CompaniesPage({super.key});
-
-  @override
-  State<CompaniesPage> createState() => _CompaniesPageState();
-}
-
-class _CompaniesPageState extends State<CompaniesPage> {
+class CompaniesPage extends StatelessWidget {
   TextEditingController rnc = TextEditingController();
-
-  List<Company> companies = [];
 
   bool isError = false;
 
   String message = '';
+
+  late CompaniesController companiesController;
+
+  BuildContext get context {
+    return Get.context!;
+  }
+
+  List<Company> get companies {
+    return companiesController.companies;
+  }
 
   _deleteCompany(Company company, int index) async {
     try {
@@ -33,78 +43,119 @@ class _CompaniesPageState extends State<CompaniesPage> {
 
       if (isConfirm!) {
         await Company(id: company.id).delete();
-        companies.removeAt(index);
-        setState(() {});
+        companiesController.companies.removeAt(index);
       }
     } catch (e) {
       showAlert(context, message: e.toString());
     }
   }
 
-  _fetchCompanies() async {
-    isError = false;
+  _fetchCompaniesByRnc(String? keyWord) async {
+    companiesController.isError.value = false;
     try {
-      companies = await Company.all();
-    } catch (e) {
-      isError = true;
-      companies = [];
-      message = e.toString();
-    }
-    setState(() {});
-  }
-
-  _fetchCompaniesByRnc(String? rnc) async {
-    isError = false;
-    try {
-      if (rnc!.isEmpty) {
-        companies = await Company.all();
+      if (keyWord!.isEmpty) {
+        companiesController.companies.value = await Company.all();
       } else {
-        companies = await Company.all(
-            where: ''' company_rnc like '%${rnc.trim()}%' ''');
+        companiesController.companies.value = await Company.all(
+            where:
+                ''' company_rnc like '%${keyWord.trim()}%' or company_name like '%${keyWord.trim().toUpperCase()}%' ''');
       }
     } catch (e) {
-      isError = true;
-      companies = [];
-      message = e.toString();
+      companiesController.isError.value = true;
+      companiesController.companies.value = [];
+      companiesController.message.value = e.toString();
     }
-    setState(() {});
   }
 
   _viewUsers() {
-    Navigator.push(
-        context, MaterialPageRoute(builder: (ctx) => const UsersPage()));
+    Get.to(() => const UsersPage());
   }
 
   _logout() async {
     try {
-      await User.loggout(context);
+      var c = await showConfirm(context, title: '¿CERRAR SESION?');
+      if (c != null && c) {
+        await User.loggout(context);
+      }
     } catch (e) {
       showAlert(context, message: e.toString());
     }
   }
 
-  List<PopupMenuEntry<dynamic>> _createOptions() {
-    List<PopupMenuEntry<dynamic>> ops = [];
+  _addTaxPayer() async {
+    var company = await showDialog<Company>(
+        context: context, builder: (ctx) => const AddCompanyModal());
+    if (company != null) {
+      companiesController.companies.add(company);
+    }
+  }
 
-    for (var op in options) {
-      if (!(op.type == PageOptionType.users && !User.current!.isAdmin)) {
-        ops.add(PopupMenuItem(value: op.type, child: Text(op.name)));
+  preload607CompanyDetails(Company company) async {
+    try {
+      var now = DateTime.now();
+      var startDate = now.startOfMonth();
+      var endDate = now.endOfMonth();
+
+      var keyOne = await storage.read(key: "STARTDATE_SALES_${company.id}");
+      var keyTwo = await storage.read(key: 'ENDDATE_SALES_${company.id}');
+
+      if (keyOne != null && keyTwo != null) {
+        startDate = DateTime.parse(keyOne).startOfMonth();
+        endDate = DateTime.parse(keyTwo).endOfMonth();
       }
+
+      showLoader(context);
+
+      var c = Get.find<SalesController>();
+
+      c.sales.value = await Sale.get(
+          companyId: company.id!, startDate: startDate, endDate: endDate);
+
+
+      Navigator.pop(context);
+
+      Get.to(() => CompanyDetailsPage(
+          company: company,
+          startDate: startDate,
+          endDate: endDate,
+          formType: FormType.form607));
+    } catch (e) {
+      Navigator.pop(context);
+      showAlert(context, message: e.toString());
+    }
+  }
+
+  preload606CompanyDetails(Company company) async {
+    var now = DateTime.now();
+    var startDate = now.startOfMonth();
+    var endDate = now.endOfMonth();
+
+    var startDateLargeAsString = startDate.format(payload: 'YYYY-MM-DD');
+    var endDateLargeAsString = endDate.format(payload: 'YYYY-MM-DD');
+
+    var keyOne = await storage.read(key: "STARTDATE_${company.id}");
+    var keyTwo = await storage.read(key: 'ENDDATE_${company.id}');
+
+    if (keyOne != null && keyTwo != null) {
+      startDate = DateTime.parse(keyOne).startOfMonth();
+      endDate = DateTime.parse(keyTwo).endOfMonth();
+      startDateLargeAsString = keyOne;
+      endDateLargeAsString = keyTwo;
     }
 
-    return ops;
-  }
+    showLoader(context);
 
-  @override
-  void initState() {
-    _fetchCompanies();
-    super.initState();
-  }
+    var controller = Get.find<PurchasesController>();
 
-  @override
-  void dispose() {
-    companies = [];
-    super.dispose();
+    controller.purchases.value = await Purchase.getPurchases(
+        id: company.id!,
+        startDate: startDate,
+        endDate: endDate);
+
+    Navigator.pop(context);
+
+    Get.to(() => CompanyDetailsPage(
+        company: company, startDate: startDate, endDate: endDate));
   }
 
   Widget get _errorWidget {
@@ -126,7 +177,7 @@ class _CompaniesPageState extends State<CompaniesPage> {
   Widget get _searchWidget {
     return Container(
       height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 80),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       margin: const EdgeInsets.symmetric(vertical: 20),
       child: TextFormField(
         controller: rnc,
@@ -134,7 +185,8 @@ class _CompaniesPageState extends State<CompaniesPage> {
         style: const TextStyle(fontSize: 20),
         decoration: const InputDecoration(
             border: OutlineInputBorder(),
-            hintText: 'BUSCAR CONTRIBUYENTES... (RNC).',
+            labelText: 'BUSCAR CONTRIBUYENTES... (RNC/CEDULA,RAZON SOCIAL)',
+            hintText: 'BUSCAR...',
             suffixIcon: Padding(
                 padding: EdgeInsets.only(right: 20),
                 child: Icon(Icons.search, size: 28))),
@@ -157,43 +209,42 @@ class _CompaniesPageState extends State<CompaniesPage> {
   }
 
   Widget get _viewCompanies {
-
-    if (isError) return _errorWidget;
+    if (companiesController.isError.value) return _errorWidget;
 
     if (companies.isEmpty) return _emptyContainer;
 
     return Expanded(
-        child: ListView.builder(
+        child: ListView.separated(
             itemCount: companies.length,
+            separatorBuilder: (_, __) => const Divider(),
             itemBuilder: (ctx, index) {
               Company company = companies[index];
               String title =
-                  'RNC ${company.rnc} ${company.createdAt?.format("DD/MM/y")}';
-
+                  'RNC/CEDULA ${company.rnc} ${company.createdAt?.format(payload: "DD/MM/YYYY")}';
               return ListTile(
                   minVerticalPadding: 15,
                   leading: CircleAvatar(
                     radius: 30,
                     backgroundColor: Theme.of(context).primaryColor,
-                    child: const Icon(Icons.apartment,
-                        size: 25, color: Colors.white),
+                    child:
+                        const Icon(Icons.store, size: 25, color: Colors.white),
                   ),
                   title: Text(company.name!,
                       style: Theme.of(context).textTheme.headlineSmall),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 80),
                   subtitle: Text(
                     title,
-                    style: const TextStyle(fontSize: 18),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w400),
                   ),
                   trailing: Wrap(
                     children: [
                       IconButton(
-                          onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (ctx) => BooksPage(
-                                      company: company,
-                                      bookType: BookType.purchases))),
+                          onPressed: () => preload607CompanyDetails(company),
+                          icon: const Icon(Icons.receipt_outlined),
+                          tooltip: 'VENTAS'),
+                      const SizedBox(width: 10),
+                      IconButton(
+                          onPressed: () => preload606CompanyDetails(company),
                           icon: const Icon(Icons.insert_drive_file_rounded),
                           tooltip: 'COMPRAS Y GASTOS'),
                       const SizedBox(width: 10),
@@ -211,46 +262,31 @@ class _CompaniesPageState extends State<CompaniesPage> {
 
   @override
   Widget build(BuildContext context) {
+    companiesController = Get.find<CompaniesController>();
+    var controller = Get.find<SessionController>();
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: CustomAppBar(
-          title: 'EMPRESAS',
-          actions: [
-            PopupMenuButton(
-                color: Colors.white,
-                onSelected: (option) async {
-                  switch (option) {
-                    case PageOptionType.users:
-                      _viewUsers();
-                      break;
-                    case PageOptionType.loggout:
-                      var isConfirm =
-                          await showConfirm(context, title: 'Cerrar Sesion?');
-                      if (isConfirm!) {
-                        _logout();
-                      }
-                      break;
-                    default:
-                  }
-                },
-                itemBuilder: (ctx) {
-                  return _createOptions();
-                }),
-          ],
-        ),
-      ),
-      body: Column(children: [_searchWidget, _viewCompanies]),
-      floatingActionButton: FloatingActionButton(
-          child: const Icon(Icons.add),
-          onPressed: () async {
-            var company = await showDialog<Company>(
-                context: context, builder: (ctx) => const AddCompanyModal());
-            if (company != null) {
-              companies.add(company);
-              setState(() {});
-            }
-          }),
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: Obx(() => AppBar(
+                elevation: 0,
+                title: Text(
+                    'CONTRIBUYENTES / ${controller.currentUser?.value?.name?.toUpperCase()}'),
+                actions: [
+                  ToolButton(
+                      onTap: _viewUsers,
+                      toolTip: 'VER USUARIOS',
+                      icon: const Icon(Icons.people)),
+                  ToolButton(
+                      onTap: _addTaxPayer,
+                      toolTip: 'AÑADIR CONTRIBUYENTE',
+                      icon: const Icon(Icons.add)),
+                  ToolButton(
+                      onTap: _logout,
+                      toolTip: 'CERRAR SESION',
+                      icon: const Icon(Icons.power_settings_new_outlined)),
+                ],
+              ))),
+      body: Column(children: [_searchWidget, Obx(() => _viewCompanies)]),
     );
   }
 }

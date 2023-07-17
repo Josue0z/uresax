@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CustomAppBar extends StatelessWidget {
+  
   final String title;
 
   List<Widget> actions;

@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
 import 'dart:math' as math;
-
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 Future<T> showAlert<T>(BuildContext context,
@@ -77,12 +76,14 @@ Future<bool?> showConfirm(BuildContext context,
                         shrinkWrap: true,
                         children: [
                           Row(children: [
-                            Text(title.toUpperCase(),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
-                                    ?.copyWith(color: Theme.of(context).primaryColor)),
-                            const Spacer(),
+                            Expanded(
+                                child: Text(title.toUpperCase(),
+                                    style: const TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w400)
+                                        .copyWith(
+                                            color: Theme.of(context)
+                                                .primaryColor))),
                           ]),
                           const SizedBox(height: 15),
                           Text('Escribe el siguiente codigo $number',

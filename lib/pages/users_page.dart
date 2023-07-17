@@ -1,9 +1,13 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:uresaxapp/modals/add-user-modal.dart';
 import 'package:uresaxapp/modals/edit-password-modal.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/custom-appbar.dart';
+import 'package:uresaxapp/widgets/toolbutton.widget.dart';
 
 class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
@@ -47,7 +51,7 @@ class _UsersPageState extends State<UsersPage> {
   }
 
   _deleteUser(User user, int index) async {
-    var isConfirm = await showConfirm(context, title: 'Eliminar Usuario?');
+    var isConfirm = await showConfirm(context, title: '¿Eliminar Usuario?');
     try {
       if (isConfirm!) {
         await user.delete();
@@ -58,26 +62,42 @@ class _UsersPageState extends State<UsersPage> {
       showAlert(context, message: e.toString());
     }
   }
-   _showModalForEditPassword(User user){
-      showDialog(context: context, builder: (ctx) => EditPasswordModal(user: user));
-   }
+
+  _showModalForEditPassword(User user) {
+    showDialog(
+        context: context, builder: (ctx) => EditPasswordModal(user: user));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: CustomAppBar(title: 'USUARIOS'),
+        child: AppBar(
+          title: const Text('USUARIOS'),
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          actions: [
+            ToolButton(
+                onTap: _showModalForAddUser,
+                toolTip: 'ABRIR VENTANA PARA AÑADIR USUARIO',
+                icon: const Icon(Icons.add)),
+            ToolButton(
+                onTap: () => Get.back(),
+                toolTip: 'CERRAR VISTA DE USUARIOS',
+                icon: const Icon(Icons.close)),
+          ],
+        ),
       ),
-      body: ListView.builder(
+      body: ListView.separated(
           itemCount: users.length,
+          separatorBuilder: (_, __) => const Divider(),
           itemBuilder: (ctx, index) {
             var user = users[index];
             return ListTile(
-              leading: Icon(Icons.account_circle_outlined,
+              leading: Icon(Icons.person_outlined,
                   size: 50, color: Theme.of(context).primaryColor),
               minVerticalPadding: 15,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 80),
               title: Text(
                 user.name!.toUpperCase(),
                 style: const TextStyle(fontSize: 26),
@@ -93,16 +113,15 @@ class _UsersPageState extends State<UsersPage> {
                               color: Theme.of(context).primaryColor,
                               borderRadius: BorderRadius.circular(20)),
                           child: SizedBox(
-                              width: 120,
                               child: Center(
-                                child: Text(
-                                  user.roleName!,
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500),
-                                ),
-                              ))),
+                            child: Text(
+                              user.roleName!,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ))),
                       const SizedBox(width: 10),
                       Text(user.username!, style: const TextStyle(fontSize: 18))
                     ],
@@ -114,23 +133,20 @@ class _UsersPageState extends State<UsersPage> {
                   index > 0
                       ? IconButton(
                           onPressed: () => _deleteUser(user, index),
-                          color: Theme.of(context).colorScheme.error,
                           icon: const Icon(Icons.delete))
                       : const SizedBox(),
-
-                  IconButton(onPressed:()=> _showModalForEditPassword(user), icon: Icon(Icons.lock,color: Theme.of(context).primaryColor)),
+                  IconButton(
+                      onPressed: () => _showModalForEditPassword(user),
+                      icon: const Icon(
+                        Icons.lock,
+                      )),
                   IconButton(
                       onPressed: () => _showModalForEdit(user, index),
-                      color: Colors.green,
                       icon: const Icon(Icons.edit))
                 ],
               ),
             );
           }),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showModalForAddUser,
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

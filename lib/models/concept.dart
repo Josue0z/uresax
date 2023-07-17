@@ -6,10 +6,17 @@ class Concept {
   DateTime? createdAt;
   Concept({this.id, this.name, this.createdAt});
 
-  static Future<List<Concept>> getConcepts() async {
+  static Future<List<Concept>> getConcepts(
+      {String words = '', bool searchMode = false}) async {
     try {
-      var results = await connection
-          .mappedResultsQuery('''SELECT * FROM public."Concept" ORDER BY name;''');
+      var searchContext = '';
+
+      if (searchMode) {
+        searchContext = ''' where upper("name") like upper('%$words%') ''';
+      }
+
+      var results = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."Concept" $searchContext ORDER BY name;''');
       return results.map((e) => Concept.fromJson(e['Concept']!)).toList();
     } catch (e) {
       rethrow;
@@ -18,39 +25,42 @@ class Concept {
 
   Future<Concept> create() async {
     try {
-      var r = await connection.mappedResultsQuery('''SELECT * FROM public."Concept" WHERE name = '$name';''');
+      var r = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."Concept" WHERE name = '$name';''');
 
-      if(r.isNotEmpty){
-         throw 'YA EXISTE ESTE CONCEPTO';
+      if (r.isNotEmpty) {
+        throw 'YA EXISTE ESTE CONCEPTO';
       }
       await connection
           .query('''INSERT INTO public."Concept"(name) VALUES('$name');''');
-      var results = await connection
-          .mappedResultsQuery('''SELECT * FROM public."Concept" ORDER BY name DESC LIMIT 1;''');
+      var results = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."Concept" ORDER BY name DESC LIMIT 1;''');
       return Concept.fromJson(results.first['Concept']!);
     } catch (e) {
       rethrow;
     }
   }
-   Future<Concept> update() async {
+
+  Future<Concept> update() async {
+    try {
+      await connection.query(
+          '''UPDATE public."Concept" SET name = '$name' WHERE "id" = $id;''');
+      var results = await connection.mappedResultsQuery(
+          '''SELECT * FROM public."Concept" WHERE "id" = $id;''');
+
+      return Concept.fromJson(results.first['Concept']!);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> delete() async {
     try {
       await connection
-          .query('''UPDATE public."Concept" SET name = '$name' WHERE "id" = $id;''');
-      var results = await connection
-          .mappedResultsQuery('''SELECT * FROM public."Concept" WHERE "id" = $id;''');
-
-      return Concept.fromJson(results.first['Concept']!);
+          .query('''DELETE FROM public."Concept"  WHERE "id" = $id;''');
     } catch (e) {
       rethrow;
     }
-  }
-
-  Future<void> delete()async{
-     try{
-       await connection.query('''DELETE FROM public."Concept"  WHERE "id" = $id;''');
-     }catch(e){
-      rethrow;
-     }
   }
 
   factory Concept.fromJson(Map<String, dynamic> map) {

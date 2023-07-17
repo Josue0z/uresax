@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_session_manager/flutter_session_manager.dart';
 import 'package:uresaxapp/apis/connection.dart';
@@ -43,12 +44,8 @@ class User {
     try {
       var result = await connection.mappedResultsQuery(
           '''SELECT * FROM public."UserView" WHERE "id" = '$id' ''');
-
       if (result.isEmpty) return null;
-
       var user = User.fromMap(result.first['']!);
-
-      current = user;
       return user;
     } catch (e) {
       rethrow;
@@ -93,6 +90,10 @@ class User {
 
   static Future<User?> signIn(String username, String password) async {
     try {
+      if (Platform.environment['DATABASE_HOSTNAME'] == null) {
+        throw 'NO ESTA CONFIGURADO EL SERVICIO HOST';
+      }
+
       var result = await connection.mappedResultsQuery(
           '''SELECT * FROM public."UserView" WHERE "username" = '$username' ''');
 

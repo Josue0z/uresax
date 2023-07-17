@@ -16,39 +16,32 @@ List<String> months = [
   'DICIEMBRE'
 ];
 
+enum FormType { form606, form607 }
 
 enum ReportType { month, year }
 
 enum QueryContext { general, tax, consumption }
 
-enum AuthorizationType {
-   authorized,
-   notAuthorized
-}
+enum AuthorizationType { authorized, notAuthorized }
 
-enum ReportModelType {
-    invoiceType,
-    conceptType
-}
+enum ReportModelType { invoiceType, conceptType, companyName, typeIncome }
 
-List<Map<String,dynamic>> reportTypes = [
-  {
-    'type':ReportModelType.invoiceType,
-    'name':'REPORTE POR TIPO DE FACTURA'
-  },
-  {
-    'type':ReportModelType.conceptType,
-    'name':'REPORTE POR CONCEPTO'
-  }
+List<Map<String, dynamic>> reportTypes = [
+  {'type': ReportModelType.invoiceType, 'name': 'REPORTE POR TIPO DE FACTURA'},
+  {'type': ReportModelType.conceptType, 'name': 'REPORTE POR CONCEPTO'},
+  {'type': ReportModelType.companyName, 'name': 'REPORTE POR PROVEEDOR'}
 ];
 
+List<Map<String, dynamic>> reportTypes607 = [
+  {'type': ReportModelType.typeIncome, 'name': 'REPORTE POR TIPO DE INGRESO'},
+  {'type': ReportModelType.conceptType, 'name': 'REPORTE POR CONCEPTO'},
+  {'type': ReportModelType.companyName, 'name': 'REPORTE POR PROVEEDOR'}
+];
 List<Map<String, dynamic>> ncfsTypes = [
   {'TIPO': QueryContext.general, 'NAME': 'REPORTE GENERAL'},
   {'TIPO': QueryContext.tax, 'NAME': 'FACTURAS FISCALES'},
   {'TIPO': QueryContext.consumption, 'NAME': 'FACTURAS DE CONSUMO'}
 ];
-
-
 
 var myformatter = NumberTextInputFormatter(
   integerDigits: 10,

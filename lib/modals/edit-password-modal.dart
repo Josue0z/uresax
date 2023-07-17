@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:uresaxapp/models/user.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/edit-password-widget.dart';
 
 class EditPasswordModal extends StatefulWidget {
-
-
   User user;
 
   EditPasswordModal({super.key, required this.user});
@@ -17,14 +16,19 @@ class EditPasswordModal extends StatefulWidget {
 class _EditPasswordModalState extends State<EditPasswordModal> {
 
   TextEditingController currentPassword = TextEditingController();
+
   TextEditingController newPassword = TextEditingController();
 
+  final formKey = GlobalKey<FormState>();
+
   _editPassword() async {
-    try {
-      await widget.user.editPassword(currentPassword.text, newPassword.text);
-      Navigator.pop(context);
-    } catch (e) {
-      showAlert(context, message: e.toString());
+    if (formKey.currentState!.validate()) {
+      try {
+        await widget.user.editPassword(currentPassword.text, newPassword.text);
+        Get.back();
+      } catch (e) {
+        showAlert(context, message: e.toString());
+      }
     }
   }
 
@@ -44,6 +48,8 @@ class _EditPasswordModalState extends State<EditPasswordModal> {
         content: SizedBox(
           width: 450,
           child: Form(
+            key: formKey,
+            autovalidateMode: AutovalidateMode.always,
             child: ListView(
             shrinkWrap: true,
             padding: const EdgeInsets.all(15),
@@ -63,7 +69,7 @@ class _EditPasswordModalState extends State<EditPasswordModal> {
               ),
               const SizedBox(height: 20),
               EditPasswordWidget(
-                controller:currentPassword,
+                controller: currentPassword,
                 hintText: 'CONTRASEÑA ACTUAL',
               ),
               const SizedBox(height: 20),
