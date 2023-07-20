@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:get/get.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +20,7 @@ import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/models/sale.dart';
+import 'package:uresaxapp/pages/imports_page.dart';
 import 'package:uresaxapp/pages/periods.page.dart';
 import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/formatters.dart';
@@ -771,8 +773,6 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
   }
 
   _preloadReportDataByTypeIncome() async {
-
-
     showLoader(context);
 
     generateXlsx(reportViewModel, title, customTitle, filePath, dir) async {
@@ -815,7 +815,7 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
       try {
         parent.reportViewModel = await Sale.getReportViewByTypeIncome(
-            company:widget.company,
+            company: widget.company,
             startDate: widget.startDate,
             endDate: widget.endDate,
             reportName: reportName,
@@ -830,7 +830,7 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
     try {
       var result = await Sale.getReportViewByTypeIncome(
-          company:widget.company,
+          company: widget.company,
           startDate: widget.startDate,
           endDate: widget.endDate);
 
@@ -1051,6 +1051,9 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
     if (option['type'] == ReportModelType.companyName) {
       _preloadReportDataForCompanyName();
     }
+    if (option['type'] == ReportModelType.imports) {
+      Get.to(() => ImportsPage(companyDetailsPage: widget));
+    }
   }
 
   _onSelectedOption607(Map<String, dynamic> option) {
@@ -1093,37 +1096,35 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
       return Container(
         width: w.toDouble(),
-        padding: const EdgeInsets.only(left: 12, top: 15, bottom: 15),
+        padding: const EdgeInsets.only(left: 15, right: 5, top: 15, bottom: 15),
         child: Text(columns[index],
             style: const TextStyle(color: Colors.blue, fontSize: 17),
             softWrap: true),
       );
     });
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 60,
-          alignment: Alignment.center,
-          child: ListView(
-              controller: controller2.scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              scrollDirection: Axis.horizontal,
-              children: [
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [...widgets])
-              ]),
-        ),
-        Expanded(
-            child: SizedBox(
+    return ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse}),
+        child: SingleChildScrollView(
+          controller: widget.controller2.scrollController,
+          scrollDirection: Axis.horizontal,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                 height: 85,
+                decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(bottom: BorderSide(color: Colors.black12))),
+                alignment: Alignment.center,
                 child: SingleChildScrollView(
-                    controller: controller2.verticalScrollController,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      controller: controller2.horizontalScrollController,
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: widgets)),
+              ),
+              Expanded(
+                  child: SingleChildScrollView(
+                      controller: widget.controller2.verticalScrollController,
                       child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1131,7 +1132,6 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
                             var invoice = invs[i];
                             var values = invoice.entries.toList();
                             values = [MapEntry('', (i + 1)), ...values];
-
                             var widgets = List.generate(values.length, (j) {
                               var cell = values[j];
                               var isNumber = j == 0;
@@ -1150,35 +1150,36 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
                                           : isNcf
                                               ? 155
                                               : 250;
-                              return GestureDetector(
-                                onDoubleTap: () => _selectInvoice(
-                                    purchases[invs.indexOf(invoice)]),
-                                child: Container(
-                                  width: w.toDouble(),
-                                  color: Colors.grey.withOpacity(0.09),
-                                  padding: const EdgeInsets.only(
-                                      left: 15, right: 5, top: 15, bottom: 15),
-                                  child: Text(
-                                    cell.value == null || cell.value == ''
-                                        ? 'NINGUNO'
-                                        : cell.value.toString(),
-                                    style: const TextStyle(
-                                        fontSize: 17,
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
+                              return Container(
+                                width: w.toDouble(),
+                                padding: const EdgeInsets.only(
+                                    left: 15, right: 5, top: 15, bottom: 15),
+                                child: Text(
+                                  cell.value == null || cell.value == ''
+                                      ? 'NINGUNO'
+                                      : cell.value.toString(),
+                                  style: const TextStyle(
+                                      fontSize: 17,
+                                      overflow: TextOverflow.ellipsis),
                                 ),
                               );
                             });
-                            return Column(
-                              children: [
-                                Row(children: widgets),
-                                Container(height: 5, color: Colors.grey)
-                              ],
-                            );
-                          })),
-                    ))))
-      ],
-    );
+
+                            return GestureDetector(
+                                onDoubleTap: () => _selectInvoice(
+                                    purchases[invs.indexOf(invoice)]),
+                                child: Container(
+                                  height: 55,
+                                  decoration: const BoxDecoration(
+                                      border: Border(
+                                          bottom: BorderSide(
+                                              color: Colors.black12))),
+                                  child: Row(children: widgets),
+                                ));
+                          }))))
+            ],
+          ),
+        ));
   }
 
   Widget get _invoicesView607 {
@@ -1203,75 +1204,77 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
       );
     });
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 85,
-          alignment: Alignment.center,
-          child: ListView(
-              controller: controller2.scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              scrollDirection: Axis.horizontal,
-              children: [
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [...widgets])
-              ]),
-        ),
-        Expanded(
-            child: SizedBox(
+    return ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse}),
+        child: SingleChildScrollView(
+          controller: widget.controller2.scrollController,
+          scrollDirection: Axis.horizontal,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 85,
+                decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(bottom: BorderSide(color: Colors.black12))),
+                alignment: Alignment.center,
                 child: SingleChildScrollView(
-                    controller: controller2.verticalScrollController,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      controller: controller2.horizontalScrollController,
-                      child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: List.generate(invs.length, (i) {
-                            var invoice = invs[i];
-                            var values = invoice.entries.toList();
-                            values = [MapEntry('', (i + 1)), ...values];
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [...widgets])),
+              ),
+              Expanded(
+                  child: SizedBox(
+                      child: SingleChildScrollView(
+                controller: controller2.verticalScrollController,
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: List.generate(invs.length, (i) {
+                      var invoice = invs[i];
+                      var values = invoice.entries.toList();
+                      values = [MapEntry('', (i + 1)), ...values];
 
-                            var widgets = List.generate(values.length, (j) {
-                              var cell = values[j];
+                      var widgets = List.generate(values.length, (j) {
+                        var cell = values[j];
 
-                              var w = j == 0 ? 90 : 185;
+                        var w = j == 0 ? 90 : 185;
 
-                              return GestureDetector(
-                                onDoubleTap: () {
-                                  var sale = controllerSales
-                                      .sales[invs.indexOf(invoice)];
-                                  _selectSale(sale);
-                                },
-                                child: Container(
-                                  width: w.toDouble(),
-                                  color: Colors.grey.withOpacity(0.09),
-                                  padding: const EdgeInsets.only(
-                                      left: 15, right: 5, top: 15, bottom: 15),
-                                  child: Text(
-                                    cell.value == null || cell.value == ''
-                                        ? 'NINGUNO'
-                                        : cell.value.toString(),
-                                    style: const TextStyle(
-                                        fontSize: 17,
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                ),
-                              );
-                            });
-                            return Column(
-                              children: [
-                                Row(children: widgets),
-                                Container(height: 5, color: Colors.grey)
-                              ],
-                            );
-                          })),
-                    ))))
-      ],
-    );
+                        return Container(
+                          width: w.toDouble(),
+                          padding: const EdgeInsets.only(
+                              left: 15, right: 5, top: 15, bottom: 15),
+                          child: Text(
+                            cell.value == null || cell.value == ''
+                                ? 'NINGUNO'
+                                : cell.value.toString(),
+                            style: const TextStyle(
+                                fontSize: 17, overflow: TextOverflow.ellipsis),
+                          ),
+                        );
+                      });
+
+                      return GestureDetector(
+                          onDoubleTap: () {
+                            var sale =
+                                controllerSales.sales[invs.indexOf(invoice)];
+                            _selectSale(sale);
+                          },
+                          child: Container(
+                            height: 55,
+                            decoration: const BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(color: Colors.black12))),
+                            child: Row(children: widgets),
+                          ));
+                    })),
+              )))
+            ],
+          ),
+        ));
   }
 
   Widget get _emptyContainer {
@@ -1416,9 +1419,8 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
     controllerSales = Get.find<SalesController>();
     widget.controller2 = Get.put(CompanyDetailsController());
     controller2.date.value = TextEditingValue(text: dateRangeAsString);
-    controller2.focusAttachment.reparent();
-
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: null,
@@ -1480,7 +1482,6 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
                       controller: controller2.date,
                       enableInteractiveSelection: false,
                       readOnly: true,
-                      autofocus: true,
                       keyboardType: TextInputType.none,
                       style: const TextStyle(fontSize: 18),
                       decoration: InputDecoration(
@@ -1543,13 +1544,10 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
                 ],
               )),
           Obx(() => Expanded(
-                  child: RawKeyboardListener(
-                focusNode: controller2.startTableFocus,
-                autofocus: true,
                 child: formType == FormType.form606
                     ? _invoicesView606
                     : _invoicesView607,
-              )))
+              ))
         ],
       ),
       floatingActionButton: Row(

@@ -24,7 +24,7 @@ class DateSelectorWidget extends StatefulWidget {
       required this.hintText,
       required this.labelText,
       required this.startDate,
-      required this.date});
+      this.date});
 
   @override
   State<DateSelectorWidget> createState() => _DateSelectorWidgetState();

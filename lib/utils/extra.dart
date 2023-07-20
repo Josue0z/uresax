@@ -24,12 +24,19 @@ enum QueryContext { general, tax, consumption }
 
 enum AuthorizationType { authorized, notAuthorized }
 
-enum ReportModelType { invoiceType, conceptType, companyName, typeIncome }
+enum ReportModelType {
+  invoiceType,
+  conceptType,
+  companyName,
+  typeIncome,
+  imports
+}
 
 List<Map<String, dynamic>> reportTypes = [
   {'type': ReportModelType.invoiceType, 'name': 'REPORTE POR TIPO DE FACTURA'},
   {'type': ReportModelType.conceptType, 'name': 'REPORTE POR CONCEPTO'},
-  {'type': ReportModelType.companyName, 'name': 'REPORTE POR PROVEEDOR'}
+  {'type': ReportModelType.companyName, 'name': 'REPORTE POR PROVEEDOR'},
+  {'type': ReportModelType.imports, 'name': 'IMPORTACIONES'}
 ];
 
 List<Map<String, dynamic>> reportTypes607 = [

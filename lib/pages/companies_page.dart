@@ -196,12 +196,12 @@ class CompaniesPage extends StatelessWidget {
 
   Widget get _emptyContainer {
     return Expanded(
-        child: Center(
+      child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(Icons.apartment,
+          Icon(Icons.store,
               size: 110, color: Theme.of(context).primaryColor)
         ],
       ),

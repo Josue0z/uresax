@@ -47,6 +47,8 @@ class Company {
       await connection.runTx((c) async {
         await c.query(
             '''DELETE FROM public."Purchase" WHERE "invoice_companyId" = '$id';''');
+        await c.query(
+            '''DELETE FROM public."Sale" WHERE "companyId" = '$id';''');
         await c.query('''DELETE FROM public."Company" WHERE "id" = '$id';''');
       });
     } catch (e) {
