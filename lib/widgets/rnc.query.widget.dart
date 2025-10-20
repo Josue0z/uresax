@@ -1,14 +1,16 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:uresaxapp/modals/add-provider-modal.dart';
-import 'package:uresaxapp/models/provider.dart';
-import 'package:uresaxapp/pages/physical.person.page.dart';
+import 'package:uresaxapp/models/taxpayer.dart';
+import 'package:uresaxapp/pages/taxpayers.page.dart';
 import 'package:uresaxapp/utils/functions.dart';
-import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:uresaxapp/widgets/add.taxpayer.widget.dart';
 
 class RncQueryWidget extends StatefulWidget {
   TextEditingController rnc = TextEditingController();
+
   TextEditingController company = TextEditingController();
 
   int maxLength;
@@ -34,21 +36,22 @@ class _RncQueryWidgetState extends State<RncQueryWidget> {
 
   bool isCorrectRnc = false;
 
+  bool foundStatus = false;
+
   addPhysicalPerson() async {
     try {
-      var person = await Get.to<PhysicalPerson?>(
-          () => PhysicalPersonPage(id: widget.rnc.text));
-      print(person);
-      if (person != null) {
-        widget.company.value = TextEditingValue(text: person.name);
-        widget.rnc.value = TextEditingValue(text: person.id);
-        isCorrectRnc = true;
-        show = false;
-        setState(() {});
-        widget.onSelectedCorrectRnc(isCorrectRnc);
+      var res = await showDialog<TaxPayer?>(
+          context: context,
+          builder: (ctx) => AddTaxPayerWidget(
+                rncOrId: widget.rnc.text,
+              ));
+
+      if (res != null) {
+        widget.company.value = TextEditingValue(text: res.taxPayerCompanyName!);
+        widget.rnc.value = TextEditingValue(text: widget.rnc.text);
       }
     } catch (e) {
-      showAlert(context, message: e.toString());
+      print(e);
     }
   }
 
@@ -61,6 +64,7 @@ class _RncQueryWidgetState extends State<RncQueryWidget> {
         widget.company.value =
             TextEditingValue(text: data['tax_payer_company_name']);
         isCorrectRnc = true;
+        foundStatus = true;
         widget.onSelectedCorrectRnc(isCorrectRnc);
       } else {
         throw 'LENGTH NOT CORRECT';
@@ -71,11 +75,12 @@ class _RncQueryWidgetState extends State<RncQueryWidget> {
         widget.company.value = TextEditingValue.empty;
         show = false;
       } else {
-        if (widget.rnc.text.length == 11) {
+        if (widget.rnc.text.length == 11 || widget.rnc.text.length == 9) {
           show = true;
         } else {
           show = false;
         }
+        foundStatus = false;
         widget.company.value = const TextEditingValue(text: 'NO ENCONTRADO');
       }
       widget.onSelectedCorrectRnc(isCorrectRnc);
@@ -98,42 +103,59 @@ class _RncQueryWidgetState extends State<RncQueryWidget> {
           controller: widget.company,
           readOnly: true,
           decoration: InputDecoration(
-              hintText: widget.hintText,
-              suffixIcon: show
-                  ? Wrap(
+            hintText: widget.hintText,
+            border: const OutlineInputBorder(),
+            suffixIcon: Wrap(
+              children: [
+                IconButton(
+                    onPressed: () async {
+                      var res = await Get.to<TaxPayer?>(
+                          () => const TaxPayersPage(),
+                          preventDuplicates: false);
+                      if (res != null) {
+                        widget.company.value =
+                            TextEditingValue(text: res.taxPayerCompanyName!);
+                        widget.rnc.value =
+                            TextEditingValue(text: res.taxPayerId!);
+                      }
+                    },
+                    icon: const Icon(Icons.search)),
+                const SizedBox(width: 15)
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        TextFormField(
+          controller: widget.rnc,
+          autofocus: true,
+          maxLength: widget.maxLength,
+          textInputAction: TextInputAction.next,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(fontSize: 18),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (val) => val == null
+              ? 'CAMPO REQUERIDO'
+              : !(val.length == 9 ||
+                      val.length == 11 ||
+                      val.length == widget.maxLength)
+                  ? 'LA CANTIDAD DE CARACTERES NO ES VALIDA'
+                  : null,
+          decoration: InputDecoration(
+            hintText: 'RNC/CEDULA',
+            labelText: 'RNC/CEDULA',
+            border: const OutlineInputBorder(),
+            suffixIcon: show
+                ? Wrap(
                     children: [
                       IconButton(
-                      onPressed: addPhysicalPerson,
-                      color: Theme.of(context).primaryColor,
-                      icon: const Icon(Icons.add)),
-                    const SizedBox(width: 15)
+                          onPressed: addPhysicalPerson,
+                          color: Theme.of(context).primaryColor,
+                          icon: const Icon(Icons.add)),
+                      const SizedBox(width: 15)
                     ],
                   )
-                  : null,
-              border: const OutlineInputBorder()),
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: TextFormField(
-            controller: widget.rnc,
-            autofocus: true,
-            maxLength: widget.maxLength,
-            textInputAction: TextInputAction.next,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 18),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            validator: (val) => val == null
-                ? 'CAMPO REQUERIDO'
-                : !(val.length == 9 ||
-                        val.length == 11 ||
-                        val.length == widget.maxLength)
-                    ? 'LA CANTIDAD DE CARACTERES NO ES VALIDA'
-                    : null,
-            decoration: const InputDecoration(
-                hintText: 'RNC/CEDULA',
-                labelText: 'RNC/CEDULA',
-                border: OutlineInputBorder()),
+                : null,
           ),
         ),
       ],

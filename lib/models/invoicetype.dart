@@ -8,15 +8,14 @@ class InvoiceType {
   InvoiceType(
       {this.id, this.invoiceTypeValue, required this.name, this.createdAt});
 
-
   String get fullName {
-    if(invoiceTypeValue == null) return name;
+    if (invoiceTypeValue == null) return name;
     return '$invoiceTypeValue-$name';
   }
 
   static Future<List<InvoiceType>> getInvoiceTypes() async {
-    var results = await connection
-        .mappedResultsQuery('''select * from public."InvoiceType" order by id;''');
+    var results = await connection.mappedResultsQuery(
+        '''select * from public."InvoiceType" order by id;''');
     return results.map((e) => InvoiceType.fromJson(e['InvoiceType']!)).toList();
   }
 

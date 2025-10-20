@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 
 class CustomAppBar extends StatelessWidget {
-  
   final String title;
 
   List<Widget> actions;
   CustomAppBar({super.key, required this.title, this.actions = const []});
 
-  Widget  _buildBackBtn(BuildContext context) {
- 
+  Widget _buildBackBtn(BuildContext context) {
     if (Navigator.canPop(context)) {
       return Row(
         children: [
           IconButton(
-          onPressed: () => Navigator.pop(context),
-          color: Colors.white,
-          icon: const Icon(Icons.arrow_back)),
+              onPressed: () => Navigator.pop(context),
+              color: Colors.white,
+              icon: const Icon(Icons.arrow_back)),
           const SizedBox(width: 20)
         ],
       );
@@ -25,7 +23,6 @@ class CustomAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return SizedBox(
       height: kToolbarHeight,
       child: Material(

@@ -1,6 +1,3 @@
-
-
-
 import 'package:get/get.dart';
 import 'package:uresaxapp/models/purchase.dart';
 
@@ -11,4 +8,4 @@ class PurchasesController extends GetxController {
     purchases.clear();
     super.onClose();
   }
- }
+}

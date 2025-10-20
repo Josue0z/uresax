@@ -49,10 +49,9 @@ class Book {
 
   static Future<List<Book>> all({String? where}) async {
     try {
-
-      if(where != ''){
+      if (where != '') {
         where = 'where $where';
-      }  
+      }
 
       var results = await connection.mappedResultsQuery('''
       select * from public."BookDetails" $where and "book_typeId" = 1 order by "book_year";
@@ -87,8 +86,8 @@ class Book {
     }
   }
 
-  Future<void> dispose()async{
-      await updateBookUseStatus(false);
+  Future<void> dispose() async {
+    await updateBookUseStatus(false);
   }
 
   Future<bool> checkIfBookIsUsed() async {

@@ -1,7 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_session_manager/flutter_session_manager.dart';
 import 'package:uresaxapp/apis/connection.dart';
@@ -17,20 +16,31 @@ class User {
   int? roleId;
   String? roleName;
   DateTime? createdAt;
-  User({
-    this.id,
-    this.name,
-    this.username,
-    this.password,
-    this.roleId,
-    this.roleName,
-    this.createdAt,
-  });
+  List<String>? permissions;
+  User(
+      {this.id,
+      this.name,
+      this.username,
+      this.password,
+      this.roleId,
+      this.roleName,
+      this.createdAt,
+      this.permissions});
 
-  static Future<List<User>> all() async {
+  static Future<List<User>> all({
+    bool searchMode = false,
+    String words = ''
+  }) async {
     try {
+      var searchContext = '';
+
+      if(words.isNotEmpty && searchMode){
+          searchContext = ''' where (username like '%$words%' or name like '%$words%' or "role_name" like '%$words%') ''';
+      }else{
+        searchContext = '';
+      }
       var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM public."UserView" order by "created_at";''');
+          '''SELECT * FROM public."UserView" $searchContext order by "created_at";''');
 
       return result.map((e) => User.fromMap(e['']!)).toList();
     } catch (e) {
@@ -57,12 +67,22 @@ class User {
       var id = const Uuid().v4();
       password = BCrypt.hashpw(password!, BCrypt.gensalt());
 
-      await connection.query(
-          '''INSERT INTO "User"(id,name,username,password,"roleId") VALUES('$id','$name','$username','$password', $roleId)''');
-      var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM public."UserView" WHERE "id" = '$id' ''');
+      var results = await connection.runTx((c) async {
+        var r1 = await c.mappedResultsQuery(
+            ''' select id from public."User" where "roleId" = 3 limit 1''');
+        var xid = r1[0]['User']!['id'];
 
-      return User.fromMap(result.first['']!);
+        if (xid != id && isSuperUser) {
+          throw 'YA EXISTE UN SUPER USUARIO';
+        }
+        await c.query(
+            '''INSERT INTO "User"(id,name,username,password,"roleId","Permissions") VALUES('$id','$name','$username','$password', $roleId, '${permissions?.toSet()}')''');
+        var result = await c.mappedResultsQuery(
+            '''SELECT * FROM public."UserView" WHERE "id" = '$id' ''');
+        return [result];
+      });
+
+      return User.fromMap(results[0].first['']!);
     } catch (e) {
       rethrow;
     }
@@ -70,11 +90,25 @@ class User {
 
   Future<User> update() async {
     try {
-      await connection.query(
-          '''UPDATE public."User" SET "name" = '$name', "roleId" = $roleId, "username" = '$username' WHERE "id" = '$id';''');
-      var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM public."UserView" WHERE "id" = '$id';''');
-      return User.fromMap(result.first['']!);
+      var results = await connection.runTx((c) async {
+        var r1 = await c.mappedResultsQuery(
+            ''' select id from public."User" where "roleId" = 3 limit 1''');
+        var xid = r1[0]['User']!['id'];
+
+        if (xid != id && isSuperUser) {
+          throw 'YA EXISTE UN SUPER USUARIO';
+        }
+
+        await c.query(
+            '''UPDATE public."User" SET "Permissions" = '${permissions?.toSet()}', "name" = '$name', "roleId" = $roleId, "username" = '$username' WHERE "id" = '$id';''');
+        var result = await c.mappedResultsQuery(
+            '''SELECT * FROM public."UserView" WHERE "id" = '$id';''');
+        return [result];
+      });
+
+      var user = User.fromMap(results[0].first['']!);
+
+      return user;
     } catch (e) {
       rethrow;
     }
@@ -90,10 +124,6 @@ class User {
 
   static Future<User?> signIn(String username, String password) async {
     try {
-      if (Platform.environment['DATABASE_HOSTNAME'] == null) {
-        throw 'NO ESTA CONFIGURADO EL SERVICIO HOST';
-      }
-
       var result = await connection.mappedResultsQuery(
           '''SELECT * FROM public."UserView" WHERE "username" = '$username' ''');
 
@@ -121,6 +151,7 @@ class User {
           context,
           MaterialPageRoute(builder: (ctx) => const LoginPage()),
           (route) => false);
+     
     } catch (e) {
       rethrow;
     }
@@ -128,11 +159,20 @@ class User {
 
   editPassword(String currentPassword, String newPassword) async {
     try {
-      var isCorrect = BCrypt.checkpw(currentPassword, password!);
+      var result = await connection.mappedResultsQuery(
+          ''' select * from public."User" where id = '$id' ''');
+
+      var user = User.fromMap(result.first['User']!);
+
+      var isCorrect = BCrypt.checkpw(currentPassword, user.password!);
+
       var newPass = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+
       if (isCorrect) {
         await connection.mappedResultsQuery(
             '''update public."User" set password = '$newPass' where id = '$id';''');
+      } else {
+        throw 'LA CONTRASEÑA NO ES CORRECTA';
       }
     } catch (e) {
       rethrow;
@@ -146,6 +186,7 @@ class User {
     String? password,
     int? roleId,
     String? roleName,
+    List<String>? permissions,
     DateTime? createdAt,
   }) {
     return User(
@@ -155,12 +196,21 @@ class User {
       password: password ?? this.password,
       roleId: roleId ?? this.roleId,
       roleName: roleName ?? this.roleName,
+      permissions: permissions ?? this.permissions,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
   bool get isAdmin {
     return roleId == 1;
+  }
+
+  bool get isEditor {
+    return roleId == 2;
+  }
+
+  bool get isSuperUser {
+    return roleId == 3;
   }
 
   Map<String, dynamic> toMap() {
@@ -188,6 +238,10 @@ class User {
       result.addAll({'created_at': createdAt!.millisecondsSinceEpoch});
     }
 
+    if (permissions != null) {
+      result.addAll({'Permissions': permissions});
+    }
+
     return result;
   }
 
@@ -199,6 +253,8 @@ class User {
         password: map['password'],
         roleId: map['roleId']?.toInt(),
         roleName: map['role_name'],
+        permissions:
+            map['Permissions']?.map((e) => e).toList().cast<String>() ?? [],
         createdAt: map['created_at'] is int
             ? DateTime.fromMillisecondsSinceEpoch(map['created_at'])
             : map['created_at']);

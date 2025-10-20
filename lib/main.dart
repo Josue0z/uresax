@@ -1,54 +1,103 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:get/get.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:uresaxapp/controllers/sales.controller.dart';
-import 'package:uresaxapp/models/user.dart';
-import 'package:uresaxapp/pages/login_page.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:uresaxapp/pages/companies_page.dart';
-import 'package:flutter_session_manager/flutter_session_manager.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:get/get.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:package_info/package_info.dart';
 import 'package:uresaxapp/controllers/companies.controller.dart';
+import 'package:uresaxapp/controllers/ncfs.override.controller.dart';
+import 'package:uresaxapp/controllers/permissions.controller.dart';
+import 'package:uresaxapp/controllers/sales.controller.dart';
+import 'package:uresaxapp/controllers/ux.controller.dart';
+import 'package:uresaxapp/models/user.dart';
+import 'package:uresaxapp/pages/companies_page.dart';
+import 'package:uresaxapp/pages/login_page.dart';
+import 'package:uresaxapp/utils/consts.dart';
+import 'package:uresaxapp/utils/extra.dart';
+import 'package:uresaxapp/widgets/layout.with.bar.widget.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:uresaxapp/controllers/session.controller.dart';
 import 'package:uresaxapp/controllers/periods.controller.dart';
 import 'package:uresaxapp/controllers/purchases.controller.dart';
-import 'package:uresaxapp/controllers/session.controller.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_session_manager/flutter_session_manager.dart';
+import 'package:flutter_platform_alert/flutter_platform_alert.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 
 void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
+    packageInfo = await PackageInfo.fromPlatform();
+
+    var hostName = Platform.environment['DATABASE_HOSTNAME'];
+    var dbPort = Platform.environment['DATABASE_PORT'];
+    var dbName = Platform.environment['DATABASE_NAME'];
+    var dbUsername = Platform.environment['DATABASE_USERNAME'];
+    var dbSecret = Platform.environment['DATABASE_SECRET'];
+
+    print(hostName);
+    print(dbPort);
+    print(dbName);
+    print(dbUsername);
+    print(dbSecret);
+
+    if (hostName == null ||
+        dbPort == null ||
+        dbName == null ||
+        dbUsername == null ||
+        dbSecret == null) {
+      'Las variables de entorno de la base de datos no están configuradas correctamente.';
+    }
 
     await windowManager.ensureInitialized();
 
-    var c = Get.put(SessionController());
-    
+    Get.put(UxController());
+
+    Get.put(PermissionsController());
+
     Get.put(PurchasesController());
 
     Get.put(SalesController());
 
-    Get.put(CompaniesController());
+    Get.put(NcfsOverrideController());
 
     Get.put(PeriodsController());
-    
+
     try {
       var userData = await SessionManager().get('USER');
-      User? user = User.fromMap(userData);
-      user = await User.findUserById(user.id!);
+
+      User? user = User.fromMap(userData ?? {});
+      user = await User.findUserById(user.id ?? 'x');
       User.current = user;
-      c.currentUser = Rx(user);
-    } catch (_) {}
+    } catch (e) {
+      rethrow;
+    }
 
-    WindowOptions windowOptions =
-        const WindowOptions(size: Size(1280, 720), center: true, minimumSize: Size.fromWidth(500));
-
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
+    Size sizeWindow = const Size(1000, 600);
 
     runApp(const MyApp());
+
+    doWhenWindowReady(() {
+      var initialSize = sizeWindow;
+      appWindow.minSize = Size(500, sizeWindow.height);
+      appWindow.size = initialSize;
+      appWindow.alignment = Alignment.center;
+      appWindow.title = 'URESAX';
+      appWindow.show();
+      windowManager.setMaximizable(true);
+      windowManager.setMinimizable(true);
+    });
   } catch (e) {
-    print(e);
+    await FlutterPlatformAlert.playAlertSound();
+    await FlutterPlatformAlert.showAlert(
+      windowTitle: 'ALERTA',
+      text: e.toString(),
+      alertStyle: AlertButtonStyle.ok,
+      iconStyle: IconStyle.error,
+    );
+    windowManager.close();
   }
 }
 
@@ -60,21 +109,80 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  Widget get content {
+    if (sessionController.loading.value) {
+      return loaderWidget(context);
+    }
+
+    if (sessionController.currentUser?.value == null) {
+      return LoginPage();
+    }
+
+    if (sessionController.currentUser?.value != null) {
+      return CompaniesPage();
+    }
+    return Container();
+  }
+
+  Widget loaderWidget(BuildContext context) {
+    return LayoutWithBar(
+        child: Container(
+            width: double.infinity,
+            color: kPrimaryColor,
+            child: Center(
+                child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SvgPicture.asset('assets/svgs/URESAXLOGO.SVG',
+                    width: 100, height: 100),
+                SizedBox(height: kDefaultPadding),
+                const CircularProgressIndicator(color: Colors.white)
+              ],
+            ))));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'URESAX',
-      locale: const Locale('es'),
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      supportedLocales: const [Locale('es')],
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        colorScheme:
-            ColorScheme.fromSwatch(errorColor: const Color(0xFFFA473B)),
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: User.current != null ? CompaniesPage() : const LoginPage(),
-    );
+    Get.put(CompaniesController());
+    sessionController = Get.put(SessionController());
+    return PlatformMenuBar(
+        menus: [],
+        child: GetMaterialApp(
+            title: 'URESAX',
+            locale: const Locale('es'),
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            supportedLocales: const [Locale('es')],
+            theme: ThemeData(
+                primaryColor: kPrimaryColor,
+                useMaterial3: false,
+                dialogTheme: DialogThemeData(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                textTheme: TextTheme(
+                    headlineLarge: TextStyle(fontSize: 26),
+                    headlineMedium: TextStyle(fontSize: 24),
+                    headlineSmall: TextStyle(fontSize: 22),
+                    displayLarge:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
+                    displayMedium: TextStyle(fontSize: 18),
+                    displaySmall: TextStyle(fontSize: 15)),
+                appBarTheme: AppBarTheme(
+                  centerTitle: false,
+                  toolbarHeight: kToolbarHeight + kDefaultPadding,
+                ),
+                floatingActionButtonTheme: FloatingActionButtonThemeData(
+                    backgroundColor: kPrimaryColor),
+                snackBarTheme: SnackBarThemeData(actionTextColor: Colors.white),
+                colorScheme: ColorScheme.fromSeed(
+                    seedColor: kPrimaryColor,
+                    primary: kPrimaryColor,
+                    secondary: const Color(0xFF1CA565),
+                    error: kErrorColor),
+                visualDensity: VisualDensity.adaptivePlatformDensity),
+            home: Obx(() => content)));
   }
 }

@@ -36,7 +36,8 @@ class PhysicalPerson {
 
   delete() async {
     try {
-      await connection.execute(''' delete from public."Providers" where "id" = '$id' ''');
+      await connection
+          .execute(''' delete from public."Providers" where "id" = '$id' ''');
     } catch (e) {
       rethrow;
     }

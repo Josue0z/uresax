@@ -8,5 +8,5 @@ class PageOption {
 
 List<PageOption> options = [
   PageOption(name: 'Ver Usuarios', type: PageOptionType.users),
-  PageOption(name: 'Cerrar Sesion', type:PageOptionType.loggout)
+  PageOption(name: 'Cerrar Sesion', type: PageOptionType.loggout)
 ];

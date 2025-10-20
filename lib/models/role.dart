@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:uresaxapp/apis/connection.dart';
 
-
 class Role {
   int? id;
   String? name;
@@ -11,13 +10,14 @@ class Role {
     this.name,
   });
 
-  static Future<List<Role>> all()async{
-     try{
-        var result =  await connection.mappedResultsQuery('''SELECT * FROM public."Role"''');
-        return result.map((e) => Role.fromMap(e['Role']!)).toList();
-     }catch(e){
+  static Future<List<Role>> all() async {
+    try {
+      var result = await connection
+          .mappedResultsQuery('''SELECT * FROM public."Role"''');
+      return result.map((e) => Role.fromMap(e['Role']!)).toList();
+    } catch (e) {
       rethrow;
-     }
+    }
   }
 
   Role copyWith({
@@ -32,14 +32,14 @@ class Role {
 
   Map<String, dynamic> toMap() {
     final result = <String, dynamic>{};
-  
-    if(id != null){
+
+    if (id != null) {
       result.addAll({'id': id});
     }
-    if(name != null){
+    if (name != null) {
       result.addAll({'name': name});
     }
-  
+
     return result;
   }
 
@@ -60,10 +60,8 @@ class Role {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-  
-    return other is Role &&
-      other.id == id &&
-      other.name == name;
+
+    return other is Role && other.id == id && other.name == name;
   }
 
   @override

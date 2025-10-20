@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:number_text_input_formatter/number_text_input_formatter.dart';
+import 'package:package_info/package_info.dart';
+import 'package:uresaxapp/controllers/session.controller.dart';
 
 List<String> months = [
   'ENERO',
@@ -16,7 +18,7 @@ List<String> months = [
   'DICIEMBRE'
 ];
 
-enum FormType { form606, form607 }
+enum FormType { form606, form607, form608 }
 
 enum ReportType { month, year }
 
@@ -42,7 +44,7 @@ List<Map<String, dynamic>> reportTypes = [
 List<Map<String, dynamic>> reportTypes607 = [
   {'type': ReportModelType.typeIncome, 'name': 'REPORTE POR TIPO DE INGRESO'},
   {'type': ReportModelType.conceptType, 'name': 'REPORTE POR CONCEPTO'},
-  {'type': ReportModelType.companyName, 'name': 'REPORTE POR PROVEEDOR'}
+  {'type': ReportModelType.companyName, 'name': 'REPORTE POR CLIENTE'}
 ];
 List<Map<String, dynamic>> ncfsTypes = [
   {'TIPO': QueryContext.general, 'NAME': 'REPORTE GENERAL'},
@@ -82,3 +84,7 @@ String execPointFormatter(dynamic value) {
           TextEditingValue.empty, TextEditingValue(text: value.toString()))
       .text;
 }
+
+late SessionController sessionController;
+
+PackageInfo? packageInfo;

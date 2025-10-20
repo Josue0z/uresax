@@ -14,8 +14,8 @@ class PaymentMethod {
   }
 
   static Future<List<PaymentMethod>> getPaymentMethods() async {
-    var results = await connection
-        .mappedResultsQuery('''select * from public."PaymentMethod" order by id;''');
+    var results = await connection.mappedResultsQuery(
+        '''select * from public."PaymentMethod" order by id;''');
     return results
         .map((e) => PaymentMethod.fromJson(e['PaymentMethod']!))
         .toList();

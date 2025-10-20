@@ -4,14 +4,21 @@ class Concept {
   int? id;
   String? name;
   DateTime? createdAt;
-  Concept({this.id, this.name, this.createdAt});
+  int? typeContextId;
+  String? typeContextName;
+  Concept(
+      {this.id,
+      this.name,
+      this.createdAt,
+      this.typeContextId,
+      this.typeContextName});
 
   static Future<List<Concept>> getConcepts(
       {String words = '', bool searchMode = false}) async {
     try {
       var searchContext = '';
 
-      if (searchMode) {
+      if (searchMode && words.isNotEmpty) {
         searchContext = ''' where upper("name") like upper('%$words%') ''';
       }
 
@@ -44,7 +51,7 @@ class Concept {
   Future<Concept> update() async {
     try {
       await connection.query(
-          '''UPDATE public."Concept" SET name = '$name' WHERE "id" = $id;''');
+          '''UPDATE public."Concept" SET name = '$name', "typeContextId" = $typeContextId WHERE "id" = $id;''');
       var results = await connection.mappedResultsQuery(
           '''SELECT * FROM public."Concept" WHERE "id" = $id;''');
 
@@ -65,13 +72,19 @@ class Concept {
 
   factory Concept.fromJson(Map<String, dynamic> map) {
     return Concept(
-        id: map['id'], name: map['name'], createdAt: map['created_at']);
+        id: map['id'],
+        name: map['name'],
+        typeContextId: map['typeContextId'],
+        typeContextName: map['typeContextName'],
+        createdAt: map['created_at']);
   }
 
   toMap() {
     return {
       'id': id,
       'name': name,
+      'typeContextId': typeContextId,
+      'typeContextName': typeContextName,
       'created_at': createdAt?.toUtc().toString()
     };
   }

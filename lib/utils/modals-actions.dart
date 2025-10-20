@@ -1,49 +1,60 @@
 import 'dart:math' as math;
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:uresaxapp/utils/consts.dart';
+import 'package:uresaxapp/widgets/layout.with.bar.widget.dart';
 
 Future<T> showAlert<T>(BuildContext context,
-    {String message = '', String? title}) async {
+    {String message = '', String title = '¡ATENCION!'}) async {
   return await showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-          child: SizedBox(
-              width: 450,
-              child: Material(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      Text(
-                        title ?? 'Alerta',
-                        style: TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).errorColor),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        child: Text(
-                          message,
-                          style: const TextStyle(fontSize: 16),
+      builder: (ctx) => WindowBorder(
+          width: 1,
+          color: kWindowBorderColor,
+          child: LayoutWithBar(
+              child: Dialog(
+                  child: SizedBox(
+                      width: 450,
+                      child: Material(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.error),
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 18),
+                                child: Text(
+                                  message,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  const Spacer(),
+                                  ElevatedButton(
+                                      style: ButtonStyle(
+                                          backgroundColor:
+                                              WidgetStateProperty.all(
+                                                  Theme.of(context)
+                                                      .colorScheme
+                                                      .error)),
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('ENTENDIDO'))
+                                ],
+                              )
+                            ],
+                          ),
                         ),
-                      ),
-                      Row(
-                        children: [
-                          const Spacer(),
-                          ElevatedButton(
-                              style: ButtonStyle(
-                                  backgroundColor: MaterialStateProperty.all(
-                                      Theme.of(context).errorColor)),
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('ENTENDIDO'))
-                        ],
-                      )
-                    ],
-                  ),
-                ),
-              ))));
+                      ))))));
 }
 
 Future<bool?> showConfirm(BuildContext context,
@@ -61,9 +72,11 @@ Future<bool?> showConfirm(BuildContext context,
 
   var result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(10.0))),
+      builder: (ctx) => WindowBorder(
+          width: 1,
+          color: kWindowBorderColor,
+          child: LayoutWithBar(
+              child: AlertDialog(
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             content: SizedBox(
@@ -79,8 +92,8 @@ Future<bool?> showConfirm(BuildContext context,
                             Expanded(
                                 child: Text(title.toUpperCase(),
                                     style: const TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w400)
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500)
                                         .copyWith(
                                             color: Theme.of(context)
                                                 .primaryColor))),
@@ -112,13 +125,9 @@ Future<bool?> showConfirm(BuildContext context,
                             children: [
                               const Spacer(),
                               ElevatedButton(
-                                  style:
-                                      ButtonStyle(
-                                          backgroundColor:
-                                              MaterialStateProperty.all(
-                                                  Theme.of(context)
-                                                      .colorScheme
-                                                      .error)),
+                                  style: ButtonStyle(
+                                      backgroundColor: WidgetStateProperty.all(
+                                          Theme.of(context).colorScheme.error)),
                                   onPressed: () =>
                                       Navigator.pop(context, false),
                                   child: const Padding(
@@ -137,7 +146,7 @@ Future<bool?> showConfirm(BuildContext context,
                         ],
                       ),
                     ))),
-          ));
+          ))));
 
   return result == true;
 }

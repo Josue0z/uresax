@@ -1,11 +1,15 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/purchase.dart';
 import 'package:uresaxapp/pages/company_details.dart';
+import 'package:uresaxapp/utils/consts.dart';
 import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
+import 'package:uresaxapp/widgets/custom.frame.widget.dart';
+import 'package:uresaxapp/widgets/layout.with.bar.widget.dart';
 
 class SearchPurchases extends StatefulWidget {
   CompanyDetailsPage widget;
@@ -31,9 +35,9 @@ class _SearchPurchasesState extends State<SearchPurchases> {
     if (_formKey.currentState!.validate()) {
       showLoader(context);
       try {
-        var purchases = await Purchase.getPurchases(
+        var purchases = await Purchase.get(
           searchMode: true,
-          id: widget.widget.company.id!,
+          companyId: widget.widget.company.id!,
           startDate: widget.widget.startDate,
           endDate: widget.widget.endDate,
         );
@@ -49,75 +53,82 @@ class _SearchPurchasesState extends State<SearchPurchases> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Form(
-          autovalidateMode: AutovalidateMode.always,
-          key: _formKey,
-          child: SizedBox(
-            width: 350,
-            child: ListView(
-              padding: const EdgeInsets.all(15),
-              shrinkWrap: true,
-              children: [
-                Row(
+    return WindowBorder(
+        width: 1,
+        color: kWindowBorderColor,
+        child: LayoutWithBar(
+            child: Dialog(
+          child: Form(
+              autovalidateMode: AutovalidateMode.always,
+              key: _formKey,
+              child: SizedBox(
+                width: 350,
+                child: ListView(
+                  padding: const EdgeInsets.all(15),
+                  shrinkWrap: true,
                   children: [
-                    Text('BUSCADOR...',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(color: Theme.of(context).primaryColor)),
-                    const Spacer(),
-                    IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close))
+                    Row(
+                      children: [
+                        Text('BUSCADOR...',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                    color: Theme.of(context).primaryColor)),
+                        const Spacer(),
+                        IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close))
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: rnc,
+                      validator: (val) =>
+                          val!.isEmpty ? 'CAMPO REQUERIDO' : null,
+                      decoration: const InputDecoration(
+                          labelText: 'RNC/CEDULA',
+                          hintText: 'RNC/CEDULA',
+                          border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: ncf,
+                      validator: (val) =>
+                          val!.isEmpty ? 'CAMPO REQUERIDO' : null,
+                      decoration: const InputDecoration(
+                          labelText: 'NCF',
+                          hintText: 'NCF',
+                          border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: total,
+                      inputFormatters: [myformatter],
+                      decoration: const InputDecoration(
+                          labelText: 'TOTAL NETO O GENERAL',
+                          hintText: 'TOTAL NETO O GENERAL',
+                          border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: tax,
+                      inputFormatters: [myformatter],
+                      decoration: const InputDecoration(
+                          labelText: 'ITBIS FACTURADO',
+                          hintText: 'ITBIS FACTURADO',
+                          border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                          onPressed: onSubmit,
+                          child: const Text('BUSCAR FACTURAS')),
+                    )
                   ],
                 ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: rnc,
-                  validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO' : null,
-                  decoration: const InputDecoration(
-                      labelText: 'RNC/CEDULA',
-                      hintText: 'RNC/CEDULA',
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: ncf,
-                  validator: (val) => val!.isEmpty ? 'CAMPO REQUERIDO' : null,
-                  decoration: const InputDecoration(
-                      labelText: 'NCF',
-                      hintText: 'NCF',
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: total,
-                  inputFormatters: [myformatter],
-                  decoration: const InputDecoration(
-                      labelText: 'TOTAL NETO O GENERAL',
-                      hintText: 'TOTAL NETO O GENERAL',
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: tax,
-                  inputFormatters: [myformatter],
-                  decoration: const InputDecoration(
-                      labelText: 'ITBIS FACTURADO',
-                      hintText: 'ITBIS FACTURADO',
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                      onPressed: onSubmit,
-                      child: const Text('BUSCAR FACTURAS')),
-                )
-              ],
-            ),
-          )),
-    );
+              )),
+        )));
   }
 }

@@ -1,7 +1,6 @@
 import 'package:uresaxapp/apis/connection.dart';
 
 class NcfType {
-  
   int? id;
   int? prefixId;
   String name;
@@ -24,7 +23,7 @@ class NcfType {
   }
 
   String get fullName {
-    if(invoiceTypeValue == null) return name;
+    if (invoiceTypeValue == null) return name;
     return '$invoiceTypeValue-$name';
   }
 

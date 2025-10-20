@@ -7,16 +7,29 @@ class Company {
   String? rnc;
   DateTime? updatedAt;
   DateTime? createdAt;
-  Company({this.id, this.name, this.rnc, this.updatedAt, this.createdAt});
+  String? notes;
+  String? phone;
+  String? email;
+  String? address;
+  Company(
+      {this.id,
+      this.name,
+      this.rnc,
+      this.updatedAt,
+      this.createdAt,
+      this.notes = '',
+      this.phone = '',
+      this.email = '',
+      this.address = ''});
 
-  static Future<List<Company>> all({String where = ''}) async {
+  static Future<List<Company>> get({String where = ''}) async {
     try {
-      if(where != '') {
-         where = 'where $where';
+      if (where != '') {
+        where = 'where $where';
       }
       var results = await connection.mappedResultsQuery(
           '''select * from public."CompanyDetails" $where order by "company_name";''');
-  
+
       return results.map((row) => Company.fromJson(row['']!)).toList();
     } catch (e) {
       rethrow;
@@ -42,13 +55,30 @@ class Company {
     }
   }
 
+  Future<void> update() async {
+    try {
+      await connection.mappedResultsQuery(
+          '''update public."Company" set notes = '$notes', phone = '$phone', email = '$email', address = '$address' where id = '$id'; ''');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> delete() async {
     try {
       await connection.runTx((c) async {
         await c.query(
-            '''DELETE FROM public."Purchase" WHERE "invoice_companyId" = '$id';''');
+            '''DELETE FROM public."Import" WHERE "companyId" = '$id';''');
+
         await c.query(
-            '''DELETE FROM public."Sale" WHERE "companyId" = '$id';''');
+            '''DELETE FROM public."Purchase" WHERE "invoice_companyId" = '$id';''');
+
+        await c
+            .query('''DELETE FROM public."Sale" WHERE "companyId" = '$id';''');
+
+        await c
+            .query('''DELETE FROM public."Check" WHERE "companyId" = '$id';''');
+
         await c.query('''DELETE FROM public."Company" WHERE "id" = '$id';''');
       });
     } catch (e) {
@@ -61,6 +91,10 @@ class Company {
         id: json['id'],
         name: json['company_name'],
         rnc: json['company_rnc'],
+        notes: json['notes'],
+        phone: json['phone'],
+        email: json['email'],
+        address: json['address'],
         updatedAt: json['updated_at'],
         createdAt: json['created_at']);
   }
@@ -70,6 +104,10 @@ class Company {
       'id': id,
       'company_name': name,
       'company_rnc': rnc,
+      'notes': notes,
+      'phone':phone,
+      'email':email,
+      'address':address,
       'updated_at': updatedAt?.toUtc().toString(),
       'created_at': createdAt?.toUtc().toString()
     };

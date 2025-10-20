@@ -1,15 +1,17 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:moment_dart/moment_dart.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:uresaxapp/pages/company_details.dart';
+import 'package:uresaxapp/utils/consts.dart';
 import 'package:uresaxapp/utils/extra.dart';
 import 'package:path/path.dart' as path;
+import 'package:uresaxapp/widgets/layout.with.bar.widget.dart';
 
 class DocumentModal extends StatefulWidget {
   final BuildContext context;
@@ -133,32 +135,96 @@ class _DocumentModalState extends State<DocumentModal> {
   Widget get footerWidget {
     if (widget.reportViewModel['footer'] == null) return Container();
 
+    var entries = widget.reportViewModel['footer'].entries;
+    var list = entries.toList();
+
+    dynamic col1, col2, col3 = [];
+
+    if (widget.companyDetailsPage.formType == FormType.form606) {
+      col1 = list.take(3);
+      col2 = list.skip(3).take(3);
+      col3 = list.skip(6).take(4);
+    }
+
+    if (widget.companyDetailsPage.formType == FormType.form607) {
+      col1 = list.take(3);
+      col2 = list.skip(3).take(3);
+    }
+
     return Column(
       children: [
         const SizedBox(height: 10),
-        SizedBox(
-            child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: widget.reportViewModel['footer'].entries
-              .map((e) => Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(e.key,
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).primaryColor)),
-                      const SizedBox(height: 12),
-                      Text(e.value ?? '\$0.00',
-                          style: const TextStyle(
-                              fontSize: 16, color: Colors.black87))
-                    ],
-                  )))
-              .toList()
-              .cast<Widget>(),
-        )),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: col1
+                    .map((e) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 15),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(e.key,
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context).primaryColor)),
+                            const SizedBox(height: 12),
+                            Text(e.value ?? '\$0.00',
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.black87))
+                          ],
+                        )))
+                    .toList()
+                    .cast<Widget>()),
+            Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: col2
+                    .map((e) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 15),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(e.key,
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context).primaryColor)),
+                            const SizedBox(height: 12),
+                            Text(e.value ?? '\$0.00',
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.black87))
+                          ],
+                        )))
+                    .toList()
+                    .cast<Widget>()),
+            Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: col3
+                    .map((e) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 15),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(e.key,
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context).primaryColor)),
+                            const SizedBox(height: 12),
+                            Text(e.value ?? '\$0.00',
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.black87))
+                          ],
+                        )))
+                    .toList()
+                    .cast<Widget>()),
+          ],
+        ),
         const SizedBox(height: 12)
       ],
     );
@@ -341,6 +407,12 @@ class _DocumentModalState extends State<DocumentModal> {
 
   @override
   Widget build(BuildContext context) {
-    return _content;
+    return WindowBorder(
+        width: 1,
+        color: kWindowBorderColor,
+        child: LayoutWithBar(
+            child: SelectableRegion(
+                selectionControls: materialTextSelectionControls,
+                child: _content)));
   }
 }

@@ -14,16 +14,15 @@ class Tax {
     required this.createdAt,
   });
 
-
- static Future<List<Tax>> all()async{
-      try{
-        var result = await connection.mappedResultsQuery('''select * from public."Taxes";''');
-        return result.map((e) => Tax.fromMap(e['Taxes']!)).toList();
-      }catch(e){
-        rethrow;
-      }
-   }
-  
+  static Future<List<Tax>> all() async {
+    try {
+      var result = await connection
+          .mappedResultsQuery('''select * from public."Taxes";''');
+      return result.map((e) => Tax.fromMap(e['Taxes']!)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
 
   Tax copyWith({
     int? id,
@@ -39,16 +38,14 @@ class Tax {
     );
   }
 
-  
-
   Map<String, dynamic> toMap() {
     final result = <String, dynamic>{};
-  
+
     result.addAll({'id': id});
     result.addAll({'name': name});
     result.addAll({'rate': rate});
     result.addAll({'createdAt': createdAt});
-  
+
     return result;
   }
 
@@ -73,19 +70,16 @@ class Tax {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-  
+
     return other is Tax &&
-      other.id == id &&
-      other.name == name &&
-      other.rate == rate &&
-      other.createdAt == createdAt;
+        other.id == id &&
+        other.name == name &&
+        other.rate == rate &&
+        other.createdAt == createdAt;
   }
 
   @override
   int get hashCode {
-    return id.hashCode ^
-      name.hashCode ^
-      rate.hashCode ^
-      createdAt.hashCode;
+    return id.hashCode ^ name.hashCode ^ rate.hashCode ^ createdAt.hashCode;
   }
 }

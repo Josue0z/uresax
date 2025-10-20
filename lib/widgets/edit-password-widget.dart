@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class EditPasswordWidget extends StatefulWidget {
+   Function(String)?  onFieldSubmitted;
   TextEditingController? controller;
   String hintText;
   bool showPassword;
@@ -9,6 +10,7 @@ class EditPasswordWidget extends StatefulWidget {
       {super.key,
       this.controller,
       this.hintText = 'CONTRASEÑA',
+      this.onFieldSubmitted,
       this.showPassword = false});
 
   @override
@@ -36,6 +38,7 @@ class _EditPasswordWidgetState extends State<EditPasswordWidget> {
       controller: widget.controller,
       style: const TextStyle(fontSize: 18),
       obscureText: !widget.showPassword,
+      onFieldSubmitted: widget.onFieldSubmitted,
       validator: (val) => val!.isEmpty
           ? 'CAMPO REQUERIDO'
           : val.length <= 3
@@ -43,16 +46,22 @@ class _EditPasswordWidgetState extends State<EditPasswordWidget> {
               : null,
       focusNode: _focusNode,
       decoration: InputDecoration(
-          suffixIcon: IconButton(
-              onPressed: () {
-                _focusNode?.requestFocus();
-                setState(() {
-                  widget.showPassword = !widget.showPassword;
-                });
-              },
-              icon: Icon(widget.showPassword
-                  ? Icons.visibility_outlined
-                  : Icons.visibility_off_outlined)),
+          suffixIcon: Wrap(
+            children: [
+              IconButton(
+                onPressed: () {
+                  _focusNode?.requestFocus();
+                  setState(() {
+                    widget.showPassword = !widget.showPassword;
+                  });
+                },
+                icon: Icon(widget.showPassword
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined),
+              ),
+              const SizedBox(width: 10)
+            ],
+          ),
           border: const OutlineInputBorder(),
           hintText: widget.hintText),
     );

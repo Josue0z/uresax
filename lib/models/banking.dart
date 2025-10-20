@@ -8,8 +8,8 @@ class Banking {
   Banking({this.id, required this.name, this.bankingRnc, this.createdAt});
 
   static Future<List<Banking>> getBankings() async {
-    var results = await connection
-        .mappedResultsQuery('''select * from public."Banking" ORDER BY name;''');
+    var results = await connection.mappedResultsQuery(
+        '''select * from public."Banking" ORDER BY name;''');
     return results.map((row) => Banking.fromJson(row['Banking']!)).toList();
   }
 
@@ -18,7 +18,7 @@ class Banking {
         id: json['id'],
         name: json['name'],
         bankingRnc: json['banking_rnc'],
-        createdAt:json['created_at']);
+        createdAt: json['created_at']);
   }
 
   toMap() {

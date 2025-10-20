@@ -3,6 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  bitsdojo_window_linux
+  flutter_platform_alert
   flutter_secure_storage_linux
   printing
   screen_retriever

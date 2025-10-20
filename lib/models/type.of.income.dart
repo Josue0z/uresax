@@ -14,8 +14,9 @@ class TypeOfIncome {
       var results = await connection
           .mappedResultsQuery(''' select * from public."TypeOfIncome" ''');
 
-        
-      return results.map((e) => TypeOfIncome.fromMap(e['TypeOfIncome']!)).toList();
+      return results
+          .map((e) => TypeOfIncome.fromMap(e['TypeOfIncome']!))
+          .toList();
     } catch (e) {
       rethrow;
     }
@@ -33,12 +34,12 @@ class TypeOfIncome {
 
   Map<String, dynamic> toMap() {
     final result = <String, dynamic>{};
-  
-    if(id != null){
+
+    if (id != null) {
       result.addAll({'id': id});
     }
     result.addAll({'name': name});
-  
+
     return result;
   }
 

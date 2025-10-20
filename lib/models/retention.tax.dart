@@ -16,7 +16,9 @@ class RetentionTax {
     try {
       var result = await connection
           .mappedResultsQuery('''SELECT * FROM public."RetentionTax"''');
-      return result.map((e) => RetentionTax.fromMap(e['RetentionTax']!)).toList();
+      return result
+          .map((e) => RetentionTax.fromMap(e['RetentionTax']!))
+          .toList();
     } catch (e) {
       rethrow;
     }
