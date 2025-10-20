@@ -216,6 +216,7 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
   @override
   initState() {
+    if (!mounted) return;
     if (Platform.isWindows) {
       _keyboardLayoutChanger.changeKeyboardLayout('en');
     }
