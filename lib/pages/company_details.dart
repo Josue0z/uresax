@@ -347,6 +347,8 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
           Navigator.pop(contextDialog!);
           contextDialog = null;
         }
+        var startDate = dateTime.startOfMonth();
+        var endDate = dateTime.endOfMonth();
 
         var xres = await showDialog(
             context: context,
@@ -358,9 +360,14 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
                   paymentsMethods: paymentsMethods,
                   ncfModifed: TextEditingController(),
                   ncfs: ncfs,
+                  invoiceRnc: rncProvider,
+                  ncf: ncf,
                   currentNcfModifedTypeId: ncfType.id,
                   currentNcfModifedType: ncfType,
-                  isNcfModifed: isNcfModifed);
+                  isNcfModifed: isNcfModifed,
+                  startDate: startDate.format(payload: 'YYYY-MM-DD'),
+                  endDate: endDate.format(payload: 'YYYY-MM-DD'),
+                  companyDetailsPage: widget);
             });
 
         contextDialog = null;
@@ -403,13 +410,8 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
           showLoader(context);
 
-          widget.startDate = dateTime.startOfMonth();
-          widget.endDate = dateTime.endOfMonth();
-
-          await purchase.checkIfExists(
-              id: widget.company.id ?? '',
-              startDate: widget.startDateLargeAsString,
-              endDate: widget.endDateLargeAsString);
+          widget.startDate = startDate;
+          widget.endDate = endDate;
 
           await purchase.create();
 

@@ -4,6 +4,8 @@ import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/invoicetype.dart';
 import 'package:uresaxapp/models/ncftype.dart';
 import 'package:uresaxapp/models/payment-method.dart';
+import 'package:uresaxapp/models/purchase.dart';
+import 'package:uresaxapp/pages/company_details.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
 import 'package:uresaxapp/widgets/layout.with.bar.widget.dart';
 import 'package:uresaxapp/widgets/ncf-editor-widget.dart';
@@ -14,10 +16,15 @@ class PurchaseMinEditorModal extends StatefulWidget {
   List<NcfType> ncfs = [];
   List<InvoiceType> invoiceTypes = [];
   List<PaymentMethod> paymentsMethods = [];
+  String invoiceRnc;
+  String ncf;
   int? currentNcfModifedTypeId = 0;
   NcfType? currentNcfModifedType;
   TextEditingController ncfModifed;
   bool isNcfModifed;
+  String startDate;
+  String endDate;
+  CompanyDetailsPage companyDetailsPage;
   PurchaseMinEditorModal(
       {super.key,
       this.paymentsMethods = const [],
@@ -26,8 +33,13 @@ class PurchaseMinEditorModal extends StatefulWidget {
       this.ncfs = const [],
       this.currentNcfModifedTypeId,
       this.currentNcfModifedType,
+      required this.invoiceRnc,
+      required this.ncf,
       required this.ncfModifed,
-      this.isNcfModifed = true});
+      this.isNcfModifed = true,
+      required this.startDate,
+      required this.endDate,
+      required this.companyDetailsPage});
 
   @override
   State<PurchaseMinEditorModal> createState() => _PurchaseMinEditorModalState();
@@ -40,6 +52,9 @@ class _PurchaseMinEditorModalState extends State<PurchaseMinEditorModal> {
   int? paymentMethodId;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  String get _ncfModifed =>
+      '${widget.currentNcfModifedType?.ncfTag}${widget.ncfModifed.text}';
 
   Widget get content {
     return Column(
@@ -121,7 +136,7 @@ class _PurchaseMinEditorModalState extends State<PurchaseMinEditorModal> {
               width: 350,
               padding: EdgeInsets.all(20),
               child: ListView(
-              shrinkWrap: true,
+                shrinkWrap: true,
                 children: [
                   Row(
                     children: [
@@ -143,17 +158,30 @@ class _PurchaseMinEditorModalState extends State<PurchaseMinEditorModal> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           try {
                             if (concept == null) {
                               throw 'EL CONCEPTO ESTA VACIO';
                             }
+
+                            var purchase = Purchase(
+                                invoiceRnc: widget.invoiceRnc,
+                                invoiceNcf: widget.ncf,
+                                invoiceNcfModifed: _ncfModifed.isNotEmpty
+                                    ? _ncfModifed
+                                    : null);
+
+                            await purchase.checkIfExists(
+                                id: widget.companyDetailsPage.company.id ?? '',
+                                startDate: widget.startDate,
+                                endDate: widget.endDate);
+
                             if (_formKey.currentState!.validate()) {
                               Navigator.pop(context, [
                                 concept?.id,
                                 invoiceTypeId,
                                 paymentMethodId,
-                                '${widget.currentNcfModifedType?.ncfTag}${widget.ncfModifed.text}'
+                                _ncfModifed
                               ]);
                             }
                           } catch (e) {
