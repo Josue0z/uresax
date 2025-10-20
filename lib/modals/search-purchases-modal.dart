@@ -8,7 +8,6 @@ import 'package:uresaxapp/utils/consts.dart';
 import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/functions.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
-import 'package:uresaxapp/widgets/custom.frame.widget.dart';
 import 'package:uresaxapp/widgets/layout.with.bar.widget.dart';
 
 class SearchPurchases extends StatefulWidget {
