@@ -164,19 +164,19 @@ class _PurchaseMinEditorModalState extends State<PurchaseMinEditorModal> {
                               throw 'EL CONCEPTO ESTA VACIO';
                             }
 
-                            var purchase = Purchase(
-                                invoiceRnc: widget.invoiceRnc,
-                                invoiceNcf: widget.ncf,
-                                invoiceNcfModifed: _ncfModifed.isNotEmpty
-                                    ? _ncfModifed
-                                    : null);
-
-                            await purchase.checkIfExists(
-                                id: widget.companyDetailsPage.company.id ?? '',
-                                startDate: widget.startDate,
-                                endDate: widget.endDate);
-
                             if (_formKey.currentState!.validate()) {
+                              var purchase = Purchase(
+                                  invoiceRnc: widget.invoiceRnc,
+                                  invoiceNcf: widget.ncf,
+                                  invoiceNcfModifed: _ncfModifed.isNotEmpty
+                                      ? _ncfModifed
+                                      : null);
+
+                              await purchase.checkIfExists(
+                                  id: widget.companyDetailsPage.company.id ??
+                                      '',
+                                  startDate: widget.startDate,
+                                  endDate: widget.endDate);
                               Navigator.pop(context, [
                                 concept?.id,
                                 invoiceTypeId,
