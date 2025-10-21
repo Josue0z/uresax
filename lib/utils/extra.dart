@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:number_text_input_formatter/number_text_input_formatter.dart';
-import 'package:package_info/package_info.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:uresaxapp/controllers/session.controller.dart';
 
 List<String> months = [
@@ -87,4 +87,4 @@ String execPointFormatter(dynamic value) {
 
 late SessionController sessionController;
 
-PackageInfo? packageInfo;
+ PackageInfo? packageInfo;

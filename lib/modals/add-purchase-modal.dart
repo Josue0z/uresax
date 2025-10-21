@@ -291,7 +291,7 @@ class _AddPurchaseModalState extends State<AddPurchaseModal> {
           checkController.sink.add(currentCheck?.fullName);
         }
         isAuthorized = widget.purchase!.authorized;
-        rnc.value = TextEditingValue(text: widget.purchase!.invoiceRnc!);
+        rnc.text = widget.purchase?.invoiceRnc ??'';
         ckBeneficiary.value =
             TextEditingValue(text: widget.purchase?.ckBeneficiary ?? '');
         currentConcept = Concept(

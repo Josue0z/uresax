@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:package_info/package_info.dart';
 import 'package:uresaxapp/controllers/companies.controller.dart';
 import 'package:uresaxapp/controllers/ncfs.override.controller.dart';
 import 'package:uresaxapp/controllers/permissions.controller.dart';
@@ -25,6 +24,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_session_manager/flutter_session_manager.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 void main() async {
   try {

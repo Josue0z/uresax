@@ -94,6 +94,7 @@ class _RncQueryWidgetState extends State<RncQueryWidget> {
     super.initState();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Column(

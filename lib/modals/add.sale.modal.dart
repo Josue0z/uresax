@@ -385,20 +385,29 @@ class _AddSaleModalState extends State<AddSaleModal> {
 
   setupEditContent() {
     if (widget.sale != null) {
-      rnc.value = TextEditingValue(text: widget.sale!.rncOrId);
+      rnc.text = widget.sale?.rncOrId??'';
+ 
       startDate = widget.sale!.invoiceNcfDate;
       if (widget.sale?.retentionDate != null) {
         ncfPayDate = widget.sale!.retentionDate;
         ncfRetentionDate = ncfPayDate;
         ncfPaymentDate.add('${ncfPayDate?.format(payload: 'DD/MM/YYYY')}');
       }
+
+  
       currentIdValue = widget.sale?.idType;
+
       currentConcept =
           Concept(id: widget.sale?.conceptId, name: widget.sale?.conceptName);
+
+
+         
       currentNcfTypeId = widget.sale?.invoiceNcfTypeId;
       currentNcfType =
           widget.ncfs.firstWhere((element) => element.id == currentNcfTypeId);
       ncf.value = TextEditingValue(text: widget.sale!.invoiceNcf.substring(3));
+
+    
 
       if (widget.sale?.invoiceNcfModifedTypeId != null) {
         currentNcfModifedId = widget.sale?.invoiceNcfModifedTypeId;
@@ -572,16 +581,21 @@ class _AddSaleModalState extends State<AddSaleModal> {
   }
 
   init() async {
-    startDate = widget.companyDetailsPage.startDate;
-    await setupEditContent();
+   try{
+      startDate = widget.companyDetailsPage.startDate;
+   await setupEditContent();
     totalG.addListener(sumInfo);
     tax.addListener(sumInfo);
     ncfDate.add(startDate.format(payload: 'DD/MM/YYYY'));
     setState(() {});
+   }catch(e){
+    print(e);
+   }
   }
 
   @override
   void initState() {
+    if(!mounted)return;
     init();
     super.initState();
   }
@@ -630,7 +644,7 @@ class _AddSaleModalState extends State<AddSaleModal> {
                 IgnorePointer(
                     ignoring: true,
                     child: DropdownButtonFormField(
-                      value: currentIdValue,
+                      initialValue: currentIdValue,
                       onChanged: (c) {},
                       decoration: InputDecoration(
                         labelText: 'TIPO DE IDENTIFICACION',
@@ -696,7 +710,7 @@ class _AddSaleModalState extends State<AddSaleModal> {
                     }),
                 const SizedBox(height: 15),
                 DropdownButtonFormField<String>(
-                  value: currentTypeOfIncome,
+                  initialValue: currentTypeOfIncome,
                   validator: (val) => val == null ? 'CAMPO REQUERIDO' : null,
                   onChanged: (c) {
                     currentTypeOfIncome = c;
@@ -1169,11 +1183,13 @@ class _AddSaleModalState extends State<AddSaleModal> {
   @override
   dispose() {
     rnc.dispose();
+    company.dispose();
+    super.dispose();
     total.dispose();
     tax.dispose();
     widget.ncfs = [];
     widget.typeOfIncomes = [];
-    super.dispose();
+
   }
 
   @override
