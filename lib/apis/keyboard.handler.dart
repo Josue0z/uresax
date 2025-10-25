@@ -4,8 +4,8 @@ typedef SetKeyboardLayoutFunc = Int32 Function(IntPtr);
 typedef SetKeyboardLayout = int Function(int);
 
 class KeyboardLayoutChanger {
-  final DynamicLibrary user32 = DynamicLibrary.open('user32.dll');
   void changeKeyboardLayout(String layout) async {
+    final DynamicLibrary user32 = DynamicLibrary.open('user32.dll');
     try {
       final SetKeyboardLayout setKeyboardLayout = user32
           .lookup<NativeFunction<SetKeyboardLayoutFunc>>(

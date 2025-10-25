@@ -13,48 +13,55 @@ Future<T> showAlert<T>(BuildContext context,
           width: 1,
           color: kWindowBorderColor,
           child: LayoutWithBar(
-              child: Dialog(
-                  child: SizedBox(
-                      width: 450,
-                      child: Material(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: ListView(
-                            shrinkWrap: true,
-                            children: [
-                              Text(
-                                title,
-                                style: TextStyle(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.error),
-                              ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 18),
-                                child: Text(
-                                  message,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ),
-                              Row(
+              child: SelectableRegion(
+                  selectionControls: materialTextSelectionControls,
+                  child: Dialog(
+                      child: SizedBox(
+                          width: 450,
+                          child: Material(
+                            borderRadius:
+                                BorderRadius.circular(kDefaultPadding),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: ListView(
+                                shrinkWrap: true,
                                 children: [
-                                  const Spacer(),
-                                  ElevatedButton(
-                                      style: ButtonStyle(
-                                          backgroundColor:
-                                              WidgetStateProperty.all(
-                                                  Theme.of(context)
-                                                      .colorScheme
-                                                      .error)),
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('ENTENDIDO'))
+                                  Text(
+                                    title,
+                                    style: TextStyle(
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .error),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 18),
+                                    child: Text(
+                                      message,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      const Spacer(),
+                                      ElevatedButton(
+                                          style: ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStateProperty.all(
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .error)),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('ENTENDIDO'))
+                                    ],
+                                  )
                                 ],
-                              )
-                            ],
-                          ),
-                        ),
-                      ))))));
+                              ),
+                            ),
+                          )))))));
 }
 
 Future<bool?> showConfirm(BuildContext context,

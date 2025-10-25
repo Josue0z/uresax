@@ -37,12 +37,6 @@ void main() async {
     var dbUsername = Platform.environment['DATABASE_USERNAME'];
     var dbSecret = Platform.environment['DATABASE_SECRET'];
 
-    print(hostName);
-    print(dbPort);
-    print(dbName);
-    print(dbUsername);
-    print(dbSecret);
-
     if (hostName == null ||
         dbPort == null ||
         dbName == null ||
@@ -162,6 +156,10 @@ class _MyAppState extends State<MyApp> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
+                popupMenuTheme: PopupMenuThemeData(
+                    shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadiusGeometry.circular(kDefaultPadding))),
                 textTheme: TextTheme(
                     headlineLarge: TextStyle(fontSize: 26),
                     headlineMedium: TextStyle(fontSize: 24),

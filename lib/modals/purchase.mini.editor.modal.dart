@@ -16,6 +16,7 @@ class PurchaseMinEditorModal extends StatefulWidget {
   List<NcfType> ncfs = [];
   List<InvoiceType> invoiceTypes = [];
   List<PaymentMethod> paymentsMethods = [];
+  String providerName;
   String invoiceRnc;
   String ncf;
   int? currentNcfModifedTypeId = 0;
@@ -33,6 +34,7 @@ class PurchaseMinEditorModal extends StatefulWidget {
       this.ncfs = const [],
       this.currentNcfModifedTypeId,
       this.currentNcfModifedType,
+      required this.providerName,
       required this.invoiceRnc,
       required this.ncf,
       required this.ncfModifed,
@@ -53,14 +55,25 @@ class _PurchaseMinEditorModalState extends State<PurchaseMinEditorModal> {
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  String get _ncfModifed =>
-      '${widget.currentNcfModifedType?.ncfTag}${widget.ncfModifed.text}';
+  String? get _ncfModifed {
+    if (widget.ncfModifed.text.isEmpty) return null;
+    return '${widget.currentNcfModifedType?.ncfTag}${widget.ncfModifed.text}';
+  }
 
   Widget get content {
     return Column(
       children: [
         Column(
           children: [
+            TextFormField(
+              readOnly: true,
+              controller: TextEditingController(text: widget.providerName),
+              decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'RAZON SOCIAL',
+                  hintText: 'Nombre...'),
+            ),
+            const SizedBox(height: 20),
             SelectorConceptWidget(
                 value: concept,
                 onSelected: (xconcept, id) {
@@ -68,7 +81,7 @@ class _PurchaseMinEditorModalState extends State<PurchaseMinEditorModal> {
                 }),
             const SizedBox(height: 20),
             DropdownButtonFormField(
-                value: invoiceTypeId,
+                initialValue: invoiceTypeId,
                 isExpanded: true,
                 validator: (val) =>
                     val == null ? 'TIPO DE FACTURA REQUERIDO' : null,
@@ -87,7 +100,7 @@ class _PurchaseMinEditorModalState extends State<PurchaseMinEditorModal> {
                 }),
             const SizedBox(height: 20),
             DropdownButtonFormField(
-                value: paymentMethodId,
+                initialValue: paymentMethodId,
                 isExpanded: true,
                 validator: (val) =>
                     val == null ? 'METODO DE PAGO REQUERIDO' : null,
@@ -168,9 +181,7 @@ class _PurchaseMinEditorModalState extends State<PurchaseMinEditorModal> {
                               var purchase = Purchase(
                                   invoiceRnc: widget.invoiceRnc,
                                   invoiceNcf: widget.ncf,
-                                  invoiceNcfModifed: _ncfModifed.isNotEmpty
-                                      ? _ncfModifed
-                                      : null);
+                                  invoiceNcfModifed: _ncfModifed);
 
                               await purchase.checkIfExists(
                                   id: widget.companyDetailsPage.company.id ??

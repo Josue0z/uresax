@@ -75,10 +75,22 @@ class _CompaniesPageState extends State<CompaniesPage> {
   }
 
   List<Map<String, dynamic>> forms = [
-    {'id': 1, 'name': 'FORMULARIO 606 (COMPRAS Y GASTOS)'},
-    {'id': 2, 'name': 'FORMULARIO 607 (VENTAS)'},
-    {'id': 3, 'name': 'FORMULARIO 608 (NCFS ANULADOS)'},
-    {'id': 4, 'name': 'VER DATOS'}
+    {
+      'id': 1,
+      'icon': Icons.receipt_long_outlined,
+      'name': 'FORMULARIO 606 (COMPRAS Y GASTOS)'
+    },
+    {
+      'id': 2,
+      'icon': Icons.bar_chart_outlined,
+      'name': 'FORMULARIO 607 (VENTAS)'
+    },
+    {
+      'id': 3,
+      'icon': Icons.book_outlined,
+      'name': 'FORMULARIO 608 (NCFS ANULADOS)'
+    },
+    {'id': 4, 'icon': Icons.info_outline_rounded, 'name': 'VER DATOS'}
   ];
 
   _deleteCompany(Company company, int index) async {
@@ -333,8 +345,9 @@ class _CompaniesPageState extends State<CompaniesPage> {
               inputFormatters: [UpperCaseTextFormatter()],
               onChanged: (rnc) => _fetchCompaniesByRnc(rnc),
               style: const TextStyle(fontSize: 15),
-              decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(kDefaultPadding)),
                   labelText:
                       'BUSCAR CONTRIBUYENTES... (RNC/CEDULA,RAZON SOCIAL)',
                   hintText: 'BUSCAR...',
@@ -442,35 +455,59 @@ class _CompaniesPageState extends State<CompaniesPage> {
                           icon: const Icon(
                             Icons.copy_all_outlined,
                           )),
-                      PopupMenuButton(itemBuilder: (context) {
-                        return forms
-                            .map((e) => PopupMenuItem(
-                                value: e['id'],
-                                child: Text(e['id'] == 4
-                                    ? '${e['name']} DE ${company.name}'
-                                    : e['name'])))
-                            .toList();
-                      }, onSelected: (id) {
-                        if (id == 1) {
-                          preload606CompanyDetails(company);
-                        }
+                      PopupMenuButton(
+                          padding: EdgeInsetsGeometry.zero,
+                          itemBuilder: (context) {
+                            return forms
+                                .map((e) => PopupMenuItem(
+                                    value: e['id'],
+                                    padding: EdgeInsets.zero,
+                                    child: Container(
+                                        padding:
+                                            EdgeInsets.all(kDefaultPadding / 2),
+                                        decoration: BoxDecoration(
+                                            border: Border(
+                                                bottom: BorderSide(
+                                                    color: Colors.black12))),
+                                        child: Row(
+                                          children: [
+                                            e['icon'] != null
+                                                ? Container(
+                                                    margin: EdgeInsets.only(
+                                                        right: kDefaultPadding /
+                                                            3),
+                                                    child: Icon(e['icon']),
+                                                  )
+                                                : SizedBox(),
+                                            Expanded(
+                                                child: Text(e['id'] == 4
+                                                    ? '${e['name']} DE ${company.name}'
+                                                    : e['name']))
+                                          ],
+                                        ))))
+                                .toList();
+                          },
+                          onSelected: (id) {
+                            if (id == 1) {
+                              preload606CompanyDetails(company);
+                            }
 
-                        if (id == 2) {
-                          preload607CompanyDetails(company);
-                        }
+                            if (id == 2) {
+                              preload607CompanyDetails(company);
+                            }
 
-                        if (id == 3) {
-                          preload608CompanyDetails(company);
-                        }
+                            if (id == 3) {
+                              preload608CompanyDetails(company);
+                            }
 
-                        if (id == 4) {
-                          showDialog(
-                              context: context,
-                              useRootNavigator: false,
-                              builder: (ctx) =>
-                                  AddNotesModal(company: company));
-                        }
-                      }),
+                            if (id == 4) {
+                              showDialog(
+                                  context: context,
+                                  useRootNavigator: false,
+                                  builder: (ctx) =>
+                                      AddNotesModal(company: company));
+                            }
+                          }),
                       const SizedBox(width: 10),
                       sessionController.currentUser!.value!.permissions!
                               .contains('ALLOW_DELETE_COMPANY_PLATFORM')

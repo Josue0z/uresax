@@ -244,6 +244,12 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
     showLoader(context);
     try {
+      var isUrl = url.contains('ecf.dgii.gov.do');
+
+      if (!isUrl) throw 'LA URL NO ES VALIDA';
+
+      var providerName = '';
+
       var rncProvider = '';
 
       var rncClient = '';
@@ -262,6 +268,15 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
       if (res.statusCode == 200) {
         var document = parse(res.data);
+
+        var table = document.querySelector('table');
+
+        var msg = table?.text.trim();
+
+        if (msg != null &&
+            msg.contains('No fue encontrada la factura (e-CF).')) {
+          throw 'LA FACTURA NO FUE ENCONTRADA';
+        }
         var tbody = document.querySelector('tbody');
 
         if (tbody != null) {
@@ -283,6 +298,8 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
         }
 
         rncProvider = list[0];
+        providerName = list[1];
+
         rncClient = list[2];
         ncf = list[4];
         date = list[5];
@@ -360,6 +377,7 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
                   paymentsMethods: paymentsMethods,
                   ncfModifed: TextEditingController(),
                   ncfs: ncfs,
+                  providerName: providerName,
                   invoiceRnc: rncProvider,
                   ncf: ncf,
                   currentNcfModifedTypeId: ncfType.id,
@@ -376,11 +394,7 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
           var conceptId = xres[0];
           var invoiceTypeId = xres[1];
           var paymentMethodId = xres[2];
-          var ncfModifed = xres[3] as String;
-
-          if (ncfModifed.length == 3) {
-            ncfModifed = '';
-          }
+          var ncfModifed = xres[3] as String?;
 
           var purchase = Purchase(
               invoiceRnc: rncProvider,
@@ -399,10 +413,9 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
               invoicePaymentMethodId: paymentMethodId,
               invoiceConceptId: conceptId,
               invoiceNcf: ncf,
-              invoiceNcfModifed: ncfModifed.isNotEmpty ? ncfModifed : null,
+              invoiceNcfModifed: ncfModifed,
               invoiceNcfTypeId: ncfTypeId,
-              invoiceNcfModifedTypeId:
-                  ncfModifed.isNotEmpty ? ncfType.id : null,
+              invoiceNcfModifedTypeId: ncfModifed != null ? ncfType.id : null,
               invoiceIssueDate: dateTime,
               invoiceCreatedBy: User.current?.id,
               invoiceCompanyId: widget.company.id,

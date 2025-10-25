@@ -1729,8 +1729,10 @@ ORDER BY row_number() over() asc;
           ? ''
           : '''and "invoice_ncf_modifed" = '$invoiceNcfModifed' ''';
 
-      var result = await connection.mappedResultsQuery(
-          '''SELECT * FROM public."Purchase" WHERE "invoice_companyId" = '$id' and "invoice_rnc" = '$invoiceRnc' and ("invoice_ncf" = $ncf $ncfM) and "invoice_issue_date" between '$startDate' and '$endDate';''');
+      var query =
+          '''SELECT * FROM public."Purchase" WHERE "invoice_companyId" = '$id' and "invoice_rnc" = '$invoiceRnc' and ("invoice_ncf" = $ncf $ncfM) and "invoice_issue_date" between '$startDate' and '$endDate';''';
+
+      var result = await connection.mappedResultsQuery(query);
 
       if (result.isNotEmpty) {
         throw 'YA EXISTE ESTA FACTURA';
