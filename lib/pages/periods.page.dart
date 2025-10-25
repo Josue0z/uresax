@@ -197,7 +197,9 @@ class PeriodsPage extends StatelessWidget {
                                       padding: EdgeInsets.only(
                                           right: kDefaultPadding),
                                       child: const Icon(Icons.search)),
-                                  border: const OutlineInputBorder()),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          kDefaultPadding * 2))),
                             ),
                             SizedBox(height: kDefaultPadding),
                             Expanded(

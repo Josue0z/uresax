@@ -2221,19 +2221,23 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
     if (conditionLine1) {
       elements.add(PopupMenuItem(
+        padding: EdgeInsets.zero,
         value: 1,
-        child: Padding(
-          padding: const EdgeInsets.only(left: 0, right: 40),
+        child: Container(
+          padding: EdgeInsets.all(kDefaultPadding / 2),
+          decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black12))),
           child: Row(
             children: [
               Icon(Icons.edit_note, color: Theme.of(context).primaryColor),
               const SizedBox(
                 width: 10,
               ),
-              Text(
+              Expanded(
+                  child: Text(
                 labelEdit,
-                style: const TextStyle(color: Colors.black),
-              ),
+                style: const TextStyle(color: Colors.black, fontSize: 14),
+              ))
             ],
           ),
         ),
@@ -2251,9 +2255,12 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
     if (conditionLine2) {
       elements.add(PopupMenuItem(
+        padding: EdgeInsets.zero,
         value: 2,
-        child: Padding(
-          padding: const EdgeInsets.only(left: 0, right: 40),
+        child: Container(
+          padding: EdgeInsets.all(kDefaultPadding / 2),
+          decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black12))),
           child: Row(
             children: [
               Icon(Icons.keyboard_arrow_right,
@@ -2261,10 +2268,11 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
               const SizedBox(
                 width: 10,
               ),
-              Text(
+              Expanded(
+                  child: Text(
                 labelMove,
-                style: const TextStyle(color: Colors.black),
-              ),
+                style: const TextStyle(color: Colors.black, fontSize: 14),
+              ))
             ],
           ),
         ),
@@ -2282,9 +2290,12 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
 
     if (conditionLine3) {
       elements.add(PopupMenuItem(
+        padding: EdgeInsets.zero,
         value: 3,
-        child: Padding(
-          padding: const EdgeInsets.only(left: 0, right: 0),
+        child: Container(
+          padding: EdgeInsets.all(kDefaultPadding / 2),
+          decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black12))),
           child: Row(
             children: [
               Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
@@ -2294,7 +2305,7 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
               Expanded(
                   child: Text(
                 labelDelete,
-                style: const TextStyle(color: Colors.black),
+                style: const TextStyle(color: Colors.black, fontSize: 14),
               ))
             ],
           ),
@@ -3028,7 +3039,9 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
                                   SizedBox(width: kDefaultPadding / 2)
                                 ],
                               ),
-                              border: const OutlineInputBorder()),
+                              border: OutlineInputBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(kDefaultPadding))),
                         ),
                       )),
                       SizedBox(width: kDefaultPadding),
@@ -3058,7 +3071,9 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
                                               : const SizedBox()
                                         ],
                                       )),
-                                  border: const OutlineInputBorder()),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          kDefaultPadding))),
                             ),
                           ))
                     ],

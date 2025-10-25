@@ -166,9 +166,10 @@ class _NcfOverrideModalState extends State<NcfOverrideModal> {
             Row(
               children: [
                 Text(title,
-                    style: TextStyle(
-                        fontSize: kFontSize * 1.3,
-                        color: Theme.of(context).primaryColor)),
+                    style: Theme.of(context)
+                        .textTheme
+                        .displayLarge
+                        ?.copyWith(color: Theme.of(context).primaryColor)),
                 const Spacer(),
                 IconButton(
                     onPressed: () {
