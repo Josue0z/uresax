@@ -38,6 +38,8 @@ void main() async {
    dbSecret = Platform.environment['DATABASE_SECRET'];
    dirUresaxPath = Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH'];
 
+   print(dirUresaxPath);
+
     if (hostName == null ||
         dbPort == null ||
         dbName == null ||
