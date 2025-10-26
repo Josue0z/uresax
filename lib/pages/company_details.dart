@@ -32,6 +32,7 @@ import 'package:uresaxapp/modals/ncf.sale.selector.modal.dart';
 import 'package:uresaxapp/modals/purchase.mini.editor.modal.dart';
 import 'package:uresaxapp/models/company.dart';
 import 'package:uresaxapp/models/concept.dart';
+import 'package:uresaxapp/models/invoice.type.context.dart';
 import 'package:uresaxapp/models/invoicetype.dart';
 import 'package:uresaxapp/models/ncf.override.model.dart';
 import 'package:uresaxapp/models/ncftype.dart';
@@ -142,12 +143,12 @@ class CompanyDetailsPage extends StatefulWidget {
   }
 
   String get dirRootPath {
-    return path.join(Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
+    return path.join(dirUresaxPath ?? '',
         'URESAX', company.name?.trim(), yearPeriod);
   }
 
   String get rootPath {
-    return path.join(Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
+    return path.join(dirUresaxPath ?? '',
         'URESAX', company.name?.trim(), yearPeriod, formatType);
   }
 
@@ -516,7 +517,10 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
           startDate: widget.startDate,
           endDate: widget.endDate);
 
+    
       var result = xpurchases.map((e) => e.toMapOriginal()).toList();
+
+    
 
       var newExportFile = File(path.join(
           widget.dirRootPath,
@@ -856,13 +860,16 @@ class _CompanyDetailsPageState extends State<CompanyDetailsPage> {
     showLoader(context);
     try {
       var concepts = await Concept.getConcepts();
-      //var invoiceTypesContext = await InvoiceTypeContext.get();
+      List<InvoiceTypeContext> invoiceTypesContext =[];
+    if(enabledConceptByTypeContext){
+      invoiceTypesContext  = await InvoiceTypeContext.get();
+    }
       Navigator.pop(context);
 
       await showDialog(
           context: context,
           builder: (ctx) => AddConceptModal(
-              concepts: concepts, invoiceTypesContext: const []));
+              concepts: concepts, invoiceTypesContext: invoiceTypesContext));
     } catch (e) {
       Navigator.pop(context);
       showAlert(context, message: e.toString());

@@ -31,17 +31,19 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     packageInfo = await PackageInfo.fromPlatform();
 
-    var hostName = Platform.environment['DATABASE_HOSTNAME'];
-    var dbPort = Platform.environment['DATABASE_PORT'];
-    var dbName = Platform.environment['DATABASE_NAME'];
-    var dbUsername = Platform.environment['DATABASE_USERNAME'];
-    var dbSecret = Platform.environment['DATABASE_SECRET'];
+   hostName = Platform.environment['DATABASE_HOSTNAME'];
+   dbPort = Platform.environment['DATABASE_PORT'];
+   dbName = Platform.environment['DATABASE_NAME'];
+   dbUsername = Platform.environment['DATABASE_USERNAME'];
+   dbSecret = Platform.environment['DATABASE_SECRET'];
+   dirUresaxPath = Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH'];
 
     if (hostName == null ||
         dbPort == null ||
         dbName == null ||
         dbUsername == null ||
-        dbSecret == null) {
+        dbSecret == null || 
+        dirUresaxPath == null) {
       'Las variables de entorno de la base de datos no están configuradas correctamente.';
     }
 

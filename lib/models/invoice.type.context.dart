@@ -14,9 +14,9 @@ class InvoiceTypeContext {
   static Future<List<InvoiceTypeContext>> get() async {
     try {
       var res = await connection.mappedResultsQuery(
-          ''' select * from public."InvoiceTypeContext"; ''');
+          ''' select * from public."PurchaseType"; ''');
       return res
-          .map((e) => InvoiceTypeContext.fromMap(e['InvoiceTypeContext']!))
+          .map((e) => InvoiceTypeContext.fromMap(e['PurchaseType']!))
           .toList();
     } catch (e) {
       rethrow;

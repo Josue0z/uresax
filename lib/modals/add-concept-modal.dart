@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:uresaxapp/models/concept.dart';
 import 'package:uresaxapp/models/invoice.type.context.dart';
 import 'package:uresaxapp/utils/consts.dart';
+import 'package:uresaxapp/utils/extra.dart';
 import 'package:uresaxapp/utils/formatters.dart';
 import 'package:uresaxapp/utils/modals-actions.dart';
-import 'package:uresaxapp/widgets/custom.frame.widget.dart';
 import 'package:uresaxapp/widgets/layout.with.bar.widget.dart';
 
 class AddConceptModal extends StatefulWidget {
@@ -209,10 +209,10 @@ class _AddConceptModalState extends State<AddConceptModal> {
                                         trailing: Wrap(
                                           runAlignment: WrapAlignment.end,
                                           children: [
-                                            /* SizedBox(
+                                           enabledConceptByTypeContext ?  SizedBox(
                                               width: 120,
                                               child: DropdownButtonFormField(
-                                                  value: widget.concepts[index].typeContextId,
+                                                  initialValue: widget.concepts[index].typeContextId,
                                                   isExpanded: true,
                                                   focusColor: Colors
                                                       .transparent,
@@ -227,7 +227,7 @@ class _AddConceptModalState extends State<AddConceptModal> {
                                                   onChanged: (value) =>
                                                       _onSelectInvoiceTypeContext(
                                                           value, e, index)),
-                                            ),*/
+                                            ):SizedBox(),
                                             IconButton(
                                                 onPressed: _delete,
                                                 icon: const Icon(Icons.delete)),

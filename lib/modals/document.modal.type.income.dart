@@ -88,7 +88,7 @@ class _DocumentModalState extends State<DocumentModal> {
 
   Directory get directory {
     return Directory(path.join(
-        Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH']!,
+        dirUresaxPath ?? '',
         'URESAX',
         widget.companyDetailsPage.company.name!.trim(),
         yearPeriod,

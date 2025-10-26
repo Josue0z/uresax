@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:number_text_input_formatter/number_text_input_formatter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -88,3 +90,12 @@ String execPointFormatter(dynamic value) {
 late SessionController sessionController;
 
  PackageInfo? packageInfo;
+
+
+  var hostName = Platform.environment['DATABASE_HOSTNAME'];
+  var dbPort = Platform.environment['DATABASE_PORT'];
+  var dbName = Platform.environment['DATABASE_NAME'];
+  var dbUsername = Platform.environment['DATABASE_USERNAME'];
+  var dbSecret = Platform.environment['DATABASE_SECRET'];
+  var dirUresaxPath = Platform.environment['URESAX_STATIC_LOCAL_SERVER_PATH'];
+  bool enabledConceptByTypeContext =bool.parse( Platform.environment['URESAX_ENABLED_CONCEPT_BY_TYPECONTEXT'] ?? 'false');

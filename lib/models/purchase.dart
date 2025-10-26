@@ -318,6 +318,12 @@ class Purchase {
 
     String where = '''$subParams $rangeDatesAsString''';
 
+    String paramsContext1 = '''p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10''';
+    String paramsContext2 ='''p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10''';
+     if(enabledConceptByTypeContext){
+      paramsContext1 = '''p."typeContextId" = 2''';
+      paramsContext2=  '''p."typeContextId" = 1''';
+     }
     try {
       var rsults = await connection.runTx((c) async {
         var r1 = await c.mappedResultsQuery('''
@@ -349,11 +355,11 @@ class Purchase {
       ''', substitutionValues: {'searchWord': '%$words%'});
 
         var r2 = await c.mappedResultsQuery('''
-           SELECT trunc(sum(p.invoice_tax - p.invoice_tax_con),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
+           SELECT trunc(sum(p.invoice_tax - p.invoice_tax_con),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $where and ($paramsContext1)
       ''', substitutionValues: {'searchWord': '%$words%'});
 
         var r3 = await c.mappedResultsQuery('''
-           SELECT trunc(coalesce(sum(p.invoice_tax - p.invoice_tax_con),0),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''',
+           SELECT trunc(coalesce(sum(p.invoice_tax - p.invoice_tax_con),0),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and ($paramsContext2)''',
             substitutionValues: {'searchWord': '%$words%'});
 
         var r5 = await c.mappedResultsQuery('''
@@ -933,6 +939,13 @@ class Purchase {
         '''$filterParams "invoice_companyId" = '$id' $queryContextI $extra''';
     String where = '''$subParams $rangeDatesAsString''';
 
+    String paramsContext1 = '''p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10''';
+    String paramsContext2 ='''p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10''';
+     if(enabledConceptByTypeContext){
+      paramsContext1 = '''p."typeContextId" = 2''';
+      paramsContext2=  '''p."typeContextId" = 1''';
+     }
+
     try {
       var rsults = await connection.runTx((c) async {
         var r1 = await c.mappedResultsQuery('''
@@ -963,11 +976,11 @@ class Purchase {
 ORDER BY row_number() over() asc;
       ''', substitutionValues: {'searchWord': '%$words%'});
         var r2 = await c.mappedResultsQuery('''
-           SELECT  trunc(coalesce(sum(p.invoice_tax - p.invoice_tax_con),0),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" = 9 or p."invoice_typeId" = 8 or p."invoice_typeId" = 10)
+           SELECT  trunc(coalesce(sum(p.invoice_tax - p.invoice_tax_con),0),2)::money::text AS "ITBIS FACTURADO EN BIENES" FROM public."PurchaseDetails" p WHERE $where and ($paramsContext1)
       ''', substitutionValues: {'searchWord': '%$words%'});
 
         var r3 = await c.mappedResultsQuery('''
-            SELECT   trunc(coalesce(sum(p.invoice_tax - p.invoice_tax_con),0),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and (p."invoice_typeId" != 9 and p."invoice_typeId" != 8 and p."invoice_typeId" != 10)''',
+            SELECT   trunc(coalesce(sum(p.invoice_tax - p.invoice_tax_con),0),2)::money::text AS "ITBIS FACTURADO EN SERVICIOS" FROM public."PurchaseDetails" p WHERE $where and ($paramsContext2)''',
             substitutionValues: {'searchWord': '%$words%'});
 
         var r5 = await c.mappedResultsQuery('''

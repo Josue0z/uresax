@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "URESAX"
-#define MyAppVersion " 5.0.0+12"
+#define MyAppVersion "5.0.2+14"
 #define MyAppPublisher "URENA LORENZO & ASOCIADOS SRL"
 #define MyAppExeName "uresaxapp.exe"
 #define MyAppAssocName MyAppName + " File"
@@ -12,7 +12,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{B3CA6EF9-7C11-4443-985E-C40DA2E103B5}
+AppId={{46462DC0-080F-448D-BF1E-C8E7B062ECD7}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -31,8 +31,8 @@ ChangesAssociations=yes
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
-OutputBaseFilename=uresaxsetup
-SetupIconFile=C:\Users\JUANPUM\Documents\uresax\windows\runner\resources\app_icon.ico
+OutputBaseFilename=uresax_setup
+SetupIconFile=C:\Users\Dell\Documents\uresax\windows\runner\resources\app_icon.ico
 SolidCompression=yes
 WizardStyle=modern
 
@@ -43,18 +43,18 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\bitsdojo_window_windows_plugin.lib"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\flutter_platform_alert_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\flutter_secure_storage_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\flutter_windows.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\pdfium.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\printing_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\screen_retriever_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\uresaxapp.exp"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\uresaxapp.lib"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\window_manager_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\JUANPUM\Documents\uresax\build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\bitsdojo_window_windows_plugin.lib"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\flutter_platform_alert_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\flutter_secure_storage_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\flutter_windows.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\pdfium.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\printing_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\screen_retriever_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\uresaxapp.exp"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\uresaxapp.lib"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\window_manager_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Dell\Documents\uresax\build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]

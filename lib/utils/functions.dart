@@ -40,7 +40,6 @@ Future<dynamic> verifyTaxPayer(String rnc) async {
 Future<void> launchFile(String path) async {
   ProcessResult? result;
 
-  print(path);
 
   if (Platform.isMacOS) {
     result = await Process.run('open', [path]);
